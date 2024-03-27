@@ -2307,6 +2307,59 @@ public class FilesIT {
                 .body("data.files[0]", equalTo(null))
                 .statusCode(OK.getStatusCode());
     }
+
+    @Test
+    public void testDeleteReplacedFile() {
+        msgt("testDeleteReplacedFile");
+        // Create user
+        String apiToken = createUserGetToken();
+
+        // Create Dataverse
+        String dataverseAlias = createDataverseGetAlias(apiToken);
+
+        // Create Dataset
+        Response createDataset = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiToken);
+        createDataset.then().assertThat()
+                .statusCode(CREATED.getStatusCode());
+
+        Integer datasetId = UtilIT.getDatasetIdFromResponse(createDataset);
+
+        // Upload file
+        String pathToFile1 = "src/main/webapp/resources/images/dataverseproject.png";
+        JsonObjectBuilder json1 = Json.createObjectBuilder()
+                .add("description", "my description1")
+                .add("directoryLabel", "data/subdir1")
+                .add("categories", Json.createArrayBuilder().add("Data"));
+        Response uploadResponse1 = UtilIT.uploadFileViaNative(datasetId.toString(), pathToFile1, json1.build(), apiToken);
+        uploadResponse1.then().assertThat().statusCode(OK.getStatusCode());
+
+        Integer origFileId = JsonPath.from(uploadResponse1.body().asString()).getInt("data.files[0].dataFile.id");
+
+        // Publish collection and dataset
+        UtilIT.publishDataverseViaNativeApi(dataverseAlias, apiToken).then().assertThat().statusCode(OK.getStatusCode());
+        UtilIT.publishDatasetViaNativeApi(datasetId, "major", apiToken).then().assertThat().statusCode(OK.getStatusCode());
+
+        // Replace file
+        String pathToFile2 = "src/main/webapp/resources/images/cc0.png";
+        JsonObjectBuilder json2 = Json.createObjectBuilder()
+                .add("description", "my description2")
+                .add("directoryLabel", "data/subdir1")
+                .add("categories", Json.createArrayBuilder().add("Data"));
+        Response replaceResp = UtilIT.replaceFile(origFileId.toString(), pathToFile2, json2.build(), apiToken);
+        replaceResp.prettyPrint();
+        replaceResp.then().assertThat().statusCode(OK.getStatusCode());
+
+        Integer newFileId = JsonPath.from(replaceResp.body().asString()).getInt("data.files[0].dataFile.id");
+
+        // Delete file with old ID (before replace)
+        Response deleteResponseFail = UtilIT.deleteFileApi(origFileId, apiToken);
+        deleteResponseFail.prettyPrint();
+        deleteResponseFail.then().assertThat().statusCode(NOT_FOUND.getStatusCode());
+
+        // Delete file with new ID (after replace)
+        Response deleteResponse = UtilIT.deleteFileApi(newFileId, apiToken);
+        deleteResponse.then().assertThat().statusCode(OK.getStatusCode());
+    }
     
     // The following specifically tests file-level PIDs configuration in 
     // individual collections (#8889/#9614)
