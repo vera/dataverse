@@ -122,6 +122,7 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.container.ContainerRequestContext;
+import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
@@ -1086,6 +1087,39 @@ public class Dataverses extends AbstractApiBean {
                         .map(dvo -> (JsonObjectBuilder) dvo.accept(ser))
                         .collect(toJsonArray())
         ), getRequestUser(crc));
+    }
+
+    @PUT
+    @AuthRequired
+    @Path("{identifier}/pidGenerator")
+    public Response setPidGenerator(@Context ContainerRequestContext crc, @PathParam("identifier") String dvIdtf,
+                                    String generatorId, @Context HttpHeaders headers) throws WrappedResponse {
+
+        // Superuser-only:
+        AuthenticatedUser user;
+        try {
+            user = getRequestAuthenticatedUserOrDie(crc);
+        } catch (WrappedResponse ex) {
+            return error(Response.Status.UNAUTHORIZED, "Authentication is required.");
+        }
+        if (!user.isSuperuser()) {
+            return error(Response.Status.FORBIDDEN, "Superusers only.");
+        }
+
+        Dataverse dataverse;
+
+        try {
+            dataverse = findDataverseOrDie(dvIdtf);
+        } catch (WrappedResponse ex) {
+            return error(Response.Status.NOT_FOUND, "No such dataverse");
+        }
+        if (PidUtil.getManagedProviderIds().contains(generatorId)) {
+            dataverse.setPidGeneratorId(generatorId);
+            return ok("PID Generator set to: " + generatorId);
+        } else {
+            return error(Response.Status.NOT_FOUND, "No PID Generator found for the given id");
+        }
+
     }
 
     @GET
