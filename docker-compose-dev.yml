@@ -24,6 +24,18 @@ services:
       DATAVERSE_AUTH_OIDC_CLIENT_SECRET: 94XHrfNRwXsjqTqApRrwWmhDLDHpIYV8
       DATAVERSE_AUTH_OIDC_AUTH_SERVER_URL: http://keycloak.mydomain.com:8090/realms/test
       DATAVERSE_SPI_EXPORTERS_DIRECTORY: "/dv/exporters"
+      DATAVERSE_PID_PROVIDERS: "doi,permalink"
+      DATAVERSE_PID_DEFAULT_PROVIDER: "permalink"
+      DATAVERSE_PID_PERMALINK_TYPE: "perma"
+      DATAVERSE_PID_PERMALINK_LABEL: "PermaLink Provider"
+      DATAVERSE_PID_PERMALINK_AUTHORITY: "https://example.test/"
+      DATAVERSE_PID_PERMALINK_SHOULDER: "dataset/"
+      DATAVERSE_PID_DOI_TYPE: "datacite"
+      DATAVERSE_PID_DOI_LABEL: "DOI Provider"
+      DATAVERSE_PID_DOI_AUTHORITY: "10.5072"
+      DATAVERSE_PID_DOI_SHOULDER: "FK2/"
+      DATAVERSE_PID_DOI_DATACITE_USERNAME: "fake"
+      DATAVERSE_PID_DOI_DATACITE_PASSWORD: "fake"
       # These two oai settings are here to get HarvestingServerIT to pass
       dataverse_oai_server_maxidentifiers: "2"
       dataverse_oai_server_maxrecords: "2"
@@ -51,12 +63,6 @@ services:
         -Ddataverse.files.minio1.download-redirect=false
         -Ddataverse.files.minio1.access-key=4cc355_k3y
         -Ddataverse.files.minio1.secret-key=s3cr3t_4cc355_k3y
-        -Ddataverse.pid.providers=fake
-        -Ddataverse.pid.default-provider=fake
-        -Ddataverse.pid.fake.type=FAKE
-        -Ddataverse.pid.fake.label=FakeDOIProvider
-        -Ddataverse.pid.fake.authority=10.5072
-        -Ddataverse.pid.fake.shoulder=FK2/
     ports:
       - "8080:8080" # HTTP (Dataverse Application)
       - "4949:4848" # HTTPS (Payara Admin Console)

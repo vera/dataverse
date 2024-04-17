@@ -208,6 +208,13 @@ public class UtilIT {
         return response;
     }
 
+    public static Response getPidProviders(String apiToken) {
+        Response response = given()
+                .header(API_TOKEN_HTTP_HEADER, apiToken)
+                .get("/api/pids/providers");
+        return response;
+    }
+
     public static Response computeDataFileHashValue(String fileId, String alg, String apiToken) {
         Response response = given()
                 .body(fileId)
@@ -402,6 +409,14 @@ public class UtilIT {
         //createDataverseResponse.prettyPrint();
         createCollectionResponse.then().assertThat().statusCode(CREATED.getStatusCode());
         return UtilIT.getAliasFromResponse(createCollectionResponse);
+    }
+
+    static Response setDefaultPidGeneratorForDataverse(String alias, String pidGenerator, String apiToken) {
+        return given()
+                .header(API_TOKEN_HTTP_HEADER, apiToken)
+                .body(pidGenerator)
+                .contentType("application/json")
+                .put("/api/dataverses/" + alias + "/pidGenerator");
     }
 
     static Response showDataverseContents(String alias, String apiToken) {

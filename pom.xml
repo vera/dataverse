@@ -690,6 +690,30 @@
             <artifactId>hazelcast</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-java</artifactId>
+            <version>${cucumber.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-suite</artifactId>
+            <version>${junit-platform.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-junit-platform-engine</artifactId>
+            <version>${cucumber.version}</version>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>junit</groupId>
+                    <artifactId>junit</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
     </dependencies>
     <build>
         <testResources>
@@ -1013,6 +1037,7 @@
                                         <assembly>
                                             <descriptor>assembly.xml</descriptor>
                                         </assembly>
+<!--                                        <network>host</network>-->
                                     </build>
                                     
                                     <run>
@@ -1037,11 +1062,13 @@
                                         <dockerFile>${project.basedir}/modules/container-configbaker/Dockerfile</dockerFile>
                                         <args>
                                             <SOLR_VERSION>${SOLR_VERSION}</SOLR_VERSION>
+                                            <TIMEOUT>10m</TIMEOUT>
                                         </args>
                                         <filter>@</filter>
                                         <assembly>
                                             <descriptor>${project.basedir}/modules/container-configbaker/assembly.xml</descriptor>
                                         </assembly>
+<!--                                        <network>host</network>-->
                                     </build>
                                     
                                     <!--
