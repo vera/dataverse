@@ -1,20 +1,8 @@
 package edu.harvard.iq.dataverse.api;
 
-import edu.harvard.iq.dataverse.DataFile;
-import edu.harvard.iq.dataverse.DataFileServiceBean;
+import edu.harvard.iq.dataverse.*;
 import edu.harvard.iq.dataverse.Dataset;
-import edu.harvard.iq.dataverse.DatasetFieldServiceBean;
-import edu.harvard.iq.dataverse.DatasetFieldType;
-import edu.harvard.iq.dataverse.DatasetServiceBean;
-import edu.harvard.iq.dataverse.DatasetVersion;
-import edu.harvard.iq.dataverse.DatasetVersionServiceBean;
 import edu.harvard.iq.dataverse.DatasetVersionServiceBean.RetrieveDatasetVersionResponse;
-import edu.harvard.iq.dataverse.Dataverse;
-import edu.harvard.iq.dataverse.DataverseServiceBean;
-import edu.harvard.iq.dataverse.DvObject;
-import edu.harvard.iq.dataverse.DvObjectServiceBean;
-import edu.harvard.iq.dataverse.FileMetadata;
-import edu.harvard.iq.dataverse.RoleAssignment;
 import edu.harvard.iq.dataverse.api.auth.AuthRequired;
 import edu.harvard.iq.dataverse.authorization.users.AuthenticatedUser;
 import edu.harvard.iq.dataverse.authorization.users.GuestUser;
@@ -45,6 +33,7 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -97,6 +86,8 @@ public class Index extends AbstractApiBean {
     DatasetFieldServiceBean datasetFieldService;
     @EJB
     SearchFilesServiceBean searchFilesService;
+    @EJB
+    MetadataBlockServiceBean metadataBlockServiceBean;
 
     public static String contentChanged = "contentChanged";
     public static String contentIndexed = "contentIndexed";
@@ -475,9 +466,16 @@ public class Index extends AbstractApiBean {
                  */
                 logger.info("email type detected (" + nameSearchable + ") See also https://github.com/IQSS/dataverse/issues/759");
             }
-            String multivalued = Boolean.toString(datasetFieldType.getSolrField().isAllowedToBeMultivalued() || cvocTermUriMap.containsKey(datasetFieldType.getId()));
+            String multivalued = Boolean.toString(
+                    datasetFieldType.getSolrField().isAllowedToBeMultivalued()
+                            || cvocTermUriMap.containsKey(datasetFieldType.getId())
+                            || datasetFieldType.getChildDatasetFieldTypes().size() > 1
+            );
+            // All fields are indexed for search, but only non-compound fields are stored for retrieval
+            String stored = Boolean.toString(!datasetFieldType.getFieldType().equals(DatasetFieldType.FieldType.NONE));
+
             // <field name="datasetId" type="text_general" multiValued="false" stored="true" indexed="true"/>
-            sb.append("    <field name=\"" + nameSearchable + "\" type=\"" + type + "\" multiValued=\"" + multivalued + "\" stored=\"true\" indexed=\"true\"/>\n");
+            sb.append("    <field name=\"" + nameSearchable + "\" type=\"" + type + "\" multiValued=\"" + multivalued + "\" stored=\"" + stored + "\" indexed=\"true\"/>\n");
         }
 
         List<String> listOfStaticFields = new ArrayList<>();
@@ -500,6 +498,17 @@ public class Index extends AbstractApiBean {
                 return error("static search field defined twice: " + staticSearchField);
             }
             listOfStaticFields.add(staticSearchField);
+        }
+
+        List<String> listOfAddedMetadataBlocks = new ArrayList<>();
+
+        // Add field for each metadata block for child fields to be copied into
+        for (MetadataBlock metadataBlock : metadataBlockServiceBean.listMetadataBlocks()) {
+            // Avoid name collisions with metadata fields
+            if (sb.indexOf("<field name=\"" + metadataBlock.getName() + "\"") == -1 && !listOfStaticFields.contains(metadataBlock.getName())) {
+                sb.append("    <field name=\"" + metadataBlock.getName() + "\" type=\"" + SolrField.SolrType.TEXT_EN.getType() + "\" multiValued=\"true\" stored=\"false\" indexed=\"true\"/>\n");
+                listOfAddedMetadataBlocks.add(metadataBlock.getName());
+            }
         }
 
         sb.append("---\n");
@@ -526,6 +535,24 @@ public class Index extends AbstractApiBean {
 
             // <copyField source="*_i" dest="_text_" maxChars="3000"/>
             sb.append("    <copyField source=\"").append(nameSearchable).append("\" dest=\""+ SearchFields.FULL_TEXT + "\" maxChars=\"3000\"/>\n");
+
+            // If field is not a compound field, but has actual content...
+            if (!datasetField.getFieldType().equals(DatasetFieldType.FieldType.NONE)) {
+                // ...copy the content of the field...
+                if (datasetField.isHasParent()) {
+                    DatasetFieldType currentFieldType = datasetField;
+                    while (currentFieldType.isHasParent()) {
+                        // ...into all parent compound fields...
+                        sb.append("    <copyField source=\"").append(datasetField.getSolrField().getNameSearchable()).append("\" dest=\"").append(currentFieldType.getParentDatasetFieldType().getSolrField().getNameSearchable()).append("\" maxChars=\"3000\"/>\n");
+                        currentFieldType = currentFieldType.getParentDatasetFieldType();
+                    }
+                }
+                // ...and finally, into parent metadata block field, if it exists
+                // (if metadata block name collided with a metadata field name, the field won't exist)
+                if (listOfAddedMetadataBlocks.contains(datasetField.getMetadataBlock().getName())) {
+                    sb.append("    <copyField source=\"").append(nameSearchable).append("\" dest=\"" + datasetField.getMetadataBlock().getName() + "\" maxChars=\"3000\"/>\n");
+                }
+            }
         }
 
         return sb.toString();
