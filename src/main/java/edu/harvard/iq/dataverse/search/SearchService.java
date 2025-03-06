@@ -65,7 +65,7 @@ public interface SearchService {
             List<String> filterQueries, String sortField, String sortOrder, int paginationStart,
             boolean onlyDataRelatedToMe, int numResultsPerPage, boolean retrieveEntities, String geoPoint,
             String geoRadius) throws SearchException{
-        return search(dataverseRequest, dataverses, query, filterQueries, sortField, sortOrder, paginationStart, onlyDataRelatedToMe, numResultsPerPage, true, null, null, true, true, false, false);
+        return search(dataverseRequest, dataverses, query, filterQueries, sortField, sortOrder, paginationStart, onlyDataRelatedToMe, numResultsPerPage, true, null, null, true, true, false, false, 0);
     }
 
     /**
@@ -91,7 +91,7 @@ public interface SearchService {
     SolrQueryResponse search(DataverseRequest dataverseRequest, List<Dataverse> dataverses, String query,
             List<String> filterQueries, String sortField, String sortOrder, int paginationStart,
             boolean onlyDataRelatedToMe, int numResultsPerPage, boolean retrieveEntities, String geoPoint,
-            String geoRadius, boolean addFacets, boolean addHighlights, boolean addCollections, boolean expand) throws SearchException;
+            String geoRadius, boolean addFacets, boolean addHighlights, boolean addCollections, boolean expand, int expandRows) throws SearchException;
 
     /** Provide a way for other search engines to use the solr search engine
      * 

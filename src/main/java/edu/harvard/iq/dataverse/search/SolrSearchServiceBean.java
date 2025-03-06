@@ -85,7 +85,7 @@ public class SolrSearchServiceBean implements SearchService {
     PermissionServiceBean permissionService;
     @Inject
     ThumbnailServiceWrapper thumbnailServiceWrapper;
-    
+
 
     @Override
     public String getServiceName() {
@@ -410,7 +410,8 @@ public class SolrSearchServiceBean implements SearchService {
             boolean addFacets,
             boolean addHighlights,
             boolean addCollections,
-            boolean expand
+            boolean expand,
+            int expandRows
     ) throws SearchException {
 
         if (paginationStart < 0) {
@@ -436,6 +437,7 @@ public class SolrSearchServiceBean implements SearchService {
 
         if (expand) {
             solrQuery.setParam("expand", "true");
+            solrQuery.setParam("expand.rows", String.valueOf(expandRows));
         }
 
         /**
@@ -947,7 +949,7 @@ public class SolrSearchServiceBean implements SearchService {
             for (String groupId : queryResponse.getExpandedResults().keySet()) {
                 List<SolrSearchResult> groupResults = new ArrayList<>();
                 for (SolrDocument solrDocument : queryResponse.getExpandedResults().get(groupId)) {
-                    groupResults.add(solrDocumentToSolrSearchResult(solrDocument, query, titleSolrField, baseUrl, addHighlights, queryResponse, solrFieldsToHightlightOnMap, retrieveEntities, dataverseRequest));
+                    groupResults.add(solrDocumentToSolrSearchResult(solrDocument, query, titleSolrField, baseUrl, addHighlights, addCollections, queryResponse, solrFieldsToHightlightOnMap, retrieveEntities, dataverseRequest));
                 }
                 expandedResults.put(groupId, groupResults);
             }

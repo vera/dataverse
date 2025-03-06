@@ -78,6 +78,7 @@ public class Search extends AbstractApiBean {
             @QueryParam("show_collections") boolean showCollections,
             @QueryParam("search_service") String searchServiceName,
             @QueryParam("expand") boolean expand,
+            @QueryParam("expand_rows") final int expandRows,
             @Context HttpServletResponse response
     ) {
 
@@ -140,7 +141,7 @@ public class Search extends AbstractApiBean {
                         try {
 
                             SolrQueryResponse resp = searchService.search(requestUser, dataverseSubtrees, query, totalFilterQueries, null, null, 0,
-                                    dataRelatedToMe, 1, false, null, null, false, false, false);
+                                    dataRelatedToMe, 1, false, null, null, false, false, false, false, 0);
                             if (resp != null) {
                                 for (FacetCategory facetCategory : resp.getTypeFacetCategories()) {
                                     for (FacetLabel facetLabel : facetCategory.getFacetLabel()) {
@@ -201,7 +202,8 @@ public class Search extends AbstractApiBean {
                         showFacets, // facets are expensive, no need to ask for them if not requested
                         showRelevance, // no need for highlights unless requested either
                         showCollections, // same for collections
-                        expand
+                        expand,
+                        expandRows
                 );
             } catch (SearchException ex) {
                 Throwable cause = ex;
