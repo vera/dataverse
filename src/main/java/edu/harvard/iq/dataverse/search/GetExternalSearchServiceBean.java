@@ -44,7 +44,7 @@ public class GetExternalSearchServiceBean extends AbstractExternalSearchServiceB
     public SolrQueryResponse search(DataverseRequest dataverseRequest, List<Dataverse> dataverses, String query,
             List<String> filterQueries, String sortField, String sortOrder, int paginationStart,
             boolean onlyDataRelatedToMe, int numResultsPerPage, boolean retrieveEntities, String geoPoint,
-            String geoRadius, boolean addFacets, boolean addHighlights, boolean addCollections) throws SearchException {
+            String geoRadius, boolean addFacets, boolean addHighlights, boolean addCollections, boolean expand) throws SearchException {
 
         String externalSearchUrl = settingsService.getValueForKey(SettingsServiceBean.Key.GetExternalSearchUrl);
         if (externalSearchUrl == null || externalSearchUrl.isEmpty()) {

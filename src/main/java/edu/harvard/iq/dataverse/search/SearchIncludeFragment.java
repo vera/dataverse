@@ -361,7 +361,7 @@ public class SearchIncludeFragment implements java.io.Serializable {
             DataverseRequest dataverseRequest = getDataverseRequest();
             List<Dataverse> dataverses = new ArrayList<>();
             dataverses.add(dataverse);
-            solrQueryResponse = searchServiceFactory.getDefaultSearchService().search(dataverseRequest, dataverses, queryToPassToSolr, filterQueriesFinal, sortField, sortOrder.toString(), paginationStart, onlyDataRelatedToMe, numRows, false, null, null, !isFacetsDisabled(), true, false);
+            solrQueryResponse = searchServiceFactory.getDefaultSearchService().search(dataverseRequest, dataverses, queryToPassToSolr, filterQueriesFinal, sortField, sortOrder.toString(), paginationStart, onlyDataRelatedToMe, numRows, false, null, null, !isFacetsDisabled(), true, false, false);
             if (solrQueryResponse.hasError()){
                 logger.info(solrQueryResponse.getError());
                 setSolrErrorEncountered(true);
@@ -416,7 +416,7 @@ public class SearchIncludeFragment implements java.io.Serializable {
                 logger.fine("second pass query: " + queryToPassToSolr);
                 logger.fine("second pass filter query: "+filterQueriesFinalSecondPass.toString());
 
-                solrQueryResponseSecondPass = searchServiceFactory.getDefaultSearchService().search(dataverseRequest, dataverses, queryToPassToSolr, filterQueriesFinalSecondPass, null, sortOrder.toString(), 0, onlyDataRelatedToMe, 1, false, null, null, false, false, false);
+                solrQueryResponseSecondPass = searchServiceFactory.getDefaultSearchService().search(dataverseRequest, dataverses, queryToPassToSolr, filterQueriesFinalSecondPass, null, sortOrder.toString(), 0, onlyDataRelatedToMe, 1, false, null, null, false, false, false, false);
 
                 if (solrQueryResponseSecondPass != null) {
 

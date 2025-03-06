@@ -405,4 +405,4 @@ public class DataRetrieverAPI extends AbstractApiBean {
     private boolean isValid(SolrSearchResult result) {
         return result.isValid(x -> true);
     }
-}        
+}
