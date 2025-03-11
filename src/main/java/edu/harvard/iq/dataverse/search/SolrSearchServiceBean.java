@@ -945,8 +945,10 @@ public class SolrSearchServiceBean implements SearchService {
         }
 
         Map<String, List<SolrSearchResult>> expandedResults = new HashMap<>();
-        if (expand) {
+        Map<String, Long> numExpandedResultsFound = new HashMap<>();
+        if (expand && queryResponse.getExpandedResults() != null) {
             for (String groupId : queryResponse.getExpandedResults().keySet()) {
+                numExpandedResultsFound.put(groupId, queryResponse.getExpandedResults().get(groupId).getNumFound());
                 List<SolrSearchResult> groupResults = new ArrayList<>();
                 for (SolrDocument solrDocument : queryResponse.getExpandedResults().get(groupId)) {
                     groupResults.add(solrDocumentToSolrSearchResult(solrDocument, query, titleSolrField, baseUrl, addHighlights, addCollections, queryResponse, solrFieldsToHightlightOnMap, retrieveEntities, dataverseRequest));
@@ -965,6 +967,7 @@ public class SolrSearchServiceBean implements SearchService {
         solrQueryResponse.setDatasetfieldFriendlyNamesBySolrField(datasetfieldFriendlyNamesBySolrField);
         solrQueryResponse.setStaticSolrFieldFriendlyNamesBySolrField(staticSolrFieldFriendlyNamesBySolrField);
         solrQueryResponse.setExpandedSolrSearchResults(expandedResults);
+        solrQueryResponse.setNumExpandedSolrSearchResultsFound(numExpandedResultsFound);
         String[] filterQueriesArray = solrQuery.getFilterQueries();
         if (filterQueriesArray != null) {
             // null check added because these tests were failing: mvn test -Dtest=SearchIT
