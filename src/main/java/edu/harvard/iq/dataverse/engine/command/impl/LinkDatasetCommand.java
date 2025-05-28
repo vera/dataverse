@@ -29,7 +29,7 @@ import org.apache.solr.client.solrj.SolrServerException;
  *
  * @author skraffmiller
  */
-@RequiredPermissions(Permission.PublishDataset)
+@RequiredPermissions(Permission.LinkDataset)
 public class LinkDatasetCommand extends AbstractCommand<DatasetLinkingDataverse> {
     
     private final Dataset linkedDataset;
