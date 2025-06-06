@@ -74,6 +74,7 @@ public class Search extends AbstractApiBean {
             @QueryParam("geo_point") String geoPointRequested,
             @QueryParam("geo_radius") String geoRadiusRequested,
             @QueryParam("show_type_counts") boolean showTypeCounts,
+            @QueryParam("show_collections") boolean showCollections,
             @Context HttpServletResponse response
     ) {
 
@@ -118,7 +119,7 @@ public class Search extends AbstractApiBean {
                     }
                 }
                 filterQueries.add(getFilterQueryFromSubtrees(dataverseSubtrees));
-                
+
                 if(filterQueries.isEmpty()) { //Extra sanity check just in case someone else touches this
                     throw new IOException("Filter is empty, which should never happen, as this allows unfettered searching of our index");
                 }
@@ -140,7 +141,7 @@ public class Search extends AbstractApiBean {
 
             // users can't change these (yet anyway)
             boolean dataRelatedToMe = showMyData; //getDataRelatedToMe();
-            
+
             SolrQueryResponse solrQueryResponse;
             try {
                 solrQueryResponse = searchService.search(createDataverseRequest(user),
@@ -156,7 +157,8 @@ public class Search extends AbstractApiBean {
                         geoPoint,
                         geoRadius,
                         showFacets, // facets are expensive, no need to ask for them if not requested
-                        showRelevance // no need for highlights unless requested either
+                        showRelevance, // no need for highlights unless requested either
+                        showCollections // same for collections
                 );
             } catch (SearchException ex) {
                 Throwable cause = ex;
@@ -211,7 +213,7 @@ public class Search extends AbstractApiBean {
             }
 
             value.add("count_in_response", solrSearchResults.size());
-            
+
             // we want to show the missing dvobject types with count = 0
             // per https://github.com/IQSS/dataverse/issues/11127
 
