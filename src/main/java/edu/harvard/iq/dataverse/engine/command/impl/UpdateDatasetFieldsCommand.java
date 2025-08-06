@@ -18,24 +18,32 @@ public class UpdateDatasetFieldsCommand extends AbstractDatasetCommand<Dataset> 
     private final Dataset dataset;
     private final List<DatasetField> updatedFields;
     private final boolean replaceData;
+    private final boolean publish;
     private final UpdateDatasetVersionCommand updateDatasetVersionCommand;
 
-    public UpdateDatasetFieldsCommand(Dataset dataset, List<DatasetField> updatedFields, boolean replaceData, DataverseRequest request) {
-        this(dataset, updatedFields, replaceData, request, null);
+    public UpdateDatasetFieldsCommand(Dataset dataset, List<DatasetField> updatedFields, boolean replaceData, boolean publish, DataverseRequest request) {
+        this(dataset, updatedFields, replaceData, publish, request, null);
     }
 
     // Use only for testing purposes
-    public UpdateDatasetFieldsCommand(Dataset dataset, List<DatasetField> updatedFields, boolean replaceData, DataverseRequest request, UpdateDatasetVersionCommand updateDatasetVersionCommand) {
+    public UpdateDatasetFieldsCommand(Dataset dataset, List<DatasetField> updatedFields, boolean replaceData, boolean publish, DataverseRequest request, UpdateDatasetVersionCommand updateDatasetVersionCommand) {
         super(request, dataset);
         this.dataset = dataset;
         this.updatedFields = updatedFields;
         this.replaceData = replaceData;
+        this.publish = publish;
         this.updateDatasetVersionCommand = updateDatasetVersionCommand;
     }
 
     @Override
     public Dataset execute(CommandContext ctxt) throws CommandException {
-        DatasetVersion datasetVersion = dataset.getOrCreateEditVersion();
+        DatasetVersion datasetVersion;
+        if (publish) {
+            datasetVersion = dataset.getLatestVersionForCopy();
+        } else {
+            datasetVersion = dataset.getOrCreateEditVersion();
+            datasetVersion.setVersionState(DatasetVersion.VersionState.DRAFT);
+        }
         datasetVersion.getTermsOfUseAndAccess().setDatasetVersion(datasetVersion);
 
         String validationErrors = ctxt.datasetFieldsValidator().validateFields(updatedFields, datasetVersion);
@@ -45,8 +53,12 @@ public class UpdateDatasetFieldsCommand extends AbstractDatasetCommand<Dataset> 
                             List.of(validationErrors)), this);
         }
 
-        datasetVersion.setVersionState(DatasetVersion.VersionState.DRAFT);
         updateDatasetVersionFields(datasetVersion);
+
+        if (publish) {
+            ctxt.engine().submit(new UpdatePublishedDatasetVersionCommand(getRequest(), datasetVersion));
+            return this.dataset;
+        }
 
         return ctxt.engine().submit(updateDatasetVersionCommand == null ? new UpdateDatasetVersionCommand(this.dataset, getRequest()) : updateDatasetVersionCommand);
     }

@@ -1114,7 +1114,8 @@ public class Datasets extends AbstractApiBean {
     @Path("{id}/editMetadata")
     public Response editVersionMetadata(@Context ContainerRequestContext crc, String jsonBody, @PathParam("id") String id,
                                         @QueryParam("replace") boolean replaceData,
-                                        @QueryParam("sourceLastUpdateTime") String sourceLastUpdateTime) {
+                                        @QueryParam("sourceLastUpdateTime") String sourceLastUpdateTime,
+                                        @QueryParam("publish") Boolean publish) {
         try {
             Dataset dataset = findDatasetOrDie(id);
 
@@ -1131,7 +1132,7 @@ public class Datasets extends AbstractApiBean {
                 updatedFields = jsonParser().parseMultipleFields(json, replaceData);
             }
 
-            DatasetVersion updatedVersion = execCommand(new UpdateDatasetFieldsCommand(dataset, updatedFields, replaceData, createDataverseRequest(getRequestUser(crc)))).getLatestVersion();
+            DatasetVersion updatedVersion = execCommand(new UpdateDatasetFieldsCommand(dataset, updatedFields, replaceData, publish, createDataverseRequest(getRequestUser(crc)))).getLatestVersion();
 
             return ok(json(updatedVersion, true));
 
@@ -5134,24 +5135,24 @@ public class Datasets extends AbstractApiBean {
 
     /**
      * API endpoint to retrieve a URL for a dataset-level external tool.
-     * 
+     *
      * This endpoint allows clients to get a URL for accessing an external tool
      * that operates at the dataset level. The URL includes necessary authentication tokens and
      * parameters based on the user's permissions and the tool's configuration.
-     * 
+     *
      * The endpoint accepts JSON input with optional parameters:
      * - preview: boolean flag to indicate if the tool should run in preview mode (preview mode, if supported by the tool, suppresses showing metadata (i.e. item name/PID) and is intended for cases where the tool is embedded in the dataset/file page and this metadata is not needed. The current JSF UI never embeds a dataset-level tool in an iframe, so this is param is not currently useful (and may not be supported in dataset tools yet)
      * - locale: string specifying the locale for internationalization
-     * 
+     *
      * The response includes:
      * - toolUrl: the URL to access the external tool
      * - toolName: the display name of the external tool
      * - datasetId: the ID of the dataset
      * - preview: whether the URL is for preview mode
-     * 
+     *
      * Authentication is required, and appropriate permissions are checked before generating the URL.
      * For restricted datasets (draft or deaccessioned), the user must have ViewUnpublishedDataset permission.
-     * 
+     *
      * @param crc The container request context for authentication
      * @param datasetId The ID of the dataset
      * @param externalToolId The ID of the external tool
@@ -6165,7 +6166,7 @@ public Response getDatasetExternalToolUrl(@Context ContainerRequestContext crc, 
             }
         }, getRequestUser(crc));
     }
-    
+
     /**
      * Storage quotas and use. Note that these methods replicate the
      * collection-level equivalents 1:1. Both the quotas and the system for
@@ -6173,7 +6174,7 @@ public Response getDatasetExternalToolUrl(@Context ContainerRequestContext crc, 
      * DvObjectContainers internally and therefore work identically in both
      * cases.
      */
-    
+
     @GET
     @AuthRequired
     @Path("{identifier}/storage/quota")
@@ -6188,13 +6189,13 @@ public Response getDatasetExternalToolUrl(@Context ContainerRequestContext crc, 
             return ex.getResponse();
         }
     }
-    
+
     @PUT
     @AuthRequired
     @Path("{identifier}/storage/quota")
     public Response setDatasetQuota(@Context ContainerRequestContext crc, @PathParam("identifier") String dvIdtf, String value) throws WrappedResponse {
         try {
-            Long bytesAllocated; 
+            Long bytesAllocated;
             try {
                 bytesAllocated = Long.parseLong(value);
             } catch (NumberFormatException nfe){
@@ -6206,7 +6207,7 @@ public Response getDatasetExternalToolUrl(@Context ContainerRequestContext crc, 
             return ex.getResponse();
         }
     }
-    
+
     @DELETE
     @AuthRequired
     @Path("{identifier}/storage/quota")
@@ -6218,13 +6219,13 @@ public Response getDatasetExternalToolUrl(@Context ContainerRequestContext crc, 
             return ex.getResponse();
         }
     }
-    
+
     /**
      *
      * @param crc
      * @param identifier
      * @return
-     * @throws edu.harvard.iq.dataverse.api.AbstractApiBean.WrappedResponse 
+     * @throws edu.harvard.iq.dataverse.api.AbstractApiBean.WrappedResponse
      * @todo: add an optional parameter that would force the recorded storage use
      * to be recalculated (or should that be a POST version of this API?)
      */
@@ -6235,7 +6236,7 @@ public Response getDatasetExternalToolUrl(@Context ContainerRequestContext crc, 
         return response(req -> ok(MessageFormat.format(BundleUtil.getStringFromBundle("dataset.storage.use"),
                 execCommand(new GetDatasetStorageUseCommand(req, findDatasetOrDie(identifier))))), getRequestUser(crc));
     }
-    
+
     @GET
     @AuthRequired
     @Path("{identifier}/uploadlimits")
