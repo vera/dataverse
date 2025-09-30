@@ -469,7 +469,7 @@ public class Index extends AbstractApiBean {
             String multivalued = Boolean.toString(
                     datasetFieldType.getSolrField().isAllowedToBeMultivalued()
                             || cvocTermUriMap.containsKey(datasetFieldType.getId())
-                            || datasetFieldType.getChildDatasetFieldTypes().size() > 1
+                            || datasetFieldType.getFieldType().equals(DatasetFieldType.FieldType.NONE)
             );
             // All fields are indexed for search, but only non-compound fields are stored for retrieval
             String stored = Boolean.toString(!datasetFieldType.getFieldType().equals(DatasetFieldType.FieldType.NONE));
