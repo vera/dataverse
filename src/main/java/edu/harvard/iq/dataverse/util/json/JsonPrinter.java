@@ -75,17 +75,22 @@ public class JsonPrinter {
     @EJB
     static InAppNotificationsJsonPrinter inAppNotificationsJsonPrinter;
 
+    @EJB
+    static RoleAssigneeServiceBean roleAssigneeService;
+
     public static void injectSettingsService(SettingsServiceBean ssb,
                                              DatasetFieldServiceBean dfsb,
                                              DataverseFieldTypeInputLevelServiceBean dfils,
                                              DatasetServiceBean ds,
                                              MailServiceBean ms,
-                                             InAppNotificationsJsonPrinter njp) {
+                                             InAppNotificationsJsonPrinter njp,
+                                             RoleAssigneeServiceBean ras) {
             settingsService = ssb;
             datasetFieldService = dfsb;
             datasetService = ds;
             mailService = ms;
             inAppNotificationsJsonPrinter = njp;
+            roleAssigneeService = ras;
     }
 
     public JsonPrinter() {
@@ -140,14 +145,24 @@ public class JsonPrinter {
     }
 
     public static JsonObjectBuilder json(RoleAssignment ra) {
-        return jsonObjectBuilder()
-                .add("id", ra.getId())
-                .add("assignee", ra.getAssigneeIdentifier())
-                .add("roleId", ra.getRole().getId())
-                .add("roleName", ra.getRole().getName())
-                .add("_roleAlias", ra.getRole().getAlias())
-                .add("privateUrlToken", ra.getPrivateUrlToken())
-                .add("definitionPointId", ra.getDefinitionPoint().getId());
+        JsonObjectBuilder job = jsonObjectBuilder()
+                                    .add("id", ra.getId())
+                                    .add("assignee", ra.getAssigneeIdentifier())
+                                    .add("assigneeName", roleAssigneeService.getRoleAssignee(ra.getAssigneeIdentifier()).getDisplayInfo().getTitle())
+                                    .add("roleId", ra.getRole().getId())
+                                    .add("roleName", ra.getRole().getName())
+                                    .add("roleDescription", ra.getRole().getDescription())
+                                    .add("_roleAlias", ra.getRole().getAlias())
+                                    .add("privateUrlToken", ra.getPrivateUrlToken())
+                                    .add("definitionPointId", ra.getDefinitionPoint().getId())
+                                    .add("definitionPointName", ra.getDefinitionPoint().getDisplayName())
+                                    .add("definitionPointType", ra.getDefinitionPoint().getDtype());
+
+        if (ra.getDefinitionPoint().getGlobalId() != null) {
+            job.add("definitionPointGlobalId", ra.getDefinitionPoint().getGlobalId().toString());
+        }
+
+        return job;
     }
 
     public static JsonArrayBuilder json(Set<Permission> permissions) {
@@ -281,12 +296,12 @@ public class JsonPrinter {
 
         return bld;
     }
-    
+
     public static JsonObjectBuilder json(Dataverse dv, boolean minimal) {
         if (!minimal){
             return json(dv, false, false, false, null);
         } else {
-            return json(dv, false, false, true, null);        
+            return json(dv, false, false, true, null);
         }
     }
 
@@ -300,7 +315,7 @@ public class JsonPrinter {
                 .add("id", dv.getId())
                 .add("alias", dv.getAlias())
                 .add("name", dv.getName());
-        //minimal refers to only returning the id alias and name for 
+        //minimal refers to only returning the id alias and name for
         //used in selecting collections available for linking
         if (minimal) {
             return bld;
@@ -1780,7 +1795,7 @@ public class JsonPrinter {
 
         return notificationsArray;
     }
-    
+
     public static JsonObjectBuilder jsonLanguage(String locale, String title) {
         // returns a single metadata language entry
         return jsonObjectBuilder().add("locale", locale).add("title", title);
@@ -1790,7 +1805,7 @@ public class JsonPrinter {
         // returns an array of metadatalanguages
         return Json.createArrayBuilder(langMap.entrySet().stream().map(entry -> jsonLanguage(entry.getKey(), entry.getValue())).toList());
     }
-    
+
     public static JsonArrayBuilder jsonDatasetVersionSummaries(List<DatasetVersionSummary> summaries) {
         JsonArrayBuilder arrayBuilder = Json.createArrayBuilder();
         summaries.stream()
