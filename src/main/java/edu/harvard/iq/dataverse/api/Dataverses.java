@@ -120,13 +120,16 @@ public class Dataverses extends AbstractApiBean {
 
     @EJB
     PermissionServiceBean permissionService;
-    
+
     @EJB
     TemplateServiceBean templateService;
 
     @EJB
     DataverseFeaturedItemServiceBean dataverseFeaturedItemServiceBean;
-    
+
+    @EJB
+    DataverseRoleServiceBean dataverseRoleService;
+
     @POST
     @AuthRequired
     public Response addRoot(@Context ContainerRequestContext crc, String body) {
@@ -1258,7 +1261,7 @@ public class Dataverses extends AbstractApiBean {
     @Path("{identifier}/storage/quota")
     public Response setCollectionQuota(@Context ContainerRequestContext crc, @PathParam("identifier") String dvIdtf, String value) throws WrappedResponse {
         try {
-            Long bytesAllocated; 
+            Long bytesAllocated;
             try {
                 bytesAllocated = Long.parseLong(value);
             } catch (NumberFormatException nfe){
@@ -1334,7 +1337,7 @@ public class Dataverses extends AbstractApiBean {
     @AuthRequired
     @Path("{identifier}/assignments/userAssignableRoles")
     public Response getAssignableRoles(@Context ContainerRequestContext crc, @PathParam("identifier") String dvIdtf) {
-        return response(req -> ok(jsonDataverseRoles(roleAssigneeSvc.getAssignableDataverseRolesFor(req, findDataverseOrDie(dvIdtf)))), getRequestUser(crc));
+        return response(req -> ok(jsonDataverseRoles(new ArrayList<>(dataverseRoleService.availableRoles(findDataverseOrDie(dvIdtf), req.getUser())))), getRequestUser(crc));
     }
 
     /**
@@ -1791,7 +1794,7 @@ public class Dataverses extends AbstractApiBean {
             return ex.getResponse();
         }
     }
-    
+
     @GET
     @AuthRequired
     @Produces(MediaType.APPLICATION_JSON)
@@ -1819,8 +1822,8 @@ public class Dataverses extends AbstractApiBean {
             return wr.getResponse();
         }
     }
-    
-    
+
+
 
     @GET
     @AuthRequired
@@ -2001,7 +2004,7 @@ public class Dataverses extends AbstractApiBean {
             return e.getResponse();
         }
     }
-    
+
     @GET
     @AuthRequired
     @Path("{id}/template/")
@@ -2030,9 +2033,9 @@ public class Dataverses extends AbstractApiBean {
                 return error(Status.BAD_REQUEST, MessageFormat.format(BundleUtil.getStringFromBundle("dataverse.createTemplate.error.jsonParseMetadataFields"), ex.getMessage()));
             }
             Template created = execCommand(new CreateTemplateCommand(newTemplateDTO.toTemplate(), createDataverseRequest(getRequestUser(crc)), dataverse, true));
-            
+
             return created("/dataverses/template/" + created.getId(), jsonTemplate(created));
-        
+
         } catch (WrappedResponse e) {
             return e.getResponse();
         }
@@ -2051,11 +2054,11 @@ public class Dataverses extends AbstractApiBean {
             Template template = findTemplateOrDie(templateId, dataverse);
             DataverseRequest dvReq = createDataverseRequest(getRequestUser(crc));
             SetDefaultTemplateCommand command = new SetDefaultTemplateCommand(template, dvReq, dataverse);
-            
+
             execCommand(command);
 
             return ok(BundleUtil.getStringFromBundle("dataverse.setDefaultTemplate.success"));
-        
+
         } catch (WrappedResponse e) {
             return e.getResponse();
         }
@@ -2104,7 +2107,7 @@ public class Dataverses extends AbstractApiBean {
             return ok(jsonLanguage(execCommand(new SetDataverseMetadataLanguageCommand(req, dataverse, lang))));
         }, getRequestUser(crc));
     }
-    
+
     @Path("{id}/template")
     @AuthRequired
     @DELETE
@@ -2125,7 +2128,7 @@ public class Dataverses extends AbstractApiBean {
 
         return ok("Template " + doomed.getName() + " deleted.");
     }
-    
+
     @GET
     @AuthRequired
     @Path("{identifier}/assignments/history")
