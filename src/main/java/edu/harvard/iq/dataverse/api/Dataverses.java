@@ -121,7 +121,10 @@ public class Dataverses extends AbstractApiBean {
 
     @EJB
     DataverseFeaturedItemServiceBean dataverseFeaturedItemServiceBean;
-    
+
+    @EJB
+    DataverseRoleServiceBean dataverseRoleService;
+
     @POST
     @AuthRequired
     public Response addRoot(@Context ContainerRequestContext crc, String body) {
@@ -1253,7 +1256,7 @@ public class Dataverses extends AbstractApiBean {
     @Path("{identifier}/storage/quota")
     public Response setCollectionQuota(@Context ContainerRequestContext crc, @PathParam("identifier") String dvIdtf, String value) throws WrappedResponse {
         try {
-            Long bytesAllocated; 
+            Long bytesAllocated;
             try {
                 bytesAllocated = Long.parseLong(value);
             } catch (NumberFormatException nfe){
@@ -1329,7 +1332,7 @@ public class Dataverses extends AbstractApiBean {
     @AuthRequired
     @Path("{identifier}/assignments/userAssignableRoles")
     public Response getAssignableRoles(@Context ContainerRequestContext crc, @PathParam("identifier") String dvIdtf) {
-        return response(req -> ok(jsonDataverseRoles(roleAssigneeSvc.getAssignableDataverseRolesFor(req, findDataverseOrDie(dvIdtf)))), getRequestUser(crc));
+        return response(req -> ok(jsonDataverseRoles(new ArrayList<>(dataverseRoleService.availableRoles(findDataverseOrDie(dvIdtf), req.getUser())))), getRequestUser(crc));
     }
 
     /**
@@ -1786,7 +1789,7 @@ public class Dataverses extends AbstractApiBean {
             return ex.getResponse();
         }
     }
-    
+
     @GET
     @AuthRequired
     @Produces(MediaType.APPLICATION_JSON)
@@ -1814,8 +1817,8 @@ public class Dataverses extends AbstractApiBean {
             return wr.getResponse();
         }
     }
-    
-    
+
+
 
     @GET
     @AuthRequired
@@ -2042,7 +2045,7 @@ public class Dataverses extends AbstractApiBean {
             return ok(jsonLanguage(execCommand(new SetDataverseMetadataLanguageCommand(req, dataverse, lang))));
         }, getRequestUser(crc));
     }
-    
+
     @GET
     @AuthRequired
     @Path("{identifier}/assignments/history")
