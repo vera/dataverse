@@ -1,5 +1,6 @@
 package edu.harvard.iq.dataverse.api;
 
+import edu.harvard.iq.dataverse.authorization.DataverseRole;
 import edu.harvard.iq.dataverse.util.json.JsonParseException;
 import edu.harvard.iq.dataverse.util.json.JsonParser;
 import edu.harvard.iq.dataverse.util.json.JsonUtil;
@@ -2255,7 +2256,7 @@ public class DataversesIT {
                 .statusCode(OK.getStatusCode())
                 .body("data.inputLevels[0].displayOnCreate", equalTo(true))
                 .body("data.inputLevels[0].datasetFieldTypeName", equalTo("notesText"));
-        
+
         updateResponse = UtilIT.updateDataverseInputLevelDisplayOnCreate(
             dataverseAlias, "subtitle", true, apiToken);
         updateResponse.then().assertThat()
@@ -2274,14 +2275,14 @@ public class DataversesIT {
                 .body("data[0].displayName", equalTo("Citation Metadata"))
                 .body("data.size()", equalTo(expectedOnlyDisplayedOnCreateNumberOfMetadataBlocks))
                 .body("data[0].fields.author.childFields.size()", is(4));
-        
+
         updateResponse = UtilIT.updateDataverseInputLevelDisplayOnCreate(
             dataverseAlias, "subtitle", false, apiToken);
         updateResponse.then().assertThat()
                 .statusCode(OK.getStatusCode())
                 .body("data.inputLevels[0].displayOnCreate", equalTo(false))
                 .body("data.inputLevels[0].datasetFieldTypeName", equalTo("subtitle"));
-        
+
     }
 
     @Test
@@ -2371,6 +2372,71 @@ public class DataversesIT {
         // Templates retrieval should fail if the user lacks dataverse edit permissions
         getTemplateResponse = UtilIT.getTemplates(dataverseAlias, secondApiToken);
         getTemplateResponse.then().assertThat().statusCode(UNAUTHORIZED.getStatusCode());
+    }
+
+    @Test
+    public void testListAssignableRoles() {
+        Response createUser = UtilIT.createRandomUser();
+        String username = UtilIT.getUsernameFromResponse(createUser);
+        String apiToken = UtilIT.getApiTokenFromResponse(createUser);
+
+        // Create a collection (under root)
+        Response createDataverseResponse = UtilIT.createRandomDataverse(apiToken);
+        String dvAlias = UtilIT.getAliasFromResponse(createDataverseResponse);
+
+        // List user-assignable roles for that collection
+        Response listUserAssignableRolesResponse = UtilIT.getUserAssignableRolesForDataverse(dvAlias, apiToken);
+        listUserAssignableRolesResponse.prettyPrint();
+        // All roles should be user-assignable, since the requesting user is admin of the collection
+        listUserAssignableRolesResponse.then().assertThat()
+                .statusCode(OK.getStatusCode())
+                .body("data.size()", equalTo(8))
+                .body("data[0].alias", equalTo(DataverseRole.ADMIN))
+                .body("data[1].alias", equalTo(DataverseRole.FILE_DOWNLOADER))
+                .body("data[2].alias", equalTo(DataverseRole.FULL_CONTRIBUTOR))
+                .body("data[3].alias", equalTo(DataverseRole.DV_CONTRIBUTOR))
+                .body("data[4].alias", equalTo(DataverseRole.DS_CONTRIBUTOR))
+                .body("data[5].alias", equalTo(DataverseRole.EDITOR))
+                .body("data[6].alias", equalTo(DataverseRole.CURATOR))
+                .body("data[7].alias", equalTo(DataverseRole.MEMBER));
+
+        // Create second user
+        Response createUser2 = UtilIT.createRandomUser();
+        String username2 = UtilIT.getUsernameFromResponse(createUser2);
+        String apiToken2 = UtilIT.getApiTokenFromResponse(createUser2);
+
+        // List user-assignable roles for second user
+        Response listUser2AssignableRolesResponse = UtilIT.getUserAssignableRolesForDataverse(dvAlias, apiToken2);
+        listUser2AssignableRolesResponse.prettyPrint();
+        // No roles should be user-assignable, since the requesting user has no permissions for the collection
+        listUser2AssignableRolesResponse.then().assertThat()
+                .statusCode(OK.getStatusCode())
+                .body("data.size()", equalTo(0));
+
+        // Assign role to second user for the collection
+        Response grantRoleResponse = UtilIT.grantRoleOnDataverse(dvAlias, "member", "@" + username2, apiToken);
+        grantRoleResponse.prettyPrint();
+        assertEquals(200, grantRoleResponse.getStatusCode());
+
+        // List user-assignable roles for second user again
+        Response listUser2AssignableRolesResponse2 = UtilIT.getUserAssignableRolesForDataverse(dvAlias, apiToken2);
+        listUser2AssignableRolesResponse2.prettyPrint();
+        // Now two roles should be user-assignable, since the requesting user has received some permissions for the collection
+        listUser2AssignableRolesResponse2.then().assertThat()
+                .statusCode(OK.getStatusCode())
+                .body("data.size()", equalTo(2))
+                .body("data[0].alias", equalTo(DataverseRole.FILE_DOWNLOADER))
+                .body("data[1].alias", equalTo(DataverseRole.MEMBER));
+
+        // Clean up
+        Response deleteDataverseResponse = UtilIT.deleteDataverse(dvAlias, apiToken);
+        assertEquals(200, deleteDataverseResponse.getStatusCode());
+
+        Response deleteUserResponse = UtilIT.deleteUser(username);
+        assertEquals(200, deleteUserResponse.getStatusCode());
+
+        Response deleteUser2Response = UtilIT.deleteUser(username2);
+        assertEquals(200, deleteUserResponse.getStatusCode());
     }
 
     private String getSuperuserToken() {
