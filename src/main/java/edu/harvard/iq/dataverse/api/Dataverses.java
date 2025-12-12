@@ -1636,6 +1636,21 @@ public class Dataverses extends AbstractApiBean {
 
     }
 
+    @GET
+    @AuthRequired
+    @Path("{identifier}/defaultContributorRole")
+    public Response getDefaultContributorRole(
+            @Context ContainerRequestContext crc,
+            @PathParam("identifier") String dvIdtf) {
+
+        return response(req -> ok(
+                json(
+                        execCommand(
+                                new GetCollectionDefaultContributorRoleCommand(req,
+                                        findDataverseOrDie(dvIdtf))))), getRequestUser(crc));
+
+    }
+
     @DELETE
     @AuthRequired
     @Path("{identifier}/groups/{aliasInOwner}")
