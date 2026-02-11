@@ -69,7 +69,9 @@ public class GoldenOldiesSearchServiceBean implements SearchService {
             String geoRadius,
             boolean addFacets,
             boolean addHighlights,
-            boolean addCollections
+            boolean addCollections,
+            boolean expand,
+            int expandRows
     ) throws SearchException {
 
         // Execute the query using SolrSearchService

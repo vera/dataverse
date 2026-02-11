@@ -253,7 +253,9 @@ public class DataRetrieverAPI extends AbstractApiBean {
                         null,
                         true,
                         true,
-                        showCollections
+                        showCollections,
+                        false,
+                        0
                 );
 
             if (this.solrQueryResponse.getNumResultsFound()==0){

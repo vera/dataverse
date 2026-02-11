@@ -21,11 +21,19 @@ public class UpdateDatasetFieldsCommand extends AbstractDatasetCommand<Dataset> 
     private final boolean publish;
     private final UpdateDatasetVersionCommand updateDatasetVersionCommand;
 
+    public UpdateDatasetFieldsCommand(Dataset dataset, List<DatasetField> updatedFields, boolean replaceData, DataverseRequest request) {
+        this(dataset, updatedFields, replaceData, false, request, null);
+    }
+
     public UpdateDatasetFieldsCommand(Dataset dataset, List<DatasetField> updatedFields, boolean replaceData, boolean publish, DataverseRequest request) {
         this(dataset, updatedFields, replaceData, publish, request, null);
     }
 
     // Use only for testing purposes
+    public UpdateDatasetFieldsCommand(Dataset dataset, List<DatasetField> updatedFields, boolean replaceData, DataverseRequest request, UpdateDatasetVersionCommand updateDatasetVersionCommand) {
+        this(dataset, updatedFields, replaceData, false, request, updateDatasetVersionCommand);
+    }
+
     public UpdateDatasetFieldsCommand(Dataset dataset, List<DatasetField> updatedFields, boolean replaceData, boolean publish, DataverseRequest request, UpdateDatasetVersionCommand updateDatasetVersionCommand) {
         super(request, dataset);
         this.dataset = dataset;

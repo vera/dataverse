@@ -69,12 +69,14 @@ public class OddlyEnoughSearchServiceBean implements SearchService {
             String geoRadius,
             boolean addFacets,
             boolean addHighlights,
-            boolean addCollections
+            boolean addCollections,
+            boolean expand,
+            int expandRows
     ) throws SearchException {
 
         logger.info("Search query: " + query + "handled by OddlyEnough search service");
         // Execute the query using SolrSearchService
-        SolrQueryResponse queryResponse = solrSearchService.search(dataverseRequest, dataverses, query, filterQueries, sortField, sortOrder, 0, onlyDatatRelatedToMe, 1000, retrieveEntities, geoPoint, geoRadius, addFacets, addHighlights, addCollections);
+        SolrQueryResponse queryResponse = solrSearchService.search(dataverseRequest, dataverses, query, filterQueries, sortField, sortOrder, 0, onlyDatatRelatedToMe, 1000, retrieveEntities, geoPoint, geoRadius, addFacets, addHighlights, addCollections, expand, expandRows);
         
         // Process the results
         List<SolrSearchResult> solrSearchResults = queryResponse.getSolrSearchResults();

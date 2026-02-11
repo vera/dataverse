@@ -82,7 +82,7 @@ public abstract class AbstractExternalSearchServiceBean implements ConfigurableS
         // Execute Solr query
         SolrQueryResponse solrResponse = solrSearchService.search(dataverseRequest, null, solrQuery,
                 Collections.emptyList(), null, null, 0, false, pids.size(), retrieveEntities, null, null, addFacets,
-                addHighlights, addCollections);
+                addHighlights, addCollections, false, 0);
 
         // Reorder results based on distance, lowest values first
         List<SolrSearchResult> reorderedResults = solrResponse.getSolrSearchResults().stream()
