@@ -219,7 +219,15 @@ public class Datasets extends AbstractApiBean {
     @GET
     @AuthRequired
     @Path("{id}")
-    public Response getDataset(@Context ContainerRequestContext crc, @PathParam("id") String id, @Context UriInfo uriInfo, @Context HttpHeaders headers, @Context HttpServletResponse response,  @QueryParam("returnOwners") boolean returnOwners) {
+    public Response getDataset(
+            @Context ContainerRequestContext crc,
+            @PathParam("id") String id,
+            @Context UriInfo uriInfo,
+            @Context HttpHeaders headers,
+            @Context HttpServletResponse response,
+            @QueryParam("returnOwners") boolean returnOwners,
+            @QueryParam("excludeMetadataBlocks") boolean excludeMetadataBlocks
+    ) {
         return response( req -> {
             final Dataset retrieved = execCommand(new GetDatasetCommand(req, findDatasetOrDie(id, true)));
             final DatasetVersion latest = execCommand(new GetLatestAccessibleDatasetVersionCommand(req, retrieved));
@@ -229,7 +237,8 @@ public class Datasets extends AbstractApiBean {
                 MakeDataCountLoggingServiceBean.MakeDataCountEntry entry = new MakeDataCountEntry(uriInfo, headers, dvRequestService, retrieved);
                 mdcLogService.logEntry(entry);
             }
-            return ok(jsonbuilder.add("latestVersion", (latest != null) ? json(latest, true) : null));
+            jsonbuilder.add("latestVersion", (latest != null) ? json(latest, true, !excludeMetadataBlocks) : null);
+            return ok(jsonbuilder);
         }, getRequestUser(crc));
     }
 
