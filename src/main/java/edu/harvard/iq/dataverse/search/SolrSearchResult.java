@@ -1,5 +1,6 @@
 package edu.harvard.iq.dataverse.search;
 
+import edu.harvard.iq.dataverse.util.json.JsonPrinter;
 import static edu.harvard.iq.dataverse.util.json.NullSafeJsonBuilder.jsonObjectBuilder;
 
 import java.util.ArrayList;
@@ -609,6 +610,10 @@ public class SolrSearchResult {
                 nullSafeJsonBuilder.add("storageIdentifier", this.entity.getStorageIdentifier());
                 Dataset ds = (Dataset) this.entity;
                 DatasetVersion dv = ds.getVersionFromId(this.datasetVersionId);
+
+                final JsonObjectBuilder dsJson = JsonPrinter.json(ds);
+                dsJson.add("latestVersion", JsonPrinter.json(dv, true, false));
+                nullSafeJsonBuilder.add("dataset", dsJson);
 
                 if (!dv.getKeywords().isEmpty()) {
                     JsonArrayBuilder keyWords = Json.createArrayBuilder();
