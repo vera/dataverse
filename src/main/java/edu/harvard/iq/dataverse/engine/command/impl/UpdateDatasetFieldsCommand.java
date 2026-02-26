@@ -64,7 +64,8 @@ public class UpdateDatasetFieldsCommand extends AbstractDatasetCommand<Dataset> 
         updateDatasetVersionFields(datasetVersion);
 
         if (publish) {
-            ctxt.engine().submit(new UpdatePublishedDatasetVersionCommand(getRequest(), datasetVersion));
+            ctxt.em().merge(datasetVersion);
+            ctxt.index().asyncIndexDataset(datasetVersion.getDataset(), true);
             return this.dataset;
         }
 
