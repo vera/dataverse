@@ -1,24 +1,9 @@
 package edu.harvard.iq.dataverse.util.json;
 
 import com.google.gson.Gson;
-import edu.harvard.iq.dataverse.ControlledVocabularyValue;
-import edu.harvard.iq.dataverse.DataFile;
-import edu.harvard.iq.dataverse.DataFileCategory;
-import edu.harvard.iq.dataverse.Dataset;
-import edu.harvard.iq.dataverse.DatasetField;
-import edu.harvard.iq.dataverse.DatasetFieldConstant;
-import edu.harvard.iq.dataverse.DatasetFieldCompoundValue;
-import edu.harvard.iq.dataverse.DatasetFieldServiceBean;
-import edu.harvard.iq.dataverse.DatasetFieldType;
-import edu.harvard.iq.dataverse.DatasetFieldValue;
-import edu.harvard.iq.dataverse.DatasetVersion;
-import edu.harvard.iq.dataverse.Dataverse;
-import edu.harvard.iq.dataverse.DataverseContact;
-import edu.harvard.iq.dataverse.DataverseTheme;
-import edu.harvard.iq.dataverse.FileMetadata;
-import edu.harvard.iq.dataverse.MetadataBlockServiceBean;
-import edu.harvard.iq.dataverse.TermsOfUseAndAccess;
+import edu.harvard.iq.dataverse.*;
 import edu.harvard.iq.dataverse.api.Util;
+import edu.harvard.iq.dataverse.api.dto.DatasetRelationDTO;
 import edu.harvard.iq.dataverse.api.dto.DataverseDTO;
 import edu.harvard.iq.dataverse.api.dto.FieldDTO;
 import edu.harvard.iq.dataverse.api.dto.UserDTO;
@@ -205,10 +190,10 @@ public class JsonParser {
     public DataverseDTO parseDataverseDTO(JsonObject jsonObject) throws JsonParseException {
         DataverseDTO dataverseDTO = new DataverseDTO();
 
-        setDataverseDTOPropertyIfPresent(jsonObject, "alias", dataverseDTO::setAlias);
-        setDataverseDTOPropertyIfPresent(jsonObject, "name", dataverseDTO::setName);
-        setDataverseDTOPropertyIfPresent(jsonObject, "description", dataverseDTO::setDescription);
-        setDataverseDTOPropertyIfPresent(jsonObject, "affiliation", dataverseDTO::setAffiliation);
+        setDTOPropertyIfPresent(jsonObject, "alias", dataverseDTO::setAlias);
+        setDTOPropertyIfPresent(jsonObject, "name", dataverseDTO::setName);
+        setDTOPropertyIfPresent(jsonObject, "description", dataverseDTO::setDescription);
+        setDTOPropertyIfPresent(jsonObject, "affiliation", dataverseDTO::setAffiliation);
 
         String dataverseType = jsonObject.getString("dataverseType", null);
         if (dataverseType != null) {
@@ -237,11 +222,28 @@ public class JsonParser {
         return dataverseDTO;
     }
 
-    private void setDataverseDTOPropertyIfPresent(JsonObject jsonObject, String key, Consumer<String> setter) {
+    private void setDTOPropertyIfPresent(JsonObject jsonObject, String key, Consumer<String> setter) {
         String value = jsonObject.getString(key, null);
         if (value != null) {
             setter.accept(value);
         }
+    }
+
+    public DatasetRelationDTO parseDatasetRelationDTO(JsonObject jsonObject) throws JsonParseException {
+        DatasetRelationDTO datasetRelationDTO = new DatasetRelationDTO();
+
+        setDTOPropertyIfPresent(jsonObject, "datasetPid", datasetRelationDTO::setDatasetPid);
+        setDTOPropertyIfPresent(jsonObject, "relatedDatasetPid", datasetRelationDTO::setRelatedDatasetPid);
+
+        String relationType = jsonObject.getString("relationType", null);
+        if (relationType != null) {
+            Arrays.stream(DatasetRelation.DatasetRelationType.values())
+                    .filter(type -> type.name().equals(relationType))
+                    .findFirst()
+                    .ifPresent(datasetRelationDTO::setRelationType);
+        }
+
+        return datasetRelationDTO;
     }
 
     public DataverseTheme parseDataverseTheme(JsonObject obj) {

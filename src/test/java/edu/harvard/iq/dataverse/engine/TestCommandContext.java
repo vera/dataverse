@@ -245,6 +245,11 @@ public class TestCommandContext implements CommandContext {
     }
 
     @Override
+    public DatasetRelationServiceBean datasetRelations() {
+        return null;
+    }
+
+    @Override
     public StorageUseServiceBean storageUse() {
         return null;
     }

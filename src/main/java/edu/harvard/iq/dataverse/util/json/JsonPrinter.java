@@ -1003,6 +1003,18 @@ public class JsonPrinter {
         return builder;
     }
 
+    public static JsonObjectBuilder json(DatasetRelation rel, boolean invertRelationType) {
+        return jsonObjectBuilder()
+                .add("datasetPid", invertRelationType ? rel.getRelatedDataset().getGlobalId().toString() : rel.getDataset().getGlobalId().toString())
+                .add("relatedDatasetPid", invertRelationType ? rel.getDataset().getGlobalId().toString() : rel.getRelatedDataset().getGlobalId().toString())
+                .add("relationType", invertRelationType ? rel.getRelationType().inverse().toString() : rel.getRelationType().toString())
+                .add("definitionPointPid", rel.getDefinitionPoint().getGlobalId().toString());
+    }
+
+    public static JsonObjectBuilder json(DatasetRelation rel, Dataset forDataset) {
+        return json(rel, rel.getRelatedDataset().equals(forDataset));
+    }
+
     //Started from https://github.com/RENCI-NRIG/dataverse/, i.e. https://github.com/RENCI-NRIG/dataverse/commit/2b5a1225b42cf1caba85e18abfeb952171c6754a
     public static JsonArrayBuilder jsonDT(List<DataTable> ldt) {
         JsonArrayBuilder ldtArr = Json.createArrayBuilder();

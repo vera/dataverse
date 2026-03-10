@@ -1,0 +1,219 @@
+/*
+   Copyright (C) 2005-2012, by the President and Fellows of Harvard College.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+         http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+   Dataverse Network - A web application to share, preserve and analyze research data.
+   Developed at the Institute for Quantitative Social Science, Harvard University.
+   Version 3.0.
+*/
+
+package edu.harvard.iq.dataverse;
+
+import edu.harvard.iq.dataverse.authorization.users.AuthenticatedUser;
+import java.util.Date;
+import java.io.Serializable;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.Temporal;
+import jakarta.persistence.TemporalType;
+import jakarta.persistence.NamedQueries;
+import jakarta.persistence.NamedQuery;
+
+/**
+ *
+ * Describes a relationship between two datasets.
+ *
+ * @author Vera Clemens
+ *
+ */
+@Entity
+@Table(indexes = {@Index(columnList="dataset_id"), @Index(columnList="related_dataset_id")})
+@NamedQueries({
+        @NamedQuery(name = "DatasetRelation.getRelationsByDatasetId",
+                query="SELECT rel FROM DatasetRelation rel WHERE rel.dataset.id=:datasetId OR rel.relatedDataset.id=:datasetId"),
+        @NamedQuery(name = "DatasetRelation.removeRelationsByDatasetId",
+                query = "DELETE FROM DatasetRelation rel WHERE rel.definitionPoint.id=:datasetId"),
+}
+)
+public class DatasetRelation implements Serializable {
+
+    public enum DatasetRelationType {
+        IsCitedBy,
+        Cites,
+        IsSupplementTo,
+        IsSupplementedBy,
+        IsContinuedBy,
+        Continues,
+        IsDescribedBy,
+        Describes,
+        HasMetadata,
+        IsMetadataFor,
+        HasVersion,
+        IsVersionOf,
+        IsNewVersionOf,
+        IsPreviousVersionOf,
+        IsPartOf,
+        HasPart,
+        IsPublishedIn,
+        IsReferencedBy,
+        References,
+        IsDocumentedBy,
+        Documents,
+        IsCompiledBy,
+        Compiles,
+        IsVariantFormOf,
+        IsOriginalFormOf,
+        IsIdenticalTo,
+        IsReviewedBy,
+        Reviews,
+        IsDerivedFrom,
+        IsSourceOf,
+        IsRequiredBy,
+        Requires,
+        IsObsoletedBy,
+        Obsoletes;
+
+        public DatasetRelationType inverse() {
+            return values()[ordinal() ^ 1];
+        }
+    }
+
+    private static final long serialVersionUID = 1L;
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne
+    @JoinColumn(nullable=false)
+    private Dataset dataset;
+
+    @ManyToOne
+    @JoinColumn(nullable=false)
+    private Dataset relatedDataset;
+
+    @ManyToOne
+    @JoinColumn(nullable=false)
+    private Dataset definitionPoint;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable=false)
+    private DatasetRelationType relationType;
+
+    /**
+     * Constructing a lock for the given reason.
+     * @param datasetA First dataset that is part of the relation.  Cannot be {@code null}.
+     * @param datasetB Second dataset that is part of the relation.  Cannot be {@code null}.
+     * @param relationType The type of the relation. Cannot be {@code null}.
+     * @param definitionPoint Which dataset the relation has been defined on.  Cannot be {@code null}.
+     * @throws IllegalArgumentException if any of the parameters are null. That's
+     *         because JPA would throw an exception later anyway.
+     */
+    public DatasetRelation(Dataset datasetA, Dataset datasetB, DatasetRelationType relationType, Dataset definitionPoint) {
+        if ( datasetA == null || datasetB == null ) throw new IllegalArgumentException("Cannot create a relation for a null dataset");
+        if ( relationType == null ) throw new IllegalArgumentException("Cannot create a dataset relation with a null type");
+
+        // We enforce canonical order to ensure uniqueness of relations
+        if (datasetA.getId() < datasetB.getId()) {
+            dataset = datasetA;
+            relatedDataset = datasetB;
+            this.relationType = relationType;
+        } else {
+            dataset = datasetB;
+            relatedDataset = datasetA;
+            this.relationType = relationType.inverse();
+        }
+
+        this.definitionPoint = definitionPoint;
+    }
+
+    /**
+     * JPA no-args constructor. Client code should use the public constructor
+     * and not this one.
+     */
+    protected DatasetRelation(){}
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public Dataset getDataset() {
+        return dataset;
+    }
+
+    public void setDataset(Dataset dataset) {
+        this.dataset = dataset;
+    }
+
+    public Dataset getRelatedDataset() {
+        return relatedDataset;
+    }
+
+    public void setRelatedDataset(Dataset relatedDataset) {
+        this.relatedDataset = relatedDataset;
+    }
+
+    public Dataset getDefinitionPoint() {
+        return definitionPoint;
+    }
+
+    public void setDefinitionPoint(Dataset definitionPoint) {
+        this.definitionPoint = definitionPoint;
+    }
+
+    public DatasetRelationType getRelationType() {
+        return relationType;
+    }
+
+    public void setRelationType(DatasetRelationType type) {
+        this.relationType = type;
+    }
+
+    @Override
+    public int hashCode() {
+        return (id != null ? id.hashCode() : 0);
+    }
+
+    @Override
+    public boolean equals(Object object) {
+        if ( object == null ) return false;
+        if ( object == this ) return true;
+
+        if (!(object instanceof DatasetRelation)) {
+            return false;
+        }
+        DatasetRelation other = (DatasetRelation) object;
+
+        return (id==null && other.id==null) || (id!=null && id.equals(other.getId()));
+    }
+
+    @Override
+    public String toString() {
+        return "edu.harvard.iq.dataverse.DatasetRelation[ id=" + id + " ]";
+    }
+
+}

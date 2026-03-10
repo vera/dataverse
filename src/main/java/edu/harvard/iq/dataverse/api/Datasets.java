@@ -4,9 +4,7 @@ import edu.harvard.iq.dataverse.*;
 import edu.harvard.iq.dataverse.DatasetLock.Reason;
 import edu.harvard.iq.dataverse.actionlogging.ActionLogRecord;
 import edu.harvard.iq.dataverse.api.auth.AuthRequired;
-import edu.harvard.iq.dataverse.api.dto.CustomTermsDTO;
-import edu.harvard.iq.dataverse.api.dto.LicenseUpdateRequest;
-import edu.harvard.iq.dataverse.api.dto.RoleAssignmentDTO;
+import edu.harvard.iq.dataverse.api.dto.*;
 import edu.harvard.iq.dataverse.authorization.AuthenticationServiceBean;
 import edu.harvard.iq.dataverse.authorization.DataverseRole;
 import edu.harvard.iq.dataverse.authorization.Permission;
@@ -184,6 +182,9 @@ public class Datasets extends AbstractApiBean {
 
     @EJB
     DatasetVersionServiceBean datasetversionService;
+
+    @EJB
+    DatasetRelationServiceBean datasetRelationService;
 
     @Inject
     PrivateUrlServiceBean privateUrlService;
@@ -3948,6 +3949,66 @@ public class Datasets extends AbstractApiBean {
 
             }
             return ok(timestamps);
+        } catch (WrappedResponse wr) {
+            return wr.getResponse();
+        }
+    }
+
+    @PUT
+    @AuthRequired
+    @Path("{identifier}/relations")
+    public Response replaceDatasetRelations(@Context ContainerRequestContext crc, String body, @PathParam("identifier") String id) {
+        return response(req -> {
+            try {
+                Dataset dataset = findDatasetOrDie(id);
+
+                List<DatasetRelationDTO> newDatasetRelationsDTO;
+                try {
+                    newDatasetRelationsDTO = parseAndValidateReplaceDatasetRelationsRequestBody(body);
+                } catch (JsonParsingException jpe) {
+                    return error(Status.BAD_REQUEST, MessageFormat.format(BundleUtil.getStringFromBundle("dataverse.create.error.jsonparse"), jpe.getMessage()));
+                } catch (JsonParseException ex) {
+                    return error(Status.BAD_REQUEST, MessageFormat.format(BundleUtil.getStringFromBundle("dataverse.create.error.jsonparsetodatasetrelation"), ex.getMessage()));
+                }
+
+                List<DatasetRelation> res = execCommand(new ReplaceDatasetRelationsCommand(dataset, newDatasetRelationsDTO, req));
+
+                return ok(res.stream().map(rel -> json(rel, dataset)).collect(toJsonArray()));
+            } catch (WrappedResponse wr) {
+                return wr.getResponse();
+            }
+
+        }, getRequestUser(crc));
+    }
+
+    private List<DatasetRelationDTO> parseAndValidateReplaceDatasetRelationsRequestBody(String body) throws JsonParsingException, JsonParseException {
+        try {
+            List<DatasetRelationDTO> relationDTOs = new ArrayList<>();
+            JsonArray updateDatasetRelationsJson = JsonUtil.getJsonArray(body);
+            for (JsonObject relation : updateDatasetRelationsJson.getValuesAs(JsonObject.class)) {
+                relationDTOs.add(jsonParser().parseDatasetRelationDTO(relation));
+            }
+            return relationDTOs;
+        } catch (JsonParsingException jpe) {
+            logger.log(Level.SEVERE, "Json: {0}", body);
+            throw jpe;
+        } catch (JsonParseException ex) {
+            logger.log(Level.SEVERE, "Error parsing DatasetRelationDTOs from json: " + ex.getMessage(), ex);
+            throw ex;
+        }
+    }
+
+    @GET
+    @AuthRequired
+    @Path("{identifier}/relations")
+    public Response listRelations(@Context ContainerRequestContext crc, @PathParam("identifier") String id) {
+        try {
+            Dataset dataset = findDatasetOrDie(id);
+
+            // TODO don't return for draft unless allowed to view
+            List<DatasetRelation> relations = datasetRelationService.getDatasetRelationsFor(dataset);
+
+            return ok(relations.stream().map(rel -> json(rel, dataset)).collect(toJsonArray()));
         } catch (WrappedResponse wr) {
             return wr.getResponse();
         }

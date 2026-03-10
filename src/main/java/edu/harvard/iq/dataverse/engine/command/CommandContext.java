@@ -126,6 +126,8 @@ public interface CommandContext {
 
     public DatasetTypeServiceBean datasetTypes();
 
+    public DatasetRelationServiceBean datasetRelations();
+
     public void beginCommandSequence();
     
     public boolean completeCommandSequence(Command command);
