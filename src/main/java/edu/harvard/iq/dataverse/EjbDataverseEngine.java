@@ -141,6 +141,9 @@ public class EjbDataverseEngine {
     DatasetTypeServiceBean datasetTypeService;
 
     @EJB
+    DatasetRelationServiceBean datasetRelationService;
+
+    @EJB
     DataverseLinkingServiceBean dvLinking;
     
     @EJB
@@ -663,6 +666,11 @@ public class EjbDataverseEngine {
                 @Override
                 public DatasetTypeServiceBean datasetTypes() {
                     return datasetTypeService;
+                }
+
+                @Override
+                public DatasetRelationServiceBean datasetRelations() {
+                    return datasetRelationService;
                 }
 
                 @Override
