@@ -18,26 +18,12 @@
    Version 3.0.
 */
 
-package edu.harvard.iq.dataverse;
+package edu.harvard.iq.dataverse.dataset;
 
-import edu.harvard.iq.dataverse.authorization.users.AuthenticatedUser;
-import java.util.Date;
 import java.io.Serializable;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Index;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
-import jakarta.persistence.Temporal;
-import jakarta.persistence.TemporalType;
-import jakarta.persistence.NamedQueries;
-import jakarta.persistence.NamedQuery;
+
+import edu.harvard.iq.dataverse.Dataset;
+import jakarta.persistence.*;
 
 /**
  *
@@ -47,56 +33,65 @@ import jakarta.persistence.NamedQuery;
  *
  */
 @Entity
-@Table(indexes = {@Index(columnList="dataset_id"), @Index(columnList="related_dataset_id")})
+@Table(indexes = {
+        @Index(name="index_datasetrelation_dataset", columnList="dataset_id"),
+        @Index(name="index_datasetrelation_relateddataset", columnList="relateddataset_id")
+})
 @NamedQueries({
         @NamedQuery(name = "DatasetRelation.getRelationsByDatasetId",
                 query="SELECT rel FROM DatasetRelation rel WHERE rel.dataset.id=:datasetId OR rel.relatedDataset.id=:datasetId"),
         @NamedQuery(name = "DatasetRelation.removeRelationsByDatasetId",
                 query = "DELETE FROM DatasetRelation rel WHERE rel.definitionPoint.id=:datasetId"),
-}
-)
+})
+        @NamedNativeQuery(
+            name = "DatasetRelation.getRelationsByDatasetIdLimitedPerType",
+            query = """
+                    SELECT *
+                    FROM (
+                        SELECT
+                            dr.id,
+                            dr.definitionpoint_id,
+                    
+                            CASE
+                                WHEN dr.dataset_id = ?1
+                                    THEN dr.dataset_id
+                                ELSE dr.relateddataset_id
+                            END AS dataset_id,
+                    
+                            CASE
+                                WHEN dr.dataset_id = ?1
+                                    THEN dr.relateddataset_id
+                                ELSE dr.dataset_id
+                            END AS relateddataset_id,
+                    
+                            CASE
+                                WHEN dr.dataset_id = ?1
+                                    THEN dr.relationtype_id
+                                ELSE rt.inverse_id
+                            END AS relationtype_id,
+                    
+                            ROW_NUMBER() OVER (
+                                PARTITION BY
+                                    CASE
+                                        WHEN dr.dataset_id = ?1
+                                            THEN dr.relationtype_id
+                                        ELSE rt.inverse_id
+                                    END
+                                ORDER BY dr.id
+                            ) AS rn
+                    
+                        FROM datasetrelation dr
+                        JOIN datasetrelationtype rt
+                          ON dr.relationtype_id = rt.id
+                    
+                        WHERE dr.dataset_id = ?1
+                           OR dr.relateddataset_id = ?1
+                    ) t
+                    WHERE rn <= ?2;
+                    """,
+                resultClass=DatasetRelation.class
+        )
 public class DatasetRelation implements Serializable {
-
-    public enum DatasetRelationType {
-        IsCitedBy,
-        Cites,
-        IsSupplementTo,
-        IsSupplementedBy,
-        IsContinuedBy,
-        Continues,
-        IsDescribedBy,
-        Describes,
-        HasMetadata,
-        IsMetadataFor,
-        HasVersion,
-        IsVersionOf,
-        IsNewVersionOf,
-        IsPreviousVersionOf,
-        IsPartOf,
-        HasPart,
-        IsPublishedIn,
-        IsReferencedBy,
-        References,
-        IsDocumentedBy,
-        Documents,
-        IsCompiledBy,
-        Compiles,
-        IsVariantFormOf,
-        IsOriginalFormOf,
-        IsIdenticalTo,
-        IsReviewedBy,
-        Reviews,
-        IsDerivedFrom,
-        IsSourceOf,
-        IsRequiredBy,
-        Requires,
-        IsObsoletedBy,
-        Obsoletes;
-
-        public DatasetRelationType inverse() {
-            return values()[ordinal() ^ 1];
-        }
-    }
 
     private static final long serialVersionUID = 1L;
 
@@ -116,12 +111,12 @@ public class DatasetRelation implements Serializable {
     @JoinColumn(nullable=false)
     private Dataset definitionPoint;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable=false)
+    @ManyToOne
+    @JoinColumn(nullable=false)
     private DatasetRelationType relationType;
 
     /**
-     * Constructing a lock for the given reason.
+     * Constructing a dataset relation for the given datasets.
      * @param datasetA First dataset that is part of the relation.  Cannot be {@code null}.
      * @param datasetB Second dataset that is part of the relation.  Cannot be {@code null}.
      * @param relationType The type of the relation. Cannot be {@code null}.
@@ -141,7 +136,7 @@ public class DatasetRelation implements Serializable {
         } else {
             dataset = datasetB;
             relatedDataset = datasetA;
-            this.relationType = relationType.inverse();
+            this.relationType = relationType.getInverse();
         }
 
         this.definitionPoint = definitionPoint;
@@ -213,7 +208,7 @@ public class DatasetRelation implements Serializable {
 
     @Override
     public String toString() {
-        return "edu.harvard.iq.dataverse.DatasetRelation[ id=" + id + " ]";
+        return "edu.harvard.iq.dataverse.dataset.DatasetRelation[ id=" + id + " ]";
     }
 
 }

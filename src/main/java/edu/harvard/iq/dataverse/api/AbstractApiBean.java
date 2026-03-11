@@ -13,6 +13,7 @@ import edu.harvard.iq.dataverse.authorization.users.AuthenticatedUser;
 import edu.harvard.iq.dataverse.authorization.users.User;
 import edu.harvard.iq.dataverse.confirmemail.ConfirmEmailServiceBean;
 import edu.harvard.iq.dataverse.datacapturemodule.DataCaptureModuleServiceBean;
+import edu.harvard.iq.dataverse.dataset.DatasetRelationTypeServiceBean;
 import edu.harvard.iq.dataverse.dataset.DatasetTypeServiceBean;
 import edu.harvard.iq.dataverse.dataverse.featured.DataverseFeaturedItem;
 import edu.harvard.iq.dataverse.engine.command.Command;
@@ -173,6 +174,9 @@ public abstract class AbstractApiBean {
 
     @EJB
     protected DatasetTypeServiceBean datasetTypeSvc;
+
+    @EJB
+    protected DatasetRelationTypeServiceBean datasetRelationTypeSvc;
 
     @EJB
     protected UserServiceBean userSvc;

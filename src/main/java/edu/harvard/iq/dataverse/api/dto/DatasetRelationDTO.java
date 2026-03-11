@@ -1,11 +1,11 @@
 package edu.harvard.iq.dataverse.api.dto;
 
-import edu.harvard.iq.dataverse.DatasetRelation;
+import edu.harvard.iq.dataverse.dataset.DatasetRelationType;
 
 public class DatasetRelationDTO {
     private String datasetPid;
     private String relatedDatasetPid;
-    private DatasetRelation.DatasetRelationType relationType;
+    private String relationTypeName;
 
     public String getDatasetPid() {
         return datasetPid;
@@ -23,11 +23,11 @@ public class DatasetRelationDTO {
         this.relatedDatasetPid = relatedDatasetPid;
     }
 
-    public DatasetRelation.DatasetRelationType getRelationType() {
-        return relationType;
+    public String getRelationTypeName() {
+        return relationTypeName;
     }
 
-    public void setRelationType(DatasetRelation.DatasetRelationType relationType) {
-        this.relationType = relationType;
+    public void setRelationTypeName(String relationTypeName) {
+        this.relationTypeName = relationTypeName;
     }
 }
