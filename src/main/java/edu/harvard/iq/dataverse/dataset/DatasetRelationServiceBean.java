@@ -3,12 +3,10 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package edu.harvard.iq.dataverse;
+package edu.harvard.iq.dataverse.dataset;
 
-import edu.harvard.iq.dataverse.pidproviders.AbstractPidProvider;
-import edu.harvard.iq.dataverse.util.LruCache;
+import edu.harvard.iq.dataverse.Dataset;
 
-import java.util.Date;
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -17,11 +15,7 @@ import jakarta.ejb.TransactionAttribute;
 import jakarta.ejb.TransactionAttributeType;
 import jakarta.inject.Named;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.NoResultException;
 import jakarta.persistence.PersistenceContext;
-import jakarta.persistence.Query;
-
-import javax.xml.crypto.Data;
 
 /**
  *
@@ -42,10 +36,18 @@ public class DatasetRelationServiceBean {
                 .executeUpdate();
     }
 
-    public List<DatasetRelation> getDatasetRelationsFor(Dataset d) {
-        return em.createNamedQuery("DatasetRelation.getRelationsByDatasetId", DatasetRelation.class)
-                 .setParameter("datasetId", d.getId())
-                 .getResultList();
+    public List<DatasetRelation> getDatasetRelationsFor(Dataset d, boolean groupByRelationType, Integer limit) {
+        if (groupByRelationType) {
+            return em.createNamedQuery("DatasetRelation.getRelationsByDatasetIdLimitedPerType", DatasetRelation.class)
+                    .setParameter(1, d.getId())
+                    .setParameter(2, limit)
+                    .getResultList();
+        } else {
+            return em.createNamedQuery("DatasetRelation.getRelationsByDatasetId", DatasetRelation.class)
+                    .setParameter("datasetId", d.getId())
+                    .setMaxResults(limit)
+                    .getResultList();
+        }
     }
 
     @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)

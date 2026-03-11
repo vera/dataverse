@@ -5,6 +5,8 @@ import edu.harvard.iq.dataverse.actionlogging.ActionLogServiceBean;
 import edu.harvard.iq.dataverse.dataset.DatasetFieldsValidator;
 import edu.harvard.iq.dataverse.authorization.AuthenticationServiceBean;
 import edu.harvard.iq.dataverse.authorization.providers.builtin.BuiltinUserServiceBean;
+import edu.harvard.iq.dataverse.dataset.DatasetRelationServiceBean;
+import edu.harvard.iq.dataverse.dataset.DatasetRelationTypeServiceBean;
 import edu.harvard.iq.dataverse.dataverse.featured.DataverseFeaturedItemServiceBean;
 import edu.harvard.iq.dataverse.license.LicenseServiceBean;
 import edu.harvard.iq.dataverse.util.cache.CacheFactoryBean;
@@ -142,6 +144,9 @@ public class EjbDataverseEngine {
 
     @EJB
     DatasetRelationServiceBean datasetRelationService;
+
+    @EJB
+    DatasetRelationTypeServiceBean datasetRelationTypeService;
 
     @EJB
     DataverseLinkingServiceBean dvLinking;
@@ -671,6 +676,11 @@ public class EjbDataverseEngine {
                 @Override
                 public DatasetRelationServiceBean datasetRelations() {
                     return datasetRelationService;
+                }
+
+                @Override
+                public DatasetRelationTypeServiceBean datasetRelationTypes() {
+                    return datasetRelationTypeService;
                 }
 
                 @Override

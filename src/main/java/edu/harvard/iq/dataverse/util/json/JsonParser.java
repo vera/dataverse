@@ -222,14 +222,7 @@ public class JsonParser {
 
         setDTOPropertyIfPresent(jsonObject, "datasetPid", datasetRelationDTO::setDatasetPid);
         setDTOPropertyIfPresent(jsonObject, "relatedDatasetPid", datasetRelationDTO::setRelatedDatasetPid);
-
-        String relationType = jsonObject.getString("relationType", null);
-        if (relationType != null) {
-            Arrays.stream(DatasetRelation.DatasetRelationType.values())
-                    .filter(type -> type.name().equals(relationType))
-                    .findFirst()
-                    .ifPresent(datasetRelationDTO::setRelationType);
-        }
+        setDTOPropertyIfPresent(jsonObject, "relationTypeName", datasetRelationDTO::setRelationTypeName);
 
         return datasetRelationDTO;
     }

@@ -4013,7 +4013,7 @@ public class Datasets extends AbstractApiBean {
 
                 List<DatasetRelation> res = execCommand(new ReplaceDatasetRelationsCommand(dataset, newDatasetRelationsDTO, req));
 
-                return ok(res.stream().map(rel -> json(rel, dataset)).collect(toJsonArray()));
+                return ok(res.stream().map(rel -> json(rel, dataset, false)).collect(toJsonArray()));
             } catch (WrappedResponse wr) {
                 return wr.getResponse();
             }
@@ -4041,16 +4041,62 @@ public class Datasets extends AbstractApiBean {
     @GET
     @AuthRequired
     @Path("{identifier}/relations")
-    public Response listRelations(@Context ContainerRequestContext crc, @PathParam("identifier") String id) {
+    public Response listRelations(
+            @Context ContainerRequestContext crc,
+            @PathParam("identifier") String id,
+            @QueryParam("groupByRelationType") boolean groupByRelationType,
+            @QueryParam("includeMetadataBlocks") boolean includeMetadataBlocks,
+            @QueryParam("limit") Integer limit
+    ) {
         try {
             Dataset dataset = findDatasetOrDie(id);
 
-            // TODO don't return for draft unless allowed to view
-            List<DatasetRelation> relations = datasetRelationService.getDatasetRelationsFor(dataset);
+            if (limit == null) {
+                // Default page size
+                limit = 10;
+            }
 
-            return ok(relations.stream().map(rel -> json(rel, dataset)).collect(toJsonArray()));
+            // TODO don't return for draft unless allowed to view
+            List<DatasetRelation> relations = datasetRelationService.getDatasetRelationsFor(dataset, groupByRelationType, limit);
+
+            return ok(json(relations, dataset, groupByRelationType, includeMetadataBlocks));
         } catch (WrappedResponse wr) {
             return wr.getResponse();
+        }
+    }
+
+    @POST
+    @AuthRequired
+    @Path("relationTypes")
+    public Response addRelationType(@Context ContainerRequestContext crc, String jsonIn) {
+        User authenticatedUser;
+        try {
+            authenticatedUser = getRequestAuthenticatedUserOrDie(crc);
+            if (!authenticatedUser.isSuperuser()) {
+                return error(Response.Status.FORBIDDEN, "must be superuser");
+            }
+        } catch (WrappedResponse e) {
+            return error(Response.Status.UNAUTHORIZED, "api key required");
+        }
+
+        try {
+            JsonObject datasetRelationTypeObj = JsonUtil.getJsonObject(jsonIn);
+            String name = datasetRelationTypeObj.getString("name");
+            DatasetRelationType relationType = new DatasetRelationType(name);
+            String inverseName = datasetRelationTypeObj.getString("inverseName", "");
+            if (!inverseName.isEmpty()) {
+                if (!inverseName.equals(name)) {
+                    new DatasetRelationType(inverseName, relationType);
+                } else {
+                    // Some relation types may be the inverse of themselves, e.g. "is identical to"
+                    relationType.setInverse(relationType);
+                }
+            }
+            datasetRelationTypeSvc.save(relationType);
+
+            return ok("Relation type(s) created");
+        } catch (WrappedResponse ex) {
+            return error(BAD_REQUEST, ex.getMessage());
         }
     }
 

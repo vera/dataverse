@@ -6,7 +6,7 @@
 package edu.harvard.iq.dataverse.engine.command.impl;
 
 import edu.harvard.iq.dataverse.Dataset;
-import edu.harvard.iq.dataverse.DatasetRelation;
+import edu.harvard.iq.dataverse.dataset.DatasetRelation;
 import edu.harvard.iq.dataverse.Dataverse;
 import edu.harvard.iq.dataverse.api.dto.DatasetRelationDTO;
 import edu.harvard.iq.dataverse.authorization.Permission;
@@ -44,7 +44,7 @@ public class ReplaceDatasetRelationsCommand extends AbstractCommand<List<Dataset
                 List<DatasetRelation> relations = relationDTOs.stream().map(relationDTO -> new DatasetRelation(
                         ctxt.datasets().findByGlobalId(relationDTO.getDatasetPid()),
                         ctxt.datasets().findByGlobalId(relationDTO.getRelatedDatasetPid()),
-                        relationDTO.getRelationType(),
+                        ctxt.datasetRelationTypes().findByName(relationDTO.getRelationTypeName()),
                         dataset
                 )).toList();
                 return ctxt.datasetRelations().addDatasetRelations(relations);

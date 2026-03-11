@@ -18,6 +18,7 @@ import edu.harvard.iq.dataverse.authorization.users.User;
 import edu.harvard.iq.dataverse.branding.BrandingUtil;
 import edu.harvard.iq.dataverse.dataaccess.DataAccess;
 import edu.harvard.iq.dataverse.dataaccess.StorageIO;
+import edu.harvard.iq.dataverse.dataset.DatasetRelation;
 import edu.harvard.iq.dataverse.dataset.DatasetType;
 import edu.harvard.iq.dataverse.dataset.DatasetUtil;
 import edu.harvard.iq.dataverse.datasetversionsummaries.*;
@@ -1067,16 +1068,56 @@ public class JsonPrinter {
         return builder;
     }
 
-    public static JsonObjectBuilder json(DatasetRelation rel, boolean invertRelationType) {
-        return jsonObjectBuilder()
-                .add("datasetPid", invertRelationType ? rel.getRelatedDataset().getGlobalId().toString() : rel.getDataset().getGlobalId().toString())
-                .add("relatedDatasetPid", invertRelationType ? rel.getDataset().getGlobalId().toString() : rel.getRelatedDataset().getGlobalId().toString())
-                .add("relationType", invertRelationType ? rel.getRelationType().inverse().toString() : rel.getRelationType().toString())
-                .add("definitionPointPid", rel.getDefinitionPoint().getGlobalId().toString());
+    public static JsonObjectBuilder json(DatasetRelation rel, boolean invertRelationType, boolean includeMetadataBlocks) {
+        JsonObjectBuilder result = Json.createObjectBuilder();
+
+        result.add("datasetPid", invertRelationType ? rel.getRelatedDataset().getGlobalId().toString() : rel.getDataset().getGlobalId().toString())
+              .add("relatedDatasetPid", invertRelationType ? rel.getDataset().getGlobalId().toString() : rel.getRelatedDataset().getGlobalId().toString())
+              .add("relationTypeName", invertRelationType ? rel.getRelationType().getInverse().getName() : rel.getRelationType().getName())
+              .add("definitionPointPid", rel.getDefinitionPoint().getGlobalId().toString());
+
+        if (includeMetadataBlocks) {
+            DatasetVersion releasedVersion = rel.getRelatedDataset().getReleasedVersion();
+            if (releasedVersion != null) {
+                result.add("relatedDataset",
+                        Json.createObjectBuilder().add("metadataBlocks", jsonByBlocks(releasedVersion.getDatasetFields()))
+                );
+            }
+        }
+
+        return result;
     }
 
-    public static JsonObjectBuilder json(DatasetRelation rel, Dataset forDataset) {
-        return json(rel, rel.getRelatedDataset().equals(forDataset));
+    public static JsonObjectBuilder json(DatasetRelation rel, Dataset forDataset, boolean includeMetadataBlocks) {
+        return json(rel, rel.getRelatedDataset().equals(forDataset), includeMetadataBlocks);
+    }
+
+    public static JsonObjectBuilder json(List<DatasetRelation> rel, Dataset forDataset, boolean groupByRelationType, boolean includeMetadataBlocks) {
+        if (groupByRelationType) {
+            Map<String, JsonArrayBuilder> grouped = new HashMap<>();
+
+            for (DatasetRelation r : rel) {
+                String type = r.getRelationType().getName();
+
+                JsonArrayBuilder arr = grouped.computeIfAbsent(
+                        type, k -> Json.createArrayBuilder()
+                );
+
+                arr.add(json(r, forDataset, includeMetadataBlocks));
+            }
+
+            JsonObjectBuilder result = Json.createObjectBuilder();
+
+            for (var e : grouped.entrySet()) {
+                result.add(e.getKey(), e.getValue());
+            }
+
+            return result;
+        } else {
+            JsonObjectBuilder result = Json.createObjectBuilder();
+            result.add("relations", rel.stream().map(r -> json(r, forDataset, includeMetadataBlocks)).collect(toJsonArray()));
+            return result;
+        }
     }
 
     //Started from https://github.com/RENCI-NRIG/dataverse/, i.e. https://github.com/RENCI-NRIG/dataverse/commit/2b5a1225b42cf1caba85e18abfeb952171c6754a
