@@ -16,6 +16,7 @@ import jakarta.ejb.TransactionAttributeType;
 import jakarta.inject.Named;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.TypedQuery;
 
 /**
  *
@@ -36,11 +37,12 @@ public class DatasetRelationServiceBean {
                 .executeUpdate();
     }
 
-    public List<DatasetRelation> getDatasetRelationsFor(Dataset d, boolean groupByRelationType, Integer limit) {
-        if (groupByRelationType) {
-            return em.createNamedQuery("DatasetRelation.getRelationsByDatasetIdLimitedPerType", DatasetRelation.class)
-                    .setParameter(1, d.getId())
-                    .setParameter(2, limit)
+    public List<DatasetRelation> getDatasetRelationsFor(Dataset d, String relationTypeName, Integer limit) {
+        if (relationTypeName != null) {
+            return em.createNamedQuery("DatasetRelation.getRelationsByDatasetIdAndType", DatasetRelation.class)
+                    .setParameter("datasetId", d.getId())
+                    .setParameter("relationType", relationTypeName)
+                    .setMaxResults(limit)
                     .getResultList();
         } else {
             return em.createNamedQuery("DatasetRelation.getRelationsByDatasetId", DatasetRelation.class)
@@ -48,6 +50,12 @@ public class DatasetRelationServiceBean {
                     .setMaxResults(limit)
                     .getResultList();
         }
+    }
+
+    public List<Object[]> getDatasetRelationCountsFor(Dataset d) {
+        return em.createNamedQuery("DatasetRelation.getRelationCountsByDatasetId", Object[].class)
+                .setParameter(1, d.getId())
+                .getResultList();
     }
 
     @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)

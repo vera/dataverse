@@ -40,57 +40,35 @@ import jakarta.persistence.*;
 @NamedQueries({
         @NamedQuery(name = "DatasetRelation.getRelationsByDatasetId",
                 query="SELECT rel FROM DatasetRelation rel WHERE rel.dataset.id=:datasetId OR rel.relatedDataset.id=:datasetId"),
+        @NamedQuery(name = "DatasetRelation.getRelationsByDatasetIdAndType",
+                query="SELECT rel FROM DatasetRelation rel WHERE (rel.dataset.id=:datasetId AND rel.relationType.name=:relationType) OR (rel.relatedDataset.id=:datasetId AND rel.relationType.inverse.name=:relationType)"),
         @NamedQuery(name = "DatasetRelation.removeRelationsByDatasetId",
                 query = "DELETE FROM DatasetRelation rel WHERE rel.definitionPoint.id=:datasetId"),
 })
-        @NamedNativeQuery(
-            name = "DatasetRelation.getRelationsByDatasetIdLimitedPerType",
-            query = """
-                    SELECT *
-                    FROM (
-                        SELECT
-                            dr.id,
-                            dr.definitionpoint_id,
-                    
-                            CASE
-                                WHEN dr.dataset_id = ?1
-                                    THEN dr.dataset_id
-                                ELSE dr.relateddataset_id
-                            END AS dataset_id,
-                    
-                            CASE
-                                WHEN dr.dataset_id = ?1
-                                    THEN dr.relateddataset_id
-                                ELSE dr.dataset_id
-                            END AS relateddataset_id,
-                    
-                            CASE
-                                WHEN dr.dataset_id = ?1
-                                    THEN dr.relationtype_id
-                                ELSE rt.inverse_id
-                            END AS relationtype_id,
-                    
-                            ROW_NUMBER() OVER (
-                                PARTITION BY
-                                    CASE
-                                        WHEN dr.dataset_id = ?1
-                                            THEN dr.relationtype_id
-                                        ELSE rt.inverse_id
-                                    END
-                                ORDER BY dr.id
-                            ) AS rn
-                    
-                        FROM datasetrelation dr
-                        JOIN datasetrelationtype rt
-                          ON dr.relationtype_id = rt.id
-                    
-                        WHERE dr.dataset_id = ?1
-                           OR dr.relateddataset_id = ?1
-                    ) t
-                    WHERE rn <= ?2;
-                    """,
-                resultClass=DatasetRelation.class
-        )
+@NamedNativeQuery(
+        name = "DatasetRelation.getRelationCountsByDatasetId",
+        query = """
+        SELECT
+            CASE WHEN invert_relation THEN inv.name ELSE rt.name END AS relation_type_name,
+            COUNT(*) AS related_datasets_count
+        FROM (
+            SELECT dr.*, (dr.relateddataset_id = ?1) AS invert_relation
+            FROM datasetrelation dr
+            WHERE dr.dataset_id = ?1 OR dr.relateddataset_id = ?1
+        ) dr
+        JOIN datasetrelationtype rt ON dr.relationtype_id = rt.id
+        JOIN datasetrelationtype inv ON rt.inverse_id = inv.id
+        GROUP BY invert_relation, rt.name, inv.name
+    """,
+    resultSetMapping = "RelationCountMapping"
+)
+@SqlResultSetMapping(
+        name = "RelationCountMapping",
+        columns = {
+                @ColumnResult(name = "relation_type_name", type = String.class),
+                @ColumnResult(name = "related_datasets_count", type = Long.class)
+        }
+)
 public class DatasetRelation implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -112,7 +90,7 @@ public class DatasetRelation implements Serializable {
     private Dataset definitionPoint;
 
     @ManyToOne
-    @JoinColumn(nullable=false)
+    @JoinColumn()
     private DatasetRelationType relationType;
 
     /**

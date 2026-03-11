@@ -1092,32 +1092,8 @@ public class JsonPrinter {
         return json(rel, rel.getRelatedDataset().equals(forDataset), includeMetadataBlocks);
     }
 
-    public static JsonObjectBuilder json(List<DatasetRelation> rel, Dataset forDataset, boolean groupByRelationType, boolean includeMetadataBlocks) {
-        if (groupByRelationType) {
-            Map<String, JsonArrayBuilder> grouped = new HashMap<>();
-
-            for (DatasetRelation r : rel) {
-                String type = r.getRelationType().getName();
-
-                JsonArrayBuilder arr = grouped.computeIfAbsent(
-                        type, k -> Json.createArrayBuilder()
-                );
-
-                arr.add(json(r, forDataset, includeMetadataBlocks));
-            }
-
-            JsonObjectBuilder result = Json.createObjectBuilder();
-
-            for (var e : grouped.entrySet()) {
-                result.add(e.getKey(), e.getValue());
-            }
-
-            return result;
-        } else {
-            JsonObjectBuilder result = Json.createObjectBuilder();
-            result.add("relations", rel.stream().map(r -> json(r, forDataset, includeMetadataBlocks)).collect(toJsonArray()));
-            return result;
-        }
+    public static JsonArrayBuilder json(List<DatasetRelation> rel, Dataset forDataset, boolean includeMetadataBlocks) {
+        return rel.stream().map(r -> json(r, forDataset, includeMetadataBlocks)).collect(toJsonArray());
     }
 
     //Started from https://github.com/RENCI-NRIG/dataverse/, i.e. https://github.com/RENCI-NRIG/dataverse/commit/2b5a1225b42cf1caba85e18abfeb952171c6754a

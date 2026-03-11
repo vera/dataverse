@@ -4044,9 +4044,9 @@ public class Datasets extends AbstractApiBean {
     public Response listRelations(
             @Context ContainerRequestContext crc,
             @PathParam("identifier") String id,
-            @QueryParam("groupByRelationType") boolean groupByRelationType,
             @QueryParam("includeMetadataBlocks") boolean includeMetadataBlocks,
-            @QueryParam("limit") Integer limit
+            @QueryParam("limit") Integer limit,
+            @QueryParam("type") String relationTypeName
     ) {
         try {
             Dataset dataset = findDatasetOrDie(id);
@@ -4057,9 +4057,31 @@ public class Datasets extends AbstractApiBean {
             }
 
             // TODO don't return for draft unless allowed to view
-            List<DatasetRelation> relations = datasetRelationService.getDatasetRelationsFor(dataset, groupByRelationType, limit);
+            List<DatasetRelation> relations = datasetRelationService.getDatasetRelationsFor(dataset, relationTypeName, limit);
 
-            return ok(json(relations, dataset, groupByRelationType, includeMetadataBlocks));
+            return ok(json(relations, dataset, includeMetadataBlocks));
+        } catch (WrappedResponse wr) {
+            return wr.getResponse();
+        }
+    }
+
+    @GET
+    @AuthRequired
+    @Path("{identifier}/relations/counts")
+    public Response getRelationCounts(
+            @Context ContainerRequestContext crc,
+            @PathParam("identifier") String id
+    ) {
+        try {
+            Dataset dataset = findDatasetOrDie(id);
+
+            // TODO don't return for draft unless allowed to view
+            List<Object[]> relationCounts = datasetRelationService.getDatasetRelationCountsFor(dataset);
+
+            return ok(relationCounts.stream().map(relCount -> Json.createObjectBuilder()
+                                                                            .add("relationTypeName", relCount[0].toString())
+                                                                            .add("count", ((Number) relCount[1]).longValue()))
+                                             .collect(toJsonArray()));
         } catch (WrappedResponse wr) {
             return wr.getResponse();
         }
