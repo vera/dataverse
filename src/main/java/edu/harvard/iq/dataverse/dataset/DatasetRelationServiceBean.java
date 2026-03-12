@@ -60,6 +60,12 @@ public class DatasetRelationServiceBean {
                 .getResultList();
     }
 
+    public Long getRelatedDatasetCountFor(Dataset d) {
+        return em.createNamedQuery("DatasetRelation.getTotalCountByDatasetId", Long.class)
+                .setParameter(1, d.getId())
+                .getSingleResult();
+    }
+
     @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
     public List<DatasetRelation> addDatasetRelations(List<DatasetRelation> relations) {
         for (DatasetRelation relation : relations) {

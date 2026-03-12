@@ -138,6 +138,7 @@ public class SolrSearchServiceBean implements SearchService {
         Boolean datasetValid = (Boolean) solrDocument.getFieldValue(SearchFields.DATASET_VALID);
         Long fileCount = (Long) solrDocument.getFieldValue(SearchFields.FILE_COUNT);
         Long datasetCount = (Long) solrDocument.getFieldValue(SearchFields.DATASET_COUNT);
+        Long relatedDatasetCount = (Long) solrDocument.getFieldValue(SearchFields.RELATED_DATASET_COUNT);
 
         List<String> matchedFields = new ArrayList<>();
 
@@ -213,6 +214,7 @@ public class SolrSearchServiceBean implements SearchService {
         solrSearchResult.setDatasetValid(datasetValid);
         solrSearchResult.setFileCount(fileCount);
         solrSearchResult.setDatasetCount(datasetCount);
+        solrSearchResult.setRelatedDatasetCount(relatedDatasetCount);
 
         if (Boolean.TRUE.equals((Boolean) solrDocument.getFieldValue(SearchFields.IS_HARVESTED))) {
             solrSearchResult.setHarvested(true);

@@ -57,4 +57,13 @@ public class ReplaceDatasetRelationsCommand extends AbstractCommand<List<Dataset
         }
     }
 
+    @Override
+    public boolean onSuccess(CommandContext ctxt, Object r) {
+        boolean retVal = true;
+
+        // Reindex dataset to update relatedDatasetCount
+        ctxt.index().asyncIndexDataset(dataset, true);
+        return retVal;
+    }
+
 }

@@ -38,6 +38,7 @@ import edu.harvard.iq.dataverse.batch.util.LoggingUtil;
 import edu.harvard.iq.dataverse.dataaccess.DataAccess;
 import edu.harvard.iq.dataverse.dataaccess.DataAccessRequest;
 import edu.harvard.iq.dataverse.dataaccess.StorageIO;
+import edu.harvard.iq.dataverse.dataset.DatasetRelationServiceBean;
 import edu.harvard.iq.dataverse.dataset.DatasetType;
 import edu.harvard.iq.dataverse.datavariable.DataVariable;
 import edu.harvard.iq.dataverse.datavariable.VariableMetadata;
@@ -137,6 +138,8 @@ public class IndexServiceBean {
     DatasetServiceBean datasetService;
     @EJB
     DatasetVersionServiceBean datasetVersionService;
+    @EJB
+    DatasetRelationServiceBean datasetRelationService;
     @EJB
     BuiltinUserServiceBean dataverseUserServiceBean;
     @EJB
@@ -1046,6 +1049,8 @@ public class IndexServiceBean {
 
         DatasetType datasetType = dataset.getDatasetType();
         solrInputDocument.addField(SearchFields.DATASET_TYPE, datasetType.getName());
+
+        solrInputDocument.addField(SearchFields.RELATED_DATASET_COUNT, datasetRelationService.getRelatedDatasetCountFor(dataset));
 
         DatasetVersion datasetVersion = indexableDataset.getDatasetVersion();
         String parentDatasetTitle = "TBD";

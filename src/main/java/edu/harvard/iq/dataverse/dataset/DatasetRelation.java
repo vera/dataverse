@@ -71,6 +71,14 @@ import jakarta.persistence.*;
                 query = "DELETE FROM DatasetRelation rel WHERE rel.definitionPoint.id=:datasetId"),
 })
 @NamedNativeQuery(
+        name= "DatasetRelation.getTotalCountByDatasetId",
+        query= """
+            SELECT COUNT(DISTINCT CASE WHEN dr.dataset_id = ?1 THEN dr.relateddataset_id ELSE dr.dataset_id END)
+            FROM datasetrelation dr
+            WHERE dr.dataset_id = ?1 OR dr.relateddataset_id = ?1
+        """
+)
+@NamedNativeQuery(
         name = "DatasetRelation.getRelationCountsByDatasetId",
         query = """
             SELECT
