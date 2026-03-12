@@ -87,7 +87,7 @@ import jakarta.persistence.*;
                 relation_type_name,
                 COUNT(*) AS related_datasets_count
             FROM (
-                SELECT DISTINCT
+                SELECT
                     CASE
                         WHEN dr.dataset_id = ?1 THEN rt.name
                         ELSE inv.name
