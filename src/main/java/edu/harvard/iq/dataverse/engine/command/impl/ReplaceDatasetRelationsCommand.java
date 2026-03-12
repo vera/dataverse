@@ -14,23 +14,24 @@ import edu.harvard.iq.dataverse.engine.command.*;
 import edu.harvard.iq.dataverse.engine.command.exception.CommandException;
 
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  *
  * Replaces all relations defined for a given dataset.
  * @author Vera Clemens
  */
-// the permission annotation is open, since this is a superuser-only command -
-// and that's enforced in the command body:
 @RequiredPermissions(Permission.EditDataset)
 public class ReplaceDatasetRelationsCommand extends AbstractCommand<List<DatasetRelation>> {
+
+    private static final Logger logger = Logger.getLogger(ReplaceDatasetRelationsCommand.class.getName());
 
     private final Dataset dataset;
 
     private final List<DatasetRelationDTO> relationDTOs;
 
     public ReplaceDatasetRelationsCommand(Dataset dataset, List<DatasetRelationDTO> relations, DataverseRequest aRequest) {
-        super(aRequest, (Dataverse)null);
+        super(aRequest, dataset);
         this.dataset = dataset;
         this.relationDTOs = relations;
     }
@@ -38,8 +39,6 @@ public class ReplaceDatasetRelationsCommand extends AbstractCommand<List<Dataset
     @Override
     public List<DatasetRelation> execute(CommandContext ctxt) throws CommandException {
         try {
-            ctxt.datasetRelations().deleteDatasetRelationsFor(dataset);
-
             try {
                 List<DatasetRelation> relations = relationDTOs.stream().map(relationDTO -> {
                     Dataset d = relationDTO.getDatasetPid() != null ? ctxt.datasets().findByGlobalId(relationDTO.getDatasetPid()) : this.dataset;
@@ -50,15 +49,16 @@ public class ReplaceDatasetRelationsCommand extends AbstractCommand<List<Dataset
                         dataset
                     );
                 }).toList();
-                List<DatasetRelation> addedRelations = ctxt.datasetRelations().addDatasetRelations(relations);
+                List<DatasetRelation> addedRelations = ctxt.datasetRelations().replaceAllDatasetRelationsFor(dataset, relations);
                 // Reindex dataset to update relatedDatasetCount
-                //ctxt.index().asyncIndexDataset(dataset, true);
+                ctxt.index().asyncIndexDataset(dataset, true);
                 return addedRelations;
             }
             catch (IllegalArgumentException e) {
                 throw new CommandException("Failed to create dataset relations: one of the dataset PIDs is invalid", this);
             }
         } catch (Exception ex) {
+            logger.severe("Failed to replace dataset relations: " + ex.getMessage());
             throw new CommandException("Failed to replace dataset relations", this);
         }
     }

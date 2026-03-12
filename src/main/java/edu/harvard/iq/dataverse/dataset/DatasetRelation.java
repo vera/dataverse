@@ -69,6 +69,8 @@ import jakarta.persistence.*;
                     """),
         @NamedQuery(name = "DatasetRelation.removeRelationsByDatasetId",
                 query = "DELETE FROM DatasetRelation rel WHERE rel.definitionPoint.id=:datasetId"),
+        @NamedQuery(name = "DatasetRelation.getRelationsDefinedAtDatasetId",
+                query="SELECT rel FROM DatasetRelation rel WHERE rel.definitionPoint.id=:datasetId"),
 })
 @NamedNativeQuery(
         name= "DatasetRelation.getTotalCountByDatasetId",
@@ -229,6 +231,11 @@ public class DatasetRelation implements Serializable {
     @Override
     public String toString() {
         return "edu.harvard.iq.dataverse.dataset.DatasetRelation[ id=" + id + " ]";
+    }
+
+    public String toKey() {
+        // Unique representation of DatasetRelation instance (see uniqueness constraint)
+        return dataset.getId() + "|" + relatedDataset.getId() + "|" + relationType.getId() + "|" + definitionPoint.getId();
     }
 
 }
