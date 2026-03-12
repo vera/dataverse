@@ -41,29 +41,26 @@ public class ReplaceDatasetRelationsCommand extends AbstractCommand<List<Dataset
             ctxt.datasetRelations().deleteDatasetRelationsFor(dataset);
 
             try {
-                List<DatasetRelation> relations = relationDTOs.stream().map(relationDTO -> new DatasetRelation(
-                        ctxt.datasets().findByGlobalId(relationDTO.getDatasetPid()),
+                List<DatasetRelation> relations = relationDTOs.stream().map(relationDTO -> {
+                    Dataset d = relationDTO.getDatasetPid() != null ? ctxt.datasets().findByGlobalId(relationDTO.getDatasetPid()) : this.dataset;
+                    return new DatasetRelation(
+                        d,
                         ctxt.datasets().findByGlobalId(relationDTO.getRelatedDatasetPid()),
                         ctxt.datasetRelationTypes().findByName(relationDTO.getRelationTypeName()),
                         dataset
-                )).toList();
-                return ctxt.datasetRelations().addDatasetRelations(relations);
+                    );
+                }).toList();
+                List<DatasetRelation> addedRelations = ctxt.datasetRelations().addDatasetRelations(relations);
+                // Reindex dataset to update relatedDatasetCount
+                //ctxt.index().asyncIndexDataset(dataset, true);
+                return addedRelations;
             }
             catch (IllegalArgumentException e) {
-                throw new CommandException("Failed to create dataset relations: one of the dataset PIDs is invalid or the relation type is null", this);
+                throw new CommandException("Failed to create dataset relations: one of the dataset PIDs is invalid", this);
             }
         } catch (Exception ex) {
             throw new CommandException("Failed to replace dataset relations", this);
         }
-    }
-
-    @Override
-    public boolean onSuccess(CommandContext ctxt, Object r) {
-        boolean retVal = true;
-
-        // Reindex dataset to update relatedDatasetCount
-        ctxt.index().asyncIndexDataset(dataset, true);
-        return retVal;
     }
 
 }
