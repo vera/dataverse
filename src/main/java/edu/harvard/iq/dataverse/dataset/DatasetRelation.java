@@ -36,7 +36,11 @@ import jakarta.persistence.*;
 @Table(indexes = {
         @Index(name="index_datasetrelation_dataset", columnList="dataset_id"),
         @Index(name="index_datasetrelation_relateddataset", columnList="relateddataset_id")
-})
+        },
+        uniqueConstraints = @UniqueConstraint(
+                columnNames = {"dataset_id", "relateddataset_id", "relationtype_id", "definitionpoint_id"}
+        )
+)
 @NamedQueries({
         @NamedQuery(name = "DatasetRelation.getRelationsByDatasetId",
                 query="SELECT rel FROM DatasetRelation rel WHERE rel.dataset.id=:datasetId OR rel.relatedDataset.id=:datasetId"),
@@ -48,17 +52,23 @@ import jakarta.persistence.*;
 @NamedNativeQuery(
         name = "DatasetRelation.getRelationCountsByDatasetId",
         query = """
-        SELECT
-            CASE WHEN invert_relation THEN inv.name ELSE rt.name END AS relation_type_name,
-            COUNT(*) AS related_datasets_count
-        FROM (
-            SELECT dr.*, (dr.relateddataset_id = ?1) AS invert_relation
-            FROM datasetrelation dr
-            WHERE dr.dataset_id = ?1 OR dr.relateddataset_id = ?1
-        ) dr
-        JOIN datasetrelationtype rt ON dr.relationtype_id = rt.id
-        JOIN datasetrelationtype inv ON rt.inverse_id = inv.id
-        GROUP BY invert_relation, rt.name, inv.name
+            SELECT
+                relation_type_name,
+                COUNT(*) AS related_datasets_count
+            FROM (
+                SELECT DISTINCT
+                    CASE
+                        WHEN dr.dataset_id = ?1 THEN rt.name
+                        ELSE inv.name
+                    END AS relation_type_name
+                FROM datasetrelation dr
+                JOIN datasetrelationtype rt ON dr.relationtype_id = rt.id
+                JOIN datasetrelationtype inv ON rt.inverse_id = inv.id
+                WHERE dr.dataset_id = ?1
+                   OR dr.relateddataset_id = ?1
+            ) t
+            GROUP BY relation_type_name
+            ORDER BY relation_type_name;
     """,
     resultSetMapping = "RelationCountMapping"
 )
