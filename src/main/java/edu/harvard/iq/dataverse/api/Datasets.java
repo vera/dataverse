@@ -4006,6 +4006,7 @@ public class Datasets extends AbstractApiBean {
             @PathParam("identifier") String id,
             @QueryParam("includeMetadataBlocks") boolean includeMetadataBlocks,
             @QueryParam("limit") Integer limit,
+            @QueryParam("offset") Integer offset,
             @QueryParam("type") String relationTypeName
     ) {
         try {
@@ -4016,8 +4017,12 @@ public class Datasets extends AbstractApiBean {
                 limit = 10;
             }
 
+            if (offset == null) {
+                offset = 0;
+            }
+
             // TODO don't return for draft unless allowed to view
-            List<DatasetRelation> relations = datasetRelationService.getDatasetRelationsFor(dataset, relationTypeName, limit);
+            List<DatasetRelation> relations = datasetRelationService.getDatasetRelationsFor(dataset, relationTypeName, limit, offset);
 
             return ok(json(relations, dataset, includeMetadataBlocks));
         } catch (WrappedResponse wr) {
