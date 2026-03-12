@@ -136,24 +136,27 @@ public class DatasetRelation implements Serializable {
      * Constructing a dataset relation for the given datasets.
      * @param datasetA First dataset that is part of the relation.  Cannot be {@code null}.
      * @param datasetB Second dataset that is part of the relation.  Cannot be {@code null}.
-     * @param relationType The type of the relation. Cannot be {@code null}.
+     * @param relationType The type of the relation.
      * @param definitionPoint Which dataset the relation has been defined on.  Cannot be {@code null}.
      * @throws IllegalArgumentException if any of the parameters are null. That's
      *         because JPA would throw an exception later anyway.
      */
     public DatasetRelation(Dataset datasetA, Dataset datasetB, DatasetRelationType relationType, Dataset definitionPoint) {
         if ( datasetA == null || datasetB == null ) throw new IllegalArgumentException("Cannot create a relation for a null dataset");
-        if ( relationType == null ) throw new IllegalArgumentException("Cannot create a dataset relation with a null type");
 
         // We enforce canonical order to ensure uniqueness of relations
         if (datasetA.getId() < datasetB.getId()) {
             dataset = datasetA;
             relatedDataset = datasetB;
-            this.relationType = relationType;
+            if (relationType != null) {
+                this.relationType = relationType;
+            }
         } else {
             dataset = datasetB;
             relatedDataset = datasetA;
-            this.relationType = relationType.getInverse();
+            if (relationType != null) {
+                this.relationType = relationType.getInverse();
+            }
         }
 
         this.definitionPoint = definitionPoint;
