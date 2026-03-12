@@ -1068,16 +1068,16 @@ public class JsonPrinter {
         return builder;
     }
 
-    public static JsonObjectBuilder json(DatasetRelation rel, boolean invertRelationType, boolean includeMetadataBlocks) {
+    public static JsonObjectBuilder json(DatasetRelation rel, boolean invertRelation, boolean includeMetadataBlocks) {
         JsonObjectBuilder result = Json.createObjectBuilder();
 
-        result.add("datasetPid", invertRelationType ? rel.getRelatedDataset().getGlobalId().toString() : rel.getDataset().getGlobalId().toString())
-              .add("relatedDatasetPid", invertRelationType ? rel.getDataset().getGlobalId().toString() : rel.getRelatedDataset().getGlobalId().toString())
-              .add("relationTypeName", invertRelationType ? rel.getRelationType().getInverse().getName() : rel.getRelationType().getName())
+        result.add("datasetPid", invertRelation ? rel.getRelatedDataset().getGlobalId().toString() : rel.getDataset().getGlobalId().toString())
+              .add("relatedDatasetPid", invertRelation ? rel.getDataset().getGlobalId().toString() : rel.getRelatedDataset().getGlobalId().toString())
+              .add("relationTypeName", invertRelation ? rel.getRelationType().getInverse().getName() : rel.getRelationType().getName())
               .add("definitionPointPid", rel.getDefinitionPoint().getGlobalId().toString());
 
         if (includeMetadataBlocks) {
-            DatasetVersion releasedVersion = rel.getRelatedDataset().getReleasedVersion();
+            DatasetVersion releasedVersion = invertRelation ? rel.getDataset().getReleasedVersion() : rel.getRelatedDataset().getReleasedVersion();
             if (releasedVersion != null) {
                 result.add("relatedDataset",
                         Json.createObjectBuilder().add("metadataBlocks", jsonByBlocks(releasedVersion.getDatasetFields()))

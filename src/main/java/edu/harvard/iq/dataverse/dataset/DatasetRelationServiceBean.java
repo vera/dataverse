@@ -37,17 +37,19 @@ public class DatasetRelationServiceBean {
                 .executeUpdate();
     }
 
-    public List<DatasetRelation> getDatasetRelationsFor(Dataset d, String relationTypeName, Integer limit) {
+    public List<DatasetRelation> getDatasetRelationsFor(Dataset d, String relationTypeName, Integer limit, Integer offset) {
         if (relationTypeName != null) {
-            return em.createNamedQuery("DatasetRelation.getRelationsByDatasetIdAndType", DatasetRelation.class)
+            return em.createNamedQuery("DatasetRelation.getUniqueRelationsByDatasetIdAndType", DatasetRelation.class)
                     .setParameter("datasetId", d.getId())
                     .setParameter("relationType", relationTypeName)
                     .setMaxResults(limit)
+                    .setFirstResult(offset)
                     .getResultList();
         } else {
-            return em.createNamedQuery("DatasetRelation.getRelationsByDatasetId", DatasetRelation.class)
+            return em.createNamedQuery("DatasetRelation.getUniqueRelationsByDatasetId", DatasetRelation.class)
                     .setParameter("datasetId", d.getId())
                     .setMaxResults(limit)
+                    .setFirstResult(offset)
                     .getResultList();
         }
     }

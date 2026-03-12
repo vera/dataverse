@@ -42,10 +42,31 @@ import jakarta.persistence.*;
         )
 )
 @NamedQueries({
-        @NamedQuery(name = "DatasetRelation.getRelationsByDatasetId",
-                query="SELECT rel FROM DatasetRelation rel WHERE rel.dataset.id=:datasetId OR rel.relatedDataset.id=:datasetId"),
-        @NamedQuery(name = "DatasetRelation.getRelationsByDatasetIdAndType",
-                query="SELECT rel FROM DatasetRelation rel WHERE (rel.dataset.id=:datasetId AND rel.relationType.name=:relationType) OR (rel.relatedDataset.id=:datasetId AND rel.relationType.inverse.name=:relationType)"),
+        @NamedQuery(name = "DatasetRelation.getUniqueRelationsByDatasetId",
+                query="""
+                    SELECT rel FROM DatasetRelation rel
+                    WHERE (rel.dataset.id=:datasetId OR rel.relatedDataset.id=:datasetId)
+                            AND rel.id = (
+                                SELECT MIN(r2.id)
+                                FROM DatasetRelation r2
+                                WHERE r2.dataset.id = rel.dataset.id
+                                  AND r2.relatedDataset.id = rel.relatedDataset.id
+                                  AND r2.relationType.id = rel.relationType.id
+                            )
+                    """),
+        @NamedQuery(name = "DatasetRelation.getUniqueRelationsByDatasetIdAndType",
+                query="""
+                    SELECT rel FROM DatasetRelation rel
+                    WHERE ((rel.dataset.id=:datasetId AND rel.relationType.name=:relationType)
+                            OR (rel.relatedDataset.id=:datasetId AND rel.relationType.inverse.name=:relationType))
+                                AND rel.id = (
+                                    SELECT MIN(r2.id)
+                                    FROM DatasetRelation r2
+                                    WHERE r2.dataset.id = rel.dataset.id
+                                      AND r2.relatedDataset.id = rel.relatedDataset.id
+                                      AND r2.relationType.id = rel.relationType.id
+                                )
+                    """),
         @NamedQuery(name = "DatasetRelation.removeRelationsByDatasetId",
                 query = "DELETE FROM DatasetRelation rel WHERE rel.definitionPoint.id=:datasetId"),
 })
