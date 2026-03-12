@@ -13,12 +13,11 @@ CREATE TABLE IF NOT EXISTS datasetrelation (
                                               relateddataset_id BIGINT NOT NULL,
                                               relationtype_id BIGINT,
                                               definitionpoint_id BIGINT NOT NULL,
-                                              CHECK (dataset_id < relateddataset_id),
-                                              UNIQUE (dataset_id, relateddataset_id, relationtype_id),
-                                              CONSTRAINT fk_datasetrelations_dataset_not_equal_related_dataset check (dataset_id <> relateddataset_id),
-                                              CONSTRAINT fk_datasetrelations_dataset FOREIGN KEY (dataset_id) REFERENCES dvobject(id),
-                                              CONSTRAINT fk_datasetrelations_related_dataset FOREIGN KEY (relateddataset_id) REFERENCES dvobject(id),
-                                              CONSTRAINT fk_datasetrelations_relation_type FOREIGN KEY (relationtype_id) REFERENCES datasetrelationtype(id)
+                                              UNIQUE (dataset_id, relateddataset_id, relationtype_id, definitionpoint_id),
+                                              CONSTRAINT fk_datasetrelation_dataset_id FOREIGN KEY (dataset_id) REFERENCES dvobject(id),
+                                              CONSTRAINT fk_datasetrelation_definitionpoint_id FOREIGN KEY (definitionpoint_id) REFERENCES dvobject(id),
+                                              CONSTRAINT fk_datasetrelation_relateddataset_id FOREIGN KEY (relateddataset_id) REFERENCES dvobject(id),
+                                              CONSTRAINT fk_datasetrelation_relationtype_id FOREIGN KEY (relationtype_id) REFERENCES datasetrelationtype(id)
 );
 
 CREATE INDEX IF NOT EXISTS index_datasetrelation_dataset ON datasetrelation (dataset_id);
