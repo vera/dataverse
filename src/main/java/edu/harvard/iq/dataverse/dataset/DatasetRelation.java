@@ -95,8 +95,15 @@ import jakarta.persistence.*;
                 FROM datasetrelation dr
                 JOIN datasetrelationtype rt ON dr.relationtype_id = rt.id
                 JOIN datasetrelationtype inv ON rt.inverse_id = inv.id
-                WHERE dr.dataset_id = ?1
-                   OR dr.relateddataset_id = ?1
+                WHERE (dr.dataset_id = ?1
+                   OR dr.relateddataset_id = ?1) 
+                    AND dr.id = (
+                                    SELECT MIN(dr2.id)
+                                    FROM datasetrelation dr2
+                                    WHERE dr2.dataset_id = dr.dataset_id
+                                      AND dr2.relateddataset_id = dr.relateddataset_id
+                                      AND dr2.relationtype_id = dr.relationtype_id
+                                )
             ) t
             GROUP BY relation_type_name
             ORDER BY relation_type_name;
