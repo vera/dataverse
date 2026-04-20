@@ -16,6 +16,7 @@ import jakarta.ejb.EJB;
 import jakarta.ejb.Stateless;
 import jakarta.ejb.TransactionAttribute;
 import jakarta.ejb.TransactionAttributeType;
+import jakarta.inject.Inject;
 import jakarta.inject.Named;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -33,14 +34,11 @@ public class DatasetRelationServiceBean {
     @PersistenceContext
     private EntityManager em;
 
-    /**
-     * A reference to the current instance of the DatasetRelationServiceBean.
-     * Used when self-invocation is required for internal method calls
-     * within the same bean to ensure that all EJB functionalities
-     * such as transactions and security are properly applied.
-     */
     @EJB
     private DatasetRelationServiceBean self;
+
+    @Inject
+    private DatasetRelationAlgorithm algorithm;
 
     public void deleteAllDatasetRelationsFor(Dataset d) {
         em.createNamedQuery("DatasetRelation.removeRelationsByDatasetId")
@@ -49,32 +47,15 @@ public class DatasetRelationServiceBean {
     }
 
     public List<DatasetRelation> getDatasetRelationsFor(Dataset d, String relationTypeName, Integer limit, Integer offset) {
-        if (relationTypeName != null) {
-            return em.createNamedQuery("DatasetRelation.getUniqueRelationsByDatasetIdAndType", DatasetRelation.class)
-                    .setParameter("datasetId", d.getId())
-                    .setParameter("relationType", relationTypeName)
-                    .setMaxResults(limit)
-                    .setFirstResult(offset)
-                    .getResultList();
-        } else {
-            return em.createNamedQuery("DatasetRelation.getUniqueRelationsByDatasetId", DatasetRelation.class)
-                    .setParameter("datasetId", d.getId())
-                    .setMaxResults(limit)
-                    .setFirstResult(offset)
-                    .getResultList();
-        }
+        return algorithm.getRelations(d, relationTypeName, limit, offset);
     }
 
     public List<Object[]> getDatasetRelationCountsFor(Dataset d) {
-        return em.createNamedQuery("DatasetRelation.getRelationCountsByDatasetId", Object[].class)
-                .setParameter(1, d.getId())
-                .getResultList();
+        return algorithm.getRelationCounts(d);
     }
 
     public Long getRelatedDatasetCountFor(Dataset d) {
-        return em.createNamedQuery("DatasetRelation.getTotalCountByDatasetId", Long.class)
-                .setParameter(1, d.getId())
-                .getSingleResult();
+        return algorithm.getRelatedDatasetCount(d);
     }
 
     public List<DatasetRelation> addDatasetRelations(List<DatasetRelation> relations) {
