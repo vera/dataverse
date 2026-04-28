@@ -262,7 +262,11 @@ public class SolrSearchServiceBean implements SearchService {
                     solrSearchResult.setDescriptionNoSnippet(String.join(" ", datasetDescriptions));
                 }
             }
-            solrSearchResult.setDatasetVersionId(datasetVersionId);
+            if (datasetVersionId != null) {
+                solrSearchResult.setDatasetVersionId(datasetVersionId);
+            } else {
+                logger.warning("DatasetVersion id is missing for dataset id " + entityid + ". This may be due to a race condition between asynchronous indexing and the transaction commit. To fix this, you can call the re-index API: http://localhost:8080/api/admin/index/dataset?persistentId=" + identifier);
+            }
 
             solrSearchResult.setCitation(citation);
             solrSearchResult.setCitationHtml(citationPlainHtml);
@@ -343,7 +347,11 @@ public class SolrSearchServiceBean implements SearchService {
             }
 
             solrSearchResult.setUnf((String) solrDocument.getFieldValue(SearchFields.UNF));
-            solrSearchResult.setDatasetVersionId(datasetVersionId);
+            if (datasetVersionId > 0) {
+                solrSearchResult.setDatasetVersionId(datasetVersionId);
+            } else {
+                logger.warning("DatasetVersion id is missing for file id " + entityid + ". This may be due to a race condition between asynchronous indexing and the transaction commit. To fix this, you can call the re-index API: http://localhost:8080/api/admin/index/dataset?persistentId=" + parentGlobalId);
+            }
             List<String> fileCategories = (List) solrDocument.getFieldValues(SearchFields.FILE_TAG);
             if (fileCategories != null) {
                 solrSearchResult.setFileCategories(fileCategories);
