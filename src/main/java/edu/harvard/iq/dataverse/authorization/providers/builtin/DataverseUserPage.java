@@ -179,7 +179,9 @@ public class DataverseUserPage implements java.io.Serializable {
         }
 
         if (session.getUser(true).isAuthenticated()) {
-            setCurrentUser((AuthenticatedUser) session.getUser());
+            AuthenticatedUser sessionUser = (AuthenticatedUser) session.getUser();
+            AuthenticatedUser freshUser = userService.findFresh(sessionUser.getId());
+            setCurrentUser(freshUser != null ? freshUser : sessionUser);
             userAuthProvider = authenticationService.lookupProvider(currentUser);
             notificationsList = userNotificationService.findByUser(currentUser.getId());
             notificationTypeList = Arrays.asList(Type.values()).stream()
@@ -609,7 +611,7 @@ public class DataverseUserPage implements java.io.Serializable {
     }
     
     public AuthenticationProvider getUserAuthProvider() {
-        if ( userAuthProvider == null  ) {
+        if (userAuthProvider == null && currentUser != null) {
             userAuthProvider = authenticationService.lookupProvider(currentUser);
         }
         return userAuthProvider;
