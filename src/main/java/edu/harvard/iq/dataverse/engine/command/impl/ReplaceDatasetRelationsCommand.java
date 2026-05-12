@@ -38,23 +38,26 @@ public class ReplaceDatasetRelationsCommand extends AbstractCommand<List<Dataset
     @Override
     public List<DatasetRelation> execute(CommandContext ctxt) throws CommandException {
         try {
-            List<DatasetRelation> relations = relationDTOs.stream().map(relationDTO -> {
+            List<DatasetRelation> relations = relationDTOs.stream().flatMap(relationDTO -> {
                 Dataset d = relationDTO.getDatasetPid() != null ? ctxt.datasets().findByGlobalId(relationDTO.getDatasetPid()) : this.dataset;
+                Dataset relatedDataset = ctxt.datasets().findByGlobalId(relationDTO.getRelatedDatasetPid());
 
-                return new DatasetRelation(
+                if (relatedDataset == null) {
+                    logger.severe("Failed to find related dataset with PID " + relationDTO.getRelatedDatasetPid());
+                    return java.util.stream.Stream.empty();
+                }
+
+                return java.util.stream.Stream.of(new DatasetRelation(
                         d,
-                        ctxt.datasets().findByGlobalId(relationDTO.getRelatedDatasetPid()),
+                        relatedDataset,
                         ctxt.datasetRelationTypes().findByName(relationDTO.getRelationTypeName()),
                         dataset
-                );
+                ));
             }).toList();
             List<DatasetRelation> addedRelations = ctxt.datasetRelations().replaceAllDatasetRelationsFor(dataset, relations);
             // Reindex dataset to update relatedDatasetCount
             ctxt.index().asyncIndexDataset(dataset, true);
             return addedRelations;
-        }
-        catch (IllegalArgumentException e) {
-            throw new CommandException("Failed to create dataset relations: one of the dataset PIDs is invalid", this);
         }
         catch (Exception ex) {
             logger.severe("Failed to replace dataset relations: " + ex.getMessage());
