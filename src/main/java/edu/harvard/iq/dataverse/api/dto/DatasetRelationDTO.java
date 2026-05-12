@@ -1,7 +1,5 @@
 package edu.harvard.iq.dataverse.api.dto;
 
-import edu.harvard.iq.dataverse.dataset.DatasetRelationType;
-
 public class DatasetRelationDTO {
     private String datasetPid;
     private String relatedDatasetPid;
