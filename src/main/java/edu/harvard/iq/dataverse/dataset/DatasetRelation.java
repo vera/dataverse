@@ -242,7 +242,7 @@ public class DatasetRelation implements Serializable {
 
     public String toKey() {
         // Unique representation of DatasetRelation instance (see uniqueness constraint)
-        return dataset.getId() + "|" + relatedDataset.getId() + "|" + relationType.getId() + "|" + definitionPoint.getId();
+        return dataset.getId() + "|" + relatedDataset.getId() + "|" + (relationType != null ? relationType.getId() : "") + "|" + definitionPoint.getId();
     }
 
 }
