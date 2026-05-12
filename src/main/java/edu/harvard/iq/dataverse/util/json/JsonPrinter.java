@@ -1073,8 +1073,11 @@ public class JsonPrinter {
 
         result.add("datasetPid", invertRelation ? rel.getRelatedDataset().getGlobalId().toString() : rel.getDataset().getGlobalId().toString())
               .add("relatedDatasetPid", invertRelation ? rel.getDataset().getGlobalId().toString() : rel.getRelatedDataset().getGlobalId().toString())
-              .add("relationTypeName", invertRelation ? rel.getRelationType().getInverse().getName() : rel.getRelationType().getName())
               .add("definitionPointPid", rel.getDefinitionPoint().getGlobalId().toString());
+
+        if (rel.getRelationType() != null) {
+            result.add("relationTypeName", invertRelation ? rel.getRelationType().getInverse().getName() : rel.getRelationType().getName());
+        }
 
         if (includeMetadataBlocks) {
             DatasetVersion releasedVersion = invertRelation ? rel.getDataset().getReleasedVersion() : rel.getRelatedDataset().getReleasedVersion();
