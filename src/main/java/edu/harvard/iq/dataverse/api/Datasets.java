@@ -3994,10 +3994,27 @@ public class Datasets extends AbstractApiBean {
     @PUT
     @AuthRequired
     @Path("{identifier}/relations")
-    public Response replaceDatasetRelations(@Context ContainerRequestContext crc, String body, @PathParam("identifier") String id) {
+    public Response replaceDatasetRelations(
+            @Context ContainerRequestContext crc,
+            String body,
+            @PathParam("identifier") String id,
+            @QueryParam("version") String versionNumber
+    ) {
         return response(req -> {
             try {
                 Dataset dataset = findDatasetOrDie(id);
+                DatasetVersion version;
+
+                if (versionNumber != null) {
+                    if (getRequestUser(crc).isSuperuser()) {
+                        // Superuser can edit published version directly if specified
+                        version = findDatasetVersionOrDie(req, versionNumber, dataset, false, false);
+                    } else {
+                        return error(Response.Status.FORBIDDEN, "You are not permitted to replace the dataset relations of a published version of a dataset.");
+                    }
+                } else {
+                    version = dataset.getOrCreateEditVersion();
+                }
 
                 List<DatasetRelationDTO> newDatasetRelationsDTO;
                 try {
@@ -4008,7 +4025,7 @@ public class Datasets extends AbstractApiBean {
                     return error(Status.BAD_REQUEST, MessageFormat.format(BundleUtil.getStringFromBundle("dataverse.create.error.jsonparsetodatasetrelation"), ex.getMessage()));
                 }
 
-                List<DatasetRelation> res = execCommand(new ReplaceDatasetRelationsCommand(dataset, newDatasetRelationsDTO, req));
+                List<DatasetRelation> res = execCommand(new ReplaceDatasetRelationsCommand(version, newDatasetRelationsDTO, req));
 
                 return ok(res.stream().map(rel -> json(rel, dataset, false)).collect(toJsonArray()));
             } catch (WrappedResponse wr) {
@@ -4044,27 +4061,29 @@ public class Datasets extends AbstractApiBean {
             @QueryParam("includeMetadataBlocks") boolean includeMetadataBlocks,
             @QueryParam("limit") Integer limit,
             @QueryParam("offset") Integer offset,
-            @QueryParam("type") String relationTypeName
+            @QueryParam("type") String relationTypeName,
+            @QueryParam("version") String versionNumber
     ) {
-        try {
-            Dataset dataset = findDatasetOrDie(id);
+        return response(req -> {
+            try {
+                Dataset dataset = findDatasetOrDie(id);
+                DatasetVersion version = null;
+                if (versionNumber != null) {
+                    version = findDatasetVersionOrDie(req, versionNumber, dataset, false, false);
+                } else {
+                    version = dataset.getLatestVersion();
+                }
 
-            if (limit == null) {
-                // Default page size
-                limit = 10;
+                Integer effectiveLimit = limit != null ? limit : 10;
+                Integer effectiveOffset = offset != null ? offset : 0;
+
+                List<DatasetRelation> relations = datasetRelationService.getDatasetRelationsFor(dataset, version, relationTypeName, effectiveLimit, effectiveOffset);
+
+                return ok(json(relations, dataset, includeMetadataBlocks));
+            } catch (WrappedResponse wr) {
+                return wr.getResponse();
             }
-
-            if (offset == null) {
-                offset = 0;
-            }
-
-            // TODO don't return for draft unless allowed to view
-            List<DatasetRelation> relations = datasetRelationService.getDatasetRelationsFor(dataset, relationTypeName, limit, offset);
-
-            return ok(json(relations, dataset, includeMetadataBlocks));
-        } catch (WrappedResponse wr) {
-            return wr.getResponse();
-        }
+        }, getRequestUser(crc));
     }
 
     @GET
@@ -4072,21 +4091,29 @@ public class Datasets extends AbstractApiBean {
     @Path("{identifier}/relations/counts")
     public Response getRelationCounts(
             @Context ContainerRequestContext crc,
-            @PathParam("identifier") String id
+            @PathParam("identifier") String id,
+            @QueryParam("version") String versionNumber
     ) {
-        try {
-            Dataset dataset = findDatasetOrDie(id);
+        return response(req -> {
+            try {
+                Dataset dataset = findDatasetOrDie(id);
+                DatasetVersion version;
+                if (versionNumber != null) {
+                    version = findDatasetVersionOrDie(req, versionNumber, dataset, false, false);
+                } else {
+                    version = dataset.getLatestVersion();
+                }
 
-            // TODO don't return for draft unless allowed to view
-            List<Object[]> relationCounts = datasetRelationService.getDatasetRelationCountsFor(dataset);
+                List<Object[]> relationCounts = datasetRelationService.getDatasetRelationCountsFor(dataset, version);
 
-            return ok(relationCounts.stream().map(relCount -> Json.createObjectBuilder()
-                                                                            .add("relationTypeName", relCount[0].toString())
-                                                                            .add("count", ((Number) relCount[1]).longValue()))
-                                             .collect(toJsonArray()));
-        } catch (WrappedResponse wr) {
-            return wr.getResponse();
-        }
+                return ok(relationCounts.stream().map(relCount -> Json.createObjectBuilder()
+                                .add("relationTypeName", relCount[0].toString())
+                                .add("count", ((Number) relCount[1]).longValue()))
+                        .collect(toJsonArray()));
+            } catch (WrappedResponse wr) {
+                return wr.getResponse();
+            }
+        }, getRequestUser(crc));
     }
 
     @POST

@@ -6,6 +6,7 @@
 package edu.harvard.iq.dataverse.dataset;
 
 import edu.harvard.iq.dataverse.Dataset;
+import edu.harvard.iq.dataverse.DatasetVersion;
 
 import java.util.List;
 import java.util.Set;
@@ -40,22 +41,26 @@ public class DatasetRelationServiceBean {
     @Inject
     private DatasetRelationAlgorithm algorithm;
 
-    public void deleteAllDatasetRelationsFor(Dataset d) {
-        em.createNamedQuery("DatasetRelation.removeRelationsByDatasetId")
-                .setParameter("datasetId", d.getId())
+    public void deleteAllDatasetRelationsFor(DatasetVersion v) {
+        em.createNamedQuery("DatasetRelation.removeRelationsByDatasetVersionId")
+                .setParameter("versionId", v.getId())
                 .executeUpdate();
     }
 
-    public List<DatasetRelation> getDatasetRelationsFor(Dataset d, String relationTypeName, Integer limit, Integer offset) {
-        return algorithm.getRelations(d, relationTypeName, limit, offset);
+    public List<DatasetRelation> getDatasetRelationsFor(Dataset d, DatasetVersion v, String relationTypeName, Integer limit, Integer offset) {
+        return algorithm.getRelations(d, v, relationTypeName, limit, offset);
     }
 
-    public List<Object[]> getDatasetRelationCountsFor(Dataset d) {
-        return algorithm.getRelationCounts(d);
+    public List<Object[]> getDatasetRelationCountsFor(Dataset d, DatasetVersion v) {
+        return algorithm.getRelationCounts(d, v);
     }
 
     public Long getRelatedDatasetCountFor(Dataset d) {
-        return algorithm.getRelatedDatasetCount(d);
+        return algorithm.getRelatedDatasetCount(d, null);
+    }
+
+    public Long getRelatedDatasetCountFor(Dataset d, DatasetVersion v) {
+        return algorithm.getRelatedDatasetCount(d, v);
     }
 
     public List<DatasetRelation> addDatasetRelations(List<DatasetRelation> relations) {
@@ -65,16 +70,16 @@ public class DatasetRelationServiceBean {
         return relations;
     }
 
-    public List<DatasetRelation> replaceAllDatasetRelationsFor(Dataset d, List<DatasetRelation> newRelations) {
+    public List<DatasetRelation> replaceAllDatasetRelationsFor(DatasetVersion v, List<DatasetRelation> newRelations) {
         // Execute the update (in one atomic operation using a transaction)
         // Note: We need to call via self-reference so the EJB container can create a transaction as intended.
-        return self.replaceAll(d, newRelations);
+        return self.replaceAll(v, newRelations);
     }
 
     @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
-    public List<DatasetRelation> replaceAll(Dataset d, List<DatasetRelation> newRelations) {
-        List<DatasetRelation> existingRelations = em.createNamedQuery("DatasetRelation.getRelationsDefinedAtDatasetId", DatasetRelation.class)
-                .setParameter("datasetId", d.getId())
+    public List<DatasetRelation> replaceAll(DatasetVersion v, List<DatasetRelation> newRelations) {
+        List<DatasetRelation> existingRelations = em.createNamedQuery("DatasetRelation.getRelationsDefinedAtDatasetVersionId", DatasetRelation.class)
+                .setParameter("versionId", v.getId())
                 .getResultList();
 
         Set<String> existingKeys = existingRelations.stream()

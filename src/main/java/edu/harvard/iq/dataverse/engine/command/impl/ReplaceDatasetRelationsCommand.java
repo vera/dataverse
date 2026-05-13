@@ -6,6 +6,7 @@
 package edu.harvard.iq.dataverse.engine.command.impl;
 
 import edu.harvard.iq.dataverse.Dataset;
+import edu.harvard.iq.dataverse.DatasetVersion;
 import edu.harvard.iq.dataverse.dataset.DatasetRelation;
 import edu.harvard.iq.dataverse.api.dto.DatasetRelationDTO;
 import edu.harvard.iq.dataverse.authorization.Permission;
@@ -25,13 +26,13 @@ public class ReplaceDatasetRelationsCommand extends AbstractCommand<List<Dataset
 
     private static final Logger logger = Logger.getLogger(ReplaceDatasetRelationsCommand.class.getName());
 
-    private final Dataset dataset;
+    private final DatasetVersion version;
 
     private final List<DatasetRelationDTO> relationDTOs;
 
-    public ReplaceDatasetRelationsCommand(Dataset dataset, List<DatasetRelationDTO> relations, DataverseRequest aRequest) {
-        super(aRequest, dataset);
-        this.dataset = dataset;
+    public ReplaceDatasetRelationsCommand(DatasetVersion version, List<DatasetRelationDTO> relations, DataverseRequest aRequest) {
+        super(aRequest, version.getDataset());
+        this.version = version;
         this.relationDTOs = relations;
     }
 
@@ -39,7 +40,7 @@ public class ReplaceDatasetRelationsCommand extends AbstractCommand<List<Dataset
     public List<DatasetRelation> execute(CommandContext ctxt) throws CommandException {
         try {
             List<DatasetRelation> relations = relationDTOs.stream().flatMap(relationDTO -> {
-                Dataset d = relationDTO.getDatasetPid() != null ? ctxt.datasets().findByGlobalId(relationDTO.getDatasetPid()) : this.dataset;
+                Dataset d = relationDTO.getDatasetPid() != null ? ctxt.datasets().findByGlobalId(relationDTO.getDatasetPid()) : this.version.getDataset();
                 Dataset relatedDataset = ctxt.datasets().findByGlobalId(relationDTO.getRelatedDatasetPid());
 
                 if (relatedDataset == null) {
@@ -51,12 +52,12 @@ public class ReplaceDatasetRelationsCommand extends AbstractCommand<List<Dataset
                         d,
                         relatedDataset,
                         ctxt.datasetRelationTypes().findByName(relationDTO.getRelationTypeName()),
-                        dataset
+                        version
                 ));
             }).toList();
-            List<DatasetRelation> addedRelations = ctxt.datasetRelations().replaceAllDatasetRelationsFor(dataset, relations);
+            List<DatasetRelation> addedRelations = ctxt.datasetRelations().replaceAllDatasetRelationsFor(version, relations);
             // Reindex dataset to update relatedDatasetCount
-            ctxt.index().asyncIndexDataset(dataset, true);
+            ctxt.index().asyncIndexDataset(version.getDataset(), true);
             return addedRelations;
         }
         catch (Exception ex) {

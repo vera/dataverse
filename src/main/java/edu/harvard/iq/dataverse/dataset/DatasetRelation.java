@@ -23,6 +23,7 @@ package edu.harvard.iq.dataverse.dataset;
 import java.io.Serializable;
 
 import edu.harvard.iq.dataverse.Dataset;
+import edu.harvard.iq.dataverse.DatasetVersion;
 import jakarta.persistence.*;
 
 /**
@@ -46,38 +47,132 @@ import jakarta.persistence.*;
                 query="""
                     SELECT rel FROM DatasetRelation rel
                     WHERE (rel.dataset.id=:datasetId OR rel.relatedDataset.id=:datasetId)
+                            AND rel.definitionPoint.id = (
+                                SELECT dv.id FROM DatasetVersion dv
+                                WHERE dv.dataset.id = rel.definitionPoint.dataset.id
+                                AND dv.versionNumber = (SELECT MAX(dv2.versionNumber) FROM DatasetVersion dv2 WHERE dv2.dataset.id = dv.dataset.id AND dv2.versionState = edu.harvard.iq.dataverse.DatasetVersion.VersionState.RELEASED)
+                            )
                             AND rel.id = (
                                 SELECT MIN(r2.id)
                                 FROM DatasetRelation r2
                                 WHERE r2.dataset.id = rel.dataset.id
                                   AND r2.relatedDataset.id = rel.relatedDataset.id
                                   AND r2.relationType.id = rel.relationType.id
+                                  AND r2.definitionPoint.id = rel.definitionPoint.id
+                            )
+                    """),
+        @NamedQuery(name = "DatasetRelation.getUniqueRelationsByDatasetIdAndVersion",
+                query="""
+                    SELECT rel FROM DatasetRelation rel
+                    WHERE (
+                            rel.definitionPoint.id=:versionId 
+                            OR (
+                                (rel.dataset.id=:datasetId OR rel.relatedDataset.id=:datasetId) 
+                                AND rel.definitionPoint.dataset.id != :datasetId
+                                AND rel.definitionPoint.id = (
+                                    SELECT dv.id FROM DatasetVersion dv
+                                    WHERE dv.dataset.id = rel.definitionPoint.dataset.id
+                                    AND dv.versionNumber = (SELECT MAX(dv2.versionNumber) FROM DatasetVersion dv2 WHERE dv2.dataset.id = dv.dataset.id AND dv2.versionState = edu.harvard.iq.dataverse.DatasetVersion.VersionState.RELEASED)
+                                )
+                            )
+                          )
+                            AND rel.id = (
+                                SELECT MIN(r2.id)
+                                FROM DatasetRelation r2
+                                WHERE r2.dataset.id = rel.dataset.id
+                                  AND r2.relatedDataset.id = rel.relatedDataset.id
+                                  AND r2.relationType.id = rel.relationType.id
+                                  AND r2.definitionPoint.id = rel.definitionPoint.id
                             )
                     """),
         @NamedQuery(name = "DatasetRelation.getUniqueRelationsByDatasetIdAndType",
                 query="""
                     SELECT rel FROM DatasetRelation rel
-                    WHERE ((rel.dataset.id=:datasetId AND rel.relationType.name=:relationType)
-                            OR (rel.relatedDataset.id=:datasetId AND rel.relationType.inverse.name=:relationType))
-                                AND rel.id = (
-                                    SELECT MIN(r2.id)
-                                    FROM DatasetRelation r2
-                                    WHERE r2.dataset.id = rel.dataset.id
-                                      AND r2.relatedDataset.id = rel.relatedDataset.id
-                                      AND r2.relationType.id = rel.relationType.id
-                                )
+                    WHERE (
+                            (rel.dataset.id=:datasetId AND rel.relationType.name=:relationType)
+                            OR (rel.relatedDataset.id=:datasetId AND rel.relationType.inverse.name=:relationType)
+                          )
+                            AND rel.definitionPoint.id = (
+                                SELECT dv.id FROM DatasetVersion dv
+                                WHERE dv.dataset.id = rel.definitionPoint.dataset.id
+                                AND dv.versionNumber = (SELECT MAX(dv2.versionNumber) FROM DatasetVersion dv2 WHERE dv2.dataset.id = dv.dataset.id AND dv2.versionState = edu.harvard.iq.dataverse.DatasetVersion.VersionState.RELEASED)
+                            )
+                            AND rel.id = (
+                                SELECT MIN(r2.id)
+                                FROM DatasetRelation r2
+                                WHERE r2.dataset.id = rel.dataset.id
+                                  AND r2.relatedDataset.id = rel.relatedDataset.id
+                                  AND r2.relationType.id = rel.relationType.id
+                                  AND r2.definitionPoint.id = rel.definitionPoint.id
+                            )
                     """),
-        @NamedQuery(name = "DatasetRelation.removeRelationsByDatasetId",
-                query = "DELETE FROM DatasetRelation rel WHERE rel.definitionPoint.id=:datasetId"),
-        @NamedQuery(name = "DatasetRelation.getRelationsDefinedAtDatasetId",
-                query="SELECT rel FROM DatasetRelation rel WHERE rel.definitionPoint.id=:datasetId"),
+        @NamedQuery(name = "DatasetRelation.getUniqueRelationsByDatasetIdAndVersionAndType",
+                query="""
+                    SELECT rel FROM DatasetRelation rel
+                    WHERE (
+                            (rel.definitionPoint.id=:versionId AND rel.dataset.id=:datasetId AND rel.relationType.name=:relationType)
+                            OR (rel.definitionPoint.id=:versionId AND rel.relatedDataset.id=:datasetId AND rel.relationType.inverse.name=:relationType)
+                            OR (
+                                rel.definitionPoint.dataset.id != :datasetId 
+                                AND rel.dataset.id=:datasetId AND rel.relationType.name=:relationType
+                                AND rel.definitionPoint.id = (
+                                    SELECT dv.id FROM DatasetVersion dv
+                                    WHERE dv.dataset.id = rel.definitionPoint.dataset.id
+                                    AND dv.versionNumber = (SELECT MAX(dv2.versionNumber) FROM DatasetVersion dv2 WHERE dv2.dataset.id = dv.dataset.id AND dv2.versionState = edu.harvard.iq.dataverse.DatasetVersion.VersionState.RELEASED)
+                                )
+                            )
+                            OR (
+                                rel.definitionPoint.dataset.id != :datasetId 
+                                AND rel.relatedDataset.id=:datasetId AND rel.relationType.inverse.name=:relationType
+                                AND rel.definitionPoint.id = (
+                                    SELECT dv.id FROM DatasetVersion dv
+                                    WHERE dv.dataset.id = rel.definitionPoint.dataset.id
+                                    AND dv.versionNumber = (SELECT MAX(dv2.versionNumber) FROM DatasetVersion dv2 WHERE dv2.dataset.id = dv.dataset.id AND dv2.versionState = edu.harvard.iq.dataverse.DatasetVersion.VersionState.RELEASED)
+                                )
+                            )
+                          )
+                            AND rel.id = (
+                                SELECT MIN(r2.id)
+                                FROM DatasetRelation r2
+                                WHERE r2.dataset.id = rel.dataset.id
+                                  AND r2.relatedDataset.id = rel.relatedDataset.id
+                                  AND r2.relationType.id = rel.relationType.id
+                                  AND r2.definitionPoint.id = rel.definitionPoint.id
+                            )
+                    """),
+        @NamedQuery(name = "DatasetRelation.removeRelationsByDatasetVersionId",
+                query = "DELETE FROM DatasetRelation rel WHERE rel.definitionPoint.id=:versionId"),
+        @NamedQuery(name = "DatasetRelation.getRelationsDefinedAtDatasetVersionId",
+                query="SELECT rel FROM DatasetRelation rel WHERE rel.definitionPoint.id=:versionId")
 })
 @NamedNativeQuery(
         name= "DatasetRelation.getTotalCountByDatasetId",
         query= """
             SELECT COUNT(DISTINCT CASE WHEN dr.dataset_id = ?1 THEN dr.relateddataset_id ELSE dr.dataset_id END)
             FROM datasetrelation dr
-            WHERE dr.dataset_id = ?1 OR dr.relateddataset_id = ?1
+            WHERE (dr.dataset_id = ?1 OR dr.relateddataset_id = ?1)
+              AND dr.definitionpoint_id = (
+                  SELECT dv.id FROM datasetversion dv
+                  WHERE dv.dataset_id = (SELECT dv2.dataset_id FROM datasetversion dv2 WHERE dv2.id = dr.definitionpoint_id)
+                  AND dv.versionnumber = (SELECT MAX(dv3.versionnumber) FROM datasetversion dv3 WHERE dv3.dataset_id = dv.dataset_id AND dv3.versionstate = 'RELEASED')
+              )
+        """
+)
+@NamedNativeQuery(
+        name= "DatasetNativeRelation.getTotalCountByDatasetIdAndVersion",
+        query= """
+            SELECT COUNT(DISTINCT CASE WHEN dr.dataset_id = ?1 THEN dr.relateddataset_id ELSE dr.dataset_id END)
+            FROM datasetrelation dr
+            JOIN datasetversion dv_def ON dr.definitionpoint_id = dv_def.id
+            WHERE dr.definitionpoint_id = ?2 
+               OR (
+                   (dr.relateddataset_id = ?1 AND dv_def.dataset_id != ?1)
+                   AND dr.definitionpoint_id = (
+                       SELECT dv.id FROM datasetversion dv
+                       WHERE dv.dataset_id = dv_def.dataset_id
+                       AND dv.versionnumber = (SELECT MAX(dv3.versionnumber) FROM datasetversion dv3 WHERE dv3.dataset_id = dv.dataset_id AND dv3.versionstate = 'RELEASED')
+                   )
+               )
         """
 )
 @NamedNativeQuery(
@@ -95,14 +190,60 @@ import jakarta.persistence.*;
                 FROM datasetrelation dr
                 JOIN datasetrelationtype rt ON dr.relationtype_id = rt.id
                 JOIN datasetrelationtype inv ON rt.inverse_id = inv.id
-                WHERE (dr.dataset_id = ?1
-                   OR dr.relateddataset_id = ?1) 
+                WHERE (dr.dataset_id = ?1 OR dr.relateddataset_id = ?1)
+                    AND dr.definitionpoint_id = (
+                        SELECT dv.id FROM datasetversion dv
+                        WHERE dv.dataset_id = (SELECT dv2.dataset_id FROM datasetversion dv2 WHERE dv2.id = dr.definitionpoint_id)
+                        AND dv.versionnumber = (SELECT MAX(dv3.versionnumber) FROM datasetversion dv3 WHERE dv3.dataset_id = dv.dataset_id AND dv3.versionstate = 'RELEASED')
+                    )
                     AND dr.id = (
                                     SELECT MIN(dr2.id)
                                     FROM datasetrelation dr2
                                     WHERE dr2.dataset_id = dr.dataset_id
                                       AND dr2.relateddataset_id = dr.relateddataset_id
                                       AND dr2.relationtype_id = dr.relationtype_id
+                                      AND dr2.definitionpoint_id = dr.definitionpoint_id
+                                )
+            ) t
+            GROUP BY relation_type_name
+            ORDER BY relation_type_name;
+    """,
+    resultSetMapping = "RelationCountMapping"
+)
+@NamedNativeQuery(
+    name = "DatasetNativeRelation.getRelationCountsByDatasetIdAndVersion",
+    query = """
+            SELECT
+                relation_type_name,
+                COUNT(*) AS related_datasets_count
+            FROM (
+                SELECT
+                    CASE
+                        WHEN dr.dataset_id = ?1 THEN rt.name
+                        ELSE inv.name
+                    END AS relation_type_name
+                FROM datasetrelation dr
+                JOIN datasetrelationtype rt ON dr.relationtype_id = rt.id
+                JOIN datasetrelationtype inv ON rt.inverse_id = inv.id
+                JOIN datasetversion dv_def ON dr.definitionpoint_id = dv_def.id
+                WHERE (
+                       dr.definitionpoint_id = ?2
+                       OR (
+                           (dr.relateddataset_id = ?1 AND dv_def.dataset_id != ?1)
+                           AND dr.definitionpoint_id = (
+                               SELECT dv.id FROM datasetversion dv
+                               WHERE dv.dataset_id = dv_def.dataset_id
+                               AND dv.versionnumber = (SELECT MAX(dv3.versionnumber) FROM datasetversion dv3 WHERE dv3.dataset_id = dv.dataset_id AND dv3.versionstate = 'RELEASED')
+                           )
+                       )
+                ) 
+                    AND dr.id = (
+                                    SELECT MIN(dr2.id)
+                                    FROM datasetrelation dr2
+                                    WHERE dr2.dataset_id = dr.dataset_id
+                                      AND dr2.relateddataset_id = dr.relateddataset_id
+                                      AND dr2.relationtype_id = dr.relationtype_id
+                                      AND dr2.definitionpoint_id = dr.definitionpoint_id
                                 )
             ) t
             GROUP BY relation_type_name
@@ -135,7 +276,7 @@ public class DatasetRelation implements Serializable {
 
     @ManyToOne
     @JoinColumn(nullable=false)
-    private Dataset definitionPoint;
+    private DatasetVersion definitionPoint;
 
     @ManyToOne
     @JoinColumn()
@@ -146,11 +287,11 @@ public class DatasetRelation implements Serializable {
      * @param datasetA First dataset that is part of the relation.  Cannot be {@code null}.
      * @param datasetB Second dataset that is part of the relation.  Cannot be {@code null}.
      * @param relationType The type of the relation.
-     * @param definitionPoint Which dataset the relation has been defined on.  Cannot be {@code null}.
+     * @param definitionPoint Which dataset version the relation has been defined on.  Cannot be {@code null}.
      * @throws IllegalArgumentException if any of the parameters are null. That's
      *         because JPA would throw an exception later anyway.
      */
-    public DatasetRelation(Dataset datasetA, Dataset datasetB, DatasetRelationType relationType, Dataset definitionPoint) {
+    public DatasetRelation(Dataset datasetA, Dataset datasetB, DatasetRelationType relationType, DatasetVersion definitionPoint) {
         if ( datasetA == null || datasetB == null ) throw new IllegalArgumentException("Cannot create a relation for a null dataset");
 
         // We enforce canonical order to ensure uniqueness of relations
@@ -201,11 +342,11 @@ public class DatasetRelation implements Serializable {
         this.relatedDataset = relatedDataset;
     }
 
-    public Dataset getDefinitionPoint() {
+    public DatasetVersion getDefinitionPoint() {
         return definitionPoint;
     }
 
-    public void setDefinitionPoint(Dataset definitionPoint) {
+    public void setDefinitionPoint(DatasetVersion definitionPoint) {
         this.definitionPoint = definitionPoint;
     }
 

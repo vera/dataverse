@@ -1,6 +1,7 @@
 package edu.harvard.iq.dataverse.dataset;
 
 import edu.harvard.iq.dataverse.Dataset;
+import edu.harvard.iq.dataverse.DatasetVersion;
 import java.util.List;
 
 /**
@@ -13,26 +14,29 @@ public interface DatasetRelationAlgorithm {
      * Retrieves relations for a given dataset.
      * 
      * @param dataset The dataset for which to find relations.
+     * @param version Optional dataset version for version-specific filtering.
      * @param relationTypeName Optional filter by relation type name.
      * @param limit Maximum number of results.
      * @param offset Offset for pagination.
      * @return A list of DatasetRelation objects.
      */
-    List<DatasetRelation> getRelations(Dataset dataset, String relationTypeName, Integer limit, Integer offset);
+    List<DatasetRelation> getRelations(Dataset dataset, DatasetVersion version, String relationTypeName, Integer limit, Integer offset);
 
     /**
      * Retrieves the counts of different types of relations for a dataset.
      * 
      * @param dataset The dataset.
+     * @param version Optional dataset version for version-specific filtering.
      * @return A list of Object arrays, each containing relation type name and count.
      */
-    List<Object[]> getRelationCounts(Dataset dataset);
+    List<Object[]> getRelationCounts(Dataset dataset, DatasetVersion version);
 
     /**
      * Retrieves the total count of related datasets for a dataset.
      * 
      * @param dataset The dataset.
+     * @param version Optional dataset version for version-specific filtering.
      * @return Total number of unique related datasets.
      */
-    Long getRelatedDatasetCount(Dataset dataset);
+    Long getRelatedDatasetCount(Dataset dataset, DatasetVersion version);
 }
