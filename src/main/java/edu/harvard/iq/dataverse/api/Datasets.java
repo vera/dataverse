@@ -4013,7 +4013,12 @@ public class Datasets extends AbstractApiBean {
                         return error(Response.Status.FORBIDDEN, "You are not permitted to replace the dataset relations of a published version of a dataset.");
                     }
                 } else {
+                    boolean updateDraft = dataset.getLatestVersion().isDraft();
                     version = dataset.getOrCreateEditVersion();
+                    if (!updateDraft) {
+                        dataset = execCommand(new UpdateDatasetVersionCommand(dataset, req));
+                        version = dataset.getLatestVersion();
+                    }
                 }
 
                 List<DatasetRelationDTO> newDatasetRelationsDTO;
@@ -4027,7 +4032,8 @@ public class Datasets extends AbstractApiBean {
 
                 List<DatasetRelation> res = execCommand(new ReplaceDatasetRelationsCommand(version, newDatasetRelationsDTO, req));
 
-                return ok(res.stream().map(rel -> json(rel, dataset, false)).collect(toJsonArray()));
+                Dataset finalDataset = dataset;
+                return ok(res.stream().map(rel -> json(rel, finalDataset, false)).collect(toJsonArray()));
             } catch (WrappedResponse wr) {
                 return wr.getResponse();
             }

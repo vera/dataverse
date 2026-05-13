@@ -3,6 +3,7 @@ package edu.harvard.iq.dataverse;
 import edu.harvard.iq.dataverse.dataset.DatasetThumbnail;
 import edu.harvard.iq.dataverse.dataset.DatasetType;
 import edu.harvard.iq.dataverse.dataset.DatasetUtil;
+import edu.harvard.iq.dataverse.dataset.DatasetRelation;
 import edu.harvard.iq.dataverse.harvest.client.HarvestingClient;
 import edu.harvard.iq.dataverse.license.License;
 import edu.harvard.iq.dataverse.makedatacount.DatasetExternalCitations;
@@ -408,6 +409,14 @@ public class Dataset extends DvObjectContainer {
                 terms.setLicense(null);
                 terms.setFileAccessRequest(true);
                 dsv.setTermsOfUseAndAccess(terms);
+            }
+
+            if (latestVersion.getRelations() != null && !latestVersion.getRelations().isEmpty()) {
+                List<DatasetRelation> relations = new ArrayList<>();
+                for (DatasetRelation rel : latestVersion.getRelations()) {
+                    relations.add(new DatasetRelation(rel.getDataset(), rel.getRelatedDataset(), rel.getRelationType(), dsv));
+                }
+                dsv.setRelations(relations);
             }
         }
 
