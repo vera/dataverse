@@ -97,8 +97,9 @@ public class DatasetRelationServiceBean {
                 .toList();
 
         if (!toRemove.isEmpty()) {
-            em.createQuery("DELETE FROM DatasetRelation dr WHERE dr IN :toRemove")
-                    .setParameter("toRemove", toRemove)
+            List<Long> toRemoveIds = toRemove.stream().map(DatasetRelation::getId).toList();
+            em.createQuery("DELETE FROM DatasetRelation dr WHERE dr.id IN :toRemoveIds")
+                    .setParameter("toRemoveIds", toRemoveIds)
                     .executeUpdate();
         }
         for (DatasetRelation r : toAdd) {
