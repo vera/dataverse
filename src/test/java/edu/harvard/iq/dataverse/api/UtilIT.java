@@ -5503,4 +5503,70 @@ public class UtilIT {
                 .replace("@QID2", cqIDs.get(1).toString())
                 .replace("@QID3", cqIDs.get(2).toString());
     }
+    public static Response replaceDatasetRelations(String persistentId, String jsonBody, String apiToken) {
+        return replaceDatasetRelations(persistentId, jsonBody, null, apiToken);
+    }
+
+    public static Response replaceDatasetRelations(String persistentId, String jsonBody, String version, String apiToken) {
+        String path = "/api/datasets/:persistentId/relations?persistentId=" + persistentId;
+        if (version != null) {
+            path += "&version=" + version;
+        }
+        return given()
+                .header(API_TOKEN_HTTP_HEADER, apiToken)
+                .contentType(ContentType.JSON)
+                .body(jsonBody)
+                .put(path);
+    }
+
+    public static Response listDatasetRelations(String persistentId) {
+        return listDatasetRelations(persistentId, null, null, null, null, null);
+    }
+
+    public static Response listDatasetRelations(String persistentId, String apiToken) {
+        return listDatasetRelations(persistentId, null, null, null, null, apiToken);
+    }
+
+    public static Response listDatasetRelations(String persistentId, String version, String type, Integer limit, Integer offset, String apiToken) {
+        String path = "/api/datasets/:persistentId/relations?persistentId=" + persistentId;
+        if (version != null) {
+            path += "&version=" + version;
+        }
+        if (type != null) {
+            path += "&type=" + type;
+        }
+        if (limit != null) {
+            path += "&limit=" + limit;
+        }
+        if (offset != null) {
+            path += "&offset=" + offset;
+        }
+        if (apiToken != null && !apiToken.isEmpty()) {
+            return given().header(API_TOKEN_HTTP_HEADER, apiToken).get(path);
+        } else {
+            return given().get(path);
+        }
+    }
+
+    public static Response getDatasetRelationCounts(String persistentId, String apiToken) {
+        return getDatasetRelationCounts(persistentId, null, apiToken);
+    }
+
+    public static Response getDatasetRelationCounts(String persistentId, String version, String apiToken) {
+        String path = "/api/datasets/:persistentId/relations/counts?persistentId=" + persistentId;
+        if (version != null) {
+            path += "&version=" + version;
+        }
+        return given()
+                .header(API_TOKEN_HTTP_HEADER, apiToken)
+                .get(path);
+    }
+
+    public static Response addDatasetRelationType(String jsonIn, String apiToken) {
+        return given()
+                .header(API_TOKEN_HTTP_HEADER, apiToken)
+                .body(jsonIn)
+                .post("/api/datasets/relationTypes");
+    }
+
 }
