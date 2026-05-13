@@ -4071,7 +4071,8 @@ public class Datasets extends AbstractApiBean {
                 if (versionNumber != null) {
                     version = findDatasetVersionOrDie(req, versionNumber, dataset, false, false);
                 } else {
-                    version = dataset.getLatestVersion();
+                    // By default, get latest accessible version
+                    version = execCommand(new GetLatestAccessibleDatasetVersionCommand(req, dataset, false, false));
                 }
 
                 Integer effectiveLimit = limit != null ? limit : 10;
@@ -4101,7 +4102,8 @@ public class Datasets extends AbstractApiBean {
                 if (versionNumber != null) {
                     version = findDatasetVersionOrDie(req, versionNumber, dataset, false, false);
                 } else {
-                    version = dataset.getLatestVersion();
+                    // By default, get latest accessible version
+                    version = execCommand(new GetLatestAccessibleDatasetVersionCommand(req, dataset, false, false));
                 }
 
                 List<Object[]> relationCounts = datasetRelationService.getDatasetRelationCountsFor(dataset, version);
