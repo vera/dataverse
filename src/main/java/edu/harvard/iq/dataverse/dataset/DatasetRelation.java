@@ -34,19 +34,18 @@ import jakarta.persistence.*;
  *
  */
 @Entity
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+@DiscriminatorColumn(name = "relation_source", discriminatorType = DiscriminatorType.STRING)
 @Table(indexes = {
         @Index(name="index_datasetrelation_dataset", columnList="dataset_id"),
         @Index(name="index_datasetrelation_relateddataset", columnList="relateddataset_id")
-        },
-        uniqueConstraints = @UniqueConstraint(
-                columnNames = {"dataset_id", "relateddataset_id", "relationtype_id", "definitionpoint_id"}
-        )
+        }
 )
 @NamedQueries({
         @NamedQuery(name = "DatasetRelation.getUniqueRelationsByDatasetId",
                 query="""
                     SELECT rel FROM DatasetRelation rel
-                    WHERE (rel.dataset.id=:datasetId OR rel.relatedDataset.id=:datasetId)
+                    WHERE (rel.dataset.id=:datasetId OR (TYPE(rel) = InternalDatasetRelation AND TREAT(rel AS InternalDatasetRelation).relatedDataset.id=:datasetId))
                             AND rel.definitionPoint.id = (
                                 SELECT dv.id FROM DatasetVersion dv
                                 WHERE dv.dataset.id = rel.definitionPoint.dataset.id
@@ -56,7 +55,10 @@ import jakarta.persistence.*;
                                 SELECT MIN(r2.id)
                                 FROM DatasetRelation r2
                                 WHERE r2.dataset.id = rel.dataset.id
-                                  AND r2.relatedDataset.id = rel.relatedDataset.id
+                                  AND (
+                                    (TYPE(rel) = InternalDatasetRelation AND TYPE(r2) = InternalDatasetRelation AND TREAT(r2 AS InternalDatasetRelation).relatedDataset.id = TREAT(rel AS InternalDatasetRelation).relatedDataset.id)
+                                    OR (TYPE(rel) = ExternalDatasetRelation AND TYPE(r2) = ExternalDatasetRelation AND TREAT(r2 AS ExternalDatasetRelation).externalIdentifier = TREAT(rel AS ExternalDatasetRelation).externalIdentifier AND TREAT(r2 AS ExternalDatasetRelation).identifierScheme = TREAT(rel AS ExternalDatasetRelation).identifierScheme)
+                                  )
                                   AND r2.relationType.id = rel.relationType.id
                                   AND r2.definitionPoint.id = rel.definitionPoint.id
                             )
@@ -67,7 +69,7 @@ import jakarta.persistence.*;
                     WHERE (
                             rel.definitionPoint.id=:versionId 
                             OR (
-                                (rel.dataset.id=:datasetId OR rel.relatedDataset.id=:datasetId) 
+                                (rel.dataset.id=:datasetId OR (TYPE(rel) = InternalDatasetRelation AND TREAT(rel AS InternalDatasetRelation).relatedDataset.id=:datasetId)) 
                                 AND rel.definitionPoint.dataset.id != :datasetId
                                 AND rel.definitionPoint.id = (
                                     SELECT dv.id FROM DatasetVersion dv
@@ -80,7 +82,10 @@ import jakarta.persistence.*;
                                 SELECT MIN(r2.id)
                                 FROM DatasetRelation r2
                                 WHERE r2.dataset.id = rel.dataset.id
-                                  AND r2.relatedDataset.id = rel.relatedDataset.id
+                                  AND (
+                                    (TYPE(rel) = InternalDatasetRelation AND TYPE(r2) = InternalDatasetRelation AND TREAT(r2 AS InternalDatasetRelation).relatedDataset.id = TREAT(rel AS InternalDatasetRelation).relatedDataset.id)
+                                    OR (TYPE(rel) = ExternalDatasetRelation AND TYPE(r2) = ExternalDatasetRelation AND TREAT(r2 AS ExternalDatasetRelation).externalIdentifier = TREAT(rel AS ExternalDatasetRelation).externalIdentifier AND TREAT(r2 AS ExternalDatasetRelation).identifierScheme = TREAT(rel AS ExternalDatasetRelation).identifierScheme)
+                                  )
                                   AND r2.relationType.id = rel.relationType.id
                                   AND r2.definitionPoint.id = rel.definitionPoint.id
                             )
@@ -90,7 +95,7 @@ import jakarta.persistence.*;
                     SELECT rel FROM DatasetRelation rel
                     WHERE (
                             (rel.dataset.id=:datasetId AND rel.relationType.name=:relationType)
-                            OR (rel.relatedDataset.id=:datasetId AND rel.relationType.inverse.name=:relationType)
+                            OR (TYPE(rel) = InternalDatasetRelation AND TREAT(rel AS InternalDatasetRelation).relatedDataset.id=:datasetId AND rel.relationType.inverse.name=:relationType)
                           )
                             AND rel.definitionPoint.id = (
                                 SELECT dv.id FROM DatasetVersion dv
@@ -101,7 +106,10 @@ import jakarta.persistence.*;
                                 SELECT MIN(r2.id)
                                 FROM DatasetRelation r2
                                 WHERE r2.dataset.id = rel.dataset.id
-                                  AND r2.relatedDataset.id = rel.relatedDataset.id
+                                  AND (
+                                    (TYPE(rel) = InternalDatasetRelation AND TYPE(r2) = InternalDatasetRelation AND TREAT(r2 AS InternalDatasetRelation).relatedDataset.id = TREAT(rel AS InternalDatasetRelation).relatedDataset.id)
+                                    OR (TYPE(rel) = ExternalDatasetRelation AND TYPE(r2) = ExternalDatasetRelation AND TREAT(r2 AS ExternalDatasetRelation).externalIdentifier = TREAT(rel AS ExternalDatasetRelation).externalIdentifier AND TREAT(r2 AS ExternalDatasetRelation).identifierScheme = TREAT(rel AS ExternalDatasetRelation).identifierScheme)
+                                  )
                                   AND r2.relationType.id = rel.relationType.id
                                   AND r2.definitionPoint.id = rel.definitionPoint.id
                             )
@@ -111,7 +119,7 @@ import jakarta.persistence.*;
                     SELECT rel FROM DatasetRelation rel
                     WHERE (
                             (rel.definitionPoint.id=:versionId AND rel.dataset.id=:datasetId AND rel.relationType.name=:relationType)
-                            OR (rel.definitionPoint.id=:versionId AND rel.relatedDataset.id=:datasetId AND rel.relationType.inverse.name=:relationType)
+                            OR (rel.definitionPoint.id=:versionId AND TYPE(rel) = InternalDatasetRelation AND TREAT(rel AS InternalDatasetRelation).relatedDataset.id=:datasetId AND rel.relationType.inverse.name=:relationType)
                             OR (
                                 rel.definitionPoint.dataset.id != :datasetId 
                                 AND rel.dataset.id=:datasetId AND rel.relationType.name=:relationType
@@ -123,7 +131,7 @@ import jakarta.persistence.*;
                             )
                             OR (
                                 rel.definitionPoint.dataset.id != :datasetId 
-                                AND rel.relatedDataset.id=:datasetId AND rel.relationType.inverse.name=:relationType
+                                AND (TYPE(rel) = InternalDatasetRelation AND TREAT(rel AS InternalDatasetRelation).relatedDataset.id=:datasetId AND rel.relationType.inverse.name=:relationType)
                                 AND rel.definitionPoint.id = (
                                     SELECT dv.id FROM DatasetVersion dv
                                     WHERE dv.dataset.id = rel.definitionPoint.dataset.id
@@ -135,7 +143,10 @@ import jakarta.persistence.*;
                                 SELECT MIN(r2.id)
                                 FROM DatasetRelation r2
                                 WHERE r2.dataset.id = rel.dataset.id
-                                  AND r2.relatedDataset.id = rel.relatedDataset.id
+                                  AND (
+                                    (TYPE(rel) = InternalDatasetRelation AND TYPE(r2) = InternalDatasetRelation AND TREAT(r2 AS InternalDatasetRelation).relatedDataset.id = TREAT(rel AS InternalDatasetRelation).relatedDataset.id)
+                                    OR (TYPE(rel) = ExternalDatasetRelation AND TYPE(r2) = ExternalDatasetRelation AND TREAT(r2 AS ExternalDatasetRelation).externalIdentifier = TREAT(rel AS ExternalDatasetRelation).externalIdentifier AND TREAT(r2 AS ExternalDatasetRelation).identifierScheme = TREAT(rel AS ExternalDatasetRelation).identifierScheme)
+                                  )
                                   AND r2.relationType.id = rel.relationType.id
                                   AND r2.definitionPoint.id = rel.definitionPoint.id
                             )
@@ -148,7 +159,12 @@ import jakarta.persistence.*;
 @NamedNativeQuery(
         name= "DatasetRelation.getTotalCountByDatasetId",
         query= """
-            SELECT COUNT(DISTINCT CASE WHEN dr.dataset_id = ?1 THEN dr.relateddataset_id ELSE dr.dataset_id END)
+            SELECT COUNT(DISTINCT 
+                CASE 
+                    WHEN dr.relation_source = 'internal' THEN 
+                        CASE WHEN dr.dataset_id = ?1 THEN CAST(dr.relateddataset_id AS VARCHAR) ELSE CAST(dr.dataset_id AS VARCHAR) END
+                    ELSE dr.externalidentifier
+                END)
             FROM datasetrelation dr
             WHERE (dr.dataset_id = ?1 OR dr.relateddataset_id = ?1)
               AND dr.definitionpoint_id = (
@@ -161,12 +177,17 @@ import jakarta.persistence.*;
 @NamedNativeQuery(
         name= "DatasetNativeRelation.getTotalCountByDatasetIdAndVersion",
         query= """
-            SELECT COUNT(DISTINCT CASE WHEN dr.dataset_id = ?1 THEN dr.relateddataset_id ELSE dr.dataset_id END)
+            SELECT COUNT(DISTINCT 
+                CASE 
+                    WHEN dr.relation_source = 'internal' THEN 
+                        CASE WHEN dr.dataset_id = ?1 THEN CAST(dr.relateddataset_id AS VARCHAR) ELSE CAST(dr.dataset_id AS VARCHAR) END
+                    ELSE dr.externalidentifier
+                END)
             FROM datasetrelation dr
             JOIN datasetversion dv_def ON dr.definitionpoint_id = dv_def.id
             WHERE dr.definitionpoint_id = ?2 
                OR (
-                   (dr.relateddataset_id = ?1 AND dv_def.dataset_id != ?1)
+                   ((dr.dataset_id = ?1 OR dr.relateddataset_id = ?1) AND dv_def.dataset_id != ?1)
                    AND dr.definitionpoint_id = (
                        SELECT dv.id FROM datasetversion dv
                        WHERE dv.dataset_id = dv_def.dataset_id
@@ -200,7 +221,10 @@ import jakarta.persistence.*;
                                     SELECT MIN(dr2.id)
                                     FROM datasetrelation dr2
                                     WHERE dr2.dataset_id = dr.dataset_id
-                                      AND dr2.relateddataset_id = dr.relateddataset_id
+                                      AND (
+                                        (dr2.relation_source = 'internal' AND dr.relation_source = 'internal' AND dr2.relateddataset_id = dr.relateddataset_id)
+                                        OR (dr2.relation_source = 'external' AND dr.relation_source = 'external' AND dr2.externalidentifier = dr.externalidentifier AND dr2.identifierscheme = dr.identifierscheme)
+                                      )
                                       AND dr2.relationtype_id = dr.relationtype_id
                                       AND dr2.definitionpoint_id = dr.definitionpoint_id
                                 )
@@ -229,7 +253,7 @@ import jakarta.persistence.*;
                 WHERE (
                        dr.definitionpoint_id = ?2
                        OR (
-                           (dr.relateddataset_id = ?1 AND dv_def.dataset_id != ?1)
+                           ((dr.dataset_id = ?1 OR dr.relateddataset_id = ?1) AND dv_def.dataset_id != ?1)
                            AND dr.definitionpoint_id = (
                                SELECT dv.id FROM datasetversion dv
                                WHERE dv.dataset_id = dv_def.dataset_id
@@ -241,7 +265,10 @@ import jakarta.persistence.*;
                                     SELECT MIN(dr2.id)
                                     FROM datasetrelation dr2
                                     WHERE dr2.dataset_id = dr.dataset_id
-                                      AND dr2.relateddataset_id = dr.relateddataset_id
+                                      AND (
+                                        (dr2.relation_source = 'internal' AND dr.relation_source = 'internal' AND dr2.relateddataset_id = dr.relateddataset_id)
+                                        OR (dr2.relation_source = 'external' AND dr.relation_source = 'external' AND dr2.externalidentifier = dr.externalidentifier AND dr2.identifierscheme = dr.identifierscheme)
+                                      )
                                       AND dr2.relationtype_id = dr.relationtype_id
                                       AND dr2.definitionpoint_id = dr.definitionpoint_id
                                 )
@@ -258,7 +285,7 @@ import jakarta.persistence.*;
                 @ColumnResult(name = "related_datasets_count", type = Long.class)
         }
 )
-public class DatasetRelation implements Serializable {
+public abstract class DatasetRelation implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
@@ -272,10 +299,6 @@ public class DatasetRelation implements Serializable {
 
     @ManyToOne
     @JoinColumn(nullable=false)
-    private Dataset relatedDataset;
-
-    @ManyToOne
-    @JoinColumn(nullable=false)
     private DatasetVersion definitionPoint;
 
     @ManyToOne
@@ -283,40 +306,16 @@ public class DatasetRelation implements Serializable {
     private DatasetRelationType relationType;
 
     /**
-     * Constructing a dataset relation for the given datasets.
-     * @param datasetA First dataset that is part of the relation.  Cannot be {@code null}.
-     * @param datasetB Second dataset that is part of the relation.  Cannot be {@code null}.
-     * @param relationType The type of the relation.
-     * @param definitionPoint Which dataset version the relation has been defined on.  Cannot be {@code null}.
-     * @throws IllegalArgumentException if any of the parameters are null. That's
-     *         because JPA would throw an exception later anyway.
-     */
-    public DatasetRelation(Dataset datasetA, Dataset datasetB, DatasetRelationType relationType, DatasetVersion definitionPoint) {
-        if ( datasetA == null || datasetB == null ) throw new IllegalArgumentException("Cannot create a relation for a null dataset");
-
-        // We enforce canonical order to ensure uniqueness of relations
-        if (datasetA.getId() < datasetB.getId()) {
-            dataset = datasetA;
-            relatedDataset = datasetB;
-            if (relationType != null) {
-                this.relationType = relationType;
-            }
-        } else {
-            dataset = datasetB;
-            relatedDataset = datasetA;
-            if (relationType != null) {
-                this.relationType = relationType.getInverse();
-            }
-        }
-
-        this.definitionPoint = definitionPoint;
-    }
-
-    /**
      * JPA no-args constructor. Client code should use the public constructor
      * and not this one.
      */
     protected DatasetRelation(){}
+
+    protected DatasetRelation(Dataset dataset, DatasetRelationType relationType, DatasetVersion definitionPoint) {
+        this.dataset = dataset;
+        this.relationType = relationType;
+        this.definitionPoint = definitionPoint;
+    }
 
     public Long getId() {
         return id;
@@ -332,14 +331,6 @@ public class DatasetRelation implements Serializable {
 
     public void setDataset(Dataset dataset) {
         this.dataset = dataset;
-    }
-
-    public Dataset getRelatedDataset() {
-        return relatedDataset;
-    }
-
-    public void setRelatedDataset(Dataset relatedDataset) {
-        this.relatedDataset = relatedDataset;
     }
 
     public DatasetVersion getDefinitionPoint() {
@@ -381,9 +372,6 @@ public class DatasetRelation implements Serializable {
         return "edu.harvard.iq.dataverse.dataset.DatasetRelation[ id=" + id + " ]";
     }
 
-    public String toKey() {
-        // Unique representation of DatasetRelation instance (see uniqueness constraint)
-        return dataset.getId() + "|" + relatedDataset.getId() + "|" + (relationType != null ? relationType.getId() : "") + "|" + definitionPoint.getId();
-    }
+    public abstract String toKey();
 
 }
