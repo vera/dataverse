@@ -51,4 +51,9 @@ public class InternalDatasetRelation extends DatasetRelation {
     public String toKey() {
         return getDataset().getId() + "|" + relatedDataset.getId() + "|" + (getRelationType() != null ? getRelationType().getId() : "") + "|" + getDefinitionPoint().getId();
     }
+
+    @Override
+    public DatasetRelation copy(DatasetVersion newDefinitionPoint) {
+        return new InternalDatasetRelation(getDataset(), relatedDataset, getRelationType(), newDefinitionPoint);
+    }
 }

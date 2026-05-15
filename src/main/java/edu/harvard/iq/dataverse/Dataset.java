@@ -414,7 +414,7 @@ public class Dataset extends DvObjectContainer {
             if (latestVersion.getRelations() != null && !latestVersion.getRelations().isEmpty()) {
                 List<DatasetRelation> relations = new ArrayList<>();
                 for (DatasetRelation rel : latestVersion.getRelations()) {
-                    relations.add(new DatasetRelation(rel.getDataset(), rel.getRelatedDataset(), rel.getRelationType(), dsv));
+                    relations.add(rel.copy(dsv));
                 }
                 dsv.setRelations(relations);
             }

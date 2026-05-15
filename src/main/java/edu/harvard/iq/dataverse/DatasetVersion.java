@@ -716,8 +716,7 @@ public class DatasetVersion implements Serializable {
         if (this.getRelations() != null && !this.getRelations().isEmpty()) {
             List<DatasetRelation> clonedRelations = new ArrayList<>();
             for (DatasetRelation r : this.getRelations()) {
-                DatasetRelation newRel = new DatasetRelation(r.getDataset(), r.getRelatedDataset(), r.getRelationType(), dsv);
-                clonedRelations.add(newRel);
+                clonedRelations.add(r.copy(dsv));
             }
             dsv.setRelations(clonedRelations);
         }

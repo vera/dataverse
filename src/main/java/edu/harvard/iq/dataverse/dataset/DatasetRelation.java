@@ -374,4 +374,6 @@ public abstract class DatasetRelation implements Serializable {
 
     public abstract String toKey();
 
+    public abstract DatasetRelation copy(DatasetVersion newDefinitionPoint);
+
 }
