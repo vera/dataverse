@@ -55,12 +55,15 @@ import jakarta.persistence.*;
                                 SELECT MIN(r2.id)
                                 FROM DatasetRelation r2
                                 WHERE r2.dataset.id = rel.dataset.id
+                                  AND ((rel.relationType.id IS NULL AND r2.relationType.id IS NULL) OR r2.relationType.id = rel.relationType.id)
                                   AND (
-                                    (TYPE(rel) = InternalDatasetRelation AND TYPE(r2) = InternalDatasetRelation AND TREAT(r2 AS InternalDatasetRelation).relatedDataset.id = TREAT(rel AS InternalDatasetRelation).relatedDataset.id)
-                                    OR (TYPE(rel) = ExternalDatasetRelation AND TYPE(r2) = ExternalDatasetRelation AND TREAT(r2 AS ExternalDatasetRelation).externalIdentifier = TREAT(rel AS ExternalDatasetRelation).externalIdentifier AND TREAT(r2 AS ExternalDatasetRelation).identifierScheme = TREAT(rel AS ExternalDatasetRelation).identifierScheme)
+                                    (TYPE(rel) = InternalDatasetRelation AND TYPE(r2) = InternalDatasetRelation
+                                     AND TREAT(r2 AS InternalDatasetRelation).relatedDataset.id = TREAT(rel AS InternalDatasetRelation).relatedDataset.id)
+                                    OR
+                                    (TYPE(rel) = ExternalDatasetRelation AND TYPE(r2) = ExternalDatasetRelation
+                                     AND TREAT(r2 AS ExternalDatasetRelation).externalIdentifier = TREAT(rel AS ExternalDatasetRelation).externalIdentifier
+                                     AND TREAT(r2 AS ExternalDatasetRelation).identifierScheme = TREAT(rel AS ExternalDatasetRelation).identifierScheme)
                                   )
-                                  AND r2.relationType.id = rel.relationType.id
-                                  AND r2.definitionPoint.id = rel.definitionPoint.id
                             )
                     """),
         @NamedQuery(name = "DatasetRelation.getUniqueRelationsByDatasetIdAndVersion",
@@ -82,12 +85,15 @@ import jakarta.persistence.*;
                                 SELECT MIN(r2.id)
                                 FROM DatasetRelation r2
                                 WHERE r2.dataset.id = rel.dataset.id
+                                  AND ((rel.relationType.id IS NULL AND r2.relationType.id IS NULL) OR r2.relationType.id = rel.relationType.id)
                                   AND (
-                                    (TYPE(rel) = InternalDatasetRelation AND TYPE(r2) = InternalDatasetRelation AND TREAT(r2 AS InternalDatasetRelation).relatedDataset.id = TREAT(rel AS InternalDatasetRelation).relatedDataset.id)
-                                    OR (TYPE(rel) = ExternalDatasetRelation AND TYPE(r2) = ExternalDatasetRelation AND TREAT(r2 AS ExternalDatasetRelation).externalIdentifier = TREAT(rel AS ExternalDatasetRelation).externalIdentifier AND TREAT(r2 AS ExternalDatasetRelation).identifierScheme = TREAT(rel AS ExternalDatasetRelation).identifierScheme)
+                                    (TYPE(rel) = InternalDatasetRelation AND TYPE(r2) = InternalDatasetRelation
+                                     AND TREAT(r2 AS InternalDatasetRelation).relatedDataset.id = TREAT(rel AS InternalDatasetRelation).relatedDataset.id)
+                                    OR
+                                    (TYPE(rel) = ExternalDatasetRelation AND TYPE(r2) = ExternalDatasetRelation
+                                     AND TREAT(r2 AS ExternalDatasetRelation).externalIdentifier = TREAT(rel AS ExternalDatasetRelation).externalIdentifier
+                                     AND TREAT(r2 AS ExternalDatasetRelation).identifierScheme = TREAT(rel AS ExternalDatasetRelation).identifierScheme)
                                   )
-                                  AND r2.relationType.id = rel.relationType.id
-                                  AND r2.definitionPoint.id = rel.definitionPoint.id
                             )
                     """),
         @NamedQuery(name = "DatasetRelation.getUniqueRelationsByDatasetIdAndType",
@@ -106,12 +112,15 @@ import jakarta.persistence.*;
                                 SELECT MIN(r2.id)
                                 FROM DatasetRelation r2
                                 WHERE r2.dataset.id = rel.dataset.id
+                                  AND ((rel.relationType.id IS NULL AND r2.relationType.id IS NULL) OR r2.relationType.id = rel.relationType.id)
                                   AND (
-                                    (TYPE(rel) = InternalDatasetRelation AND TYPE(r2) = InternalDatasetRelation AND TREAT(r2 AS InternalDatasetRelation).relatedDataset.id = TREAT(rel AS InternalDatasetRelation).relatedDataset.id)
-                                    OR (TYPE(rel) = ExternalDatasetRelation AND TYPE(r2) = ExternalDatasetRelation AND TREAT(r2 AS ExternalDatasetRelation).externalIdentifier = TREAT(rel AS ExternalDatasetRelation).externalIdentifier AND TREAT(r2 AS ExternalDatasetRelation).identifierScheme = TREAT(rel AS ExternalDatasetRelation).identifierScheme)
+                                    (TYPE(rel) = InternalDatasetRelation AND TYPE(r2) = InternalDatasetRelation
+                                     AND TREAT(r2 AS InternalDatasetRelation).relatedDataset.id = TREAT(rel AS InternalDatasetRelation).relatedDataset.id)
+                                    OR
+                                    (TYPE(rel) = ExternalDatasetRelation AND TYPE(r2) = ExternalDatasetRelation
+                                     AND TREAT(r2 AS ExternalDatasetRelation).externalIdentifier = TREAT(rel AS ExternalDatasetRelation).externalIdentifier
+                                     AND TREAT(r2 AS ExternalDatasetRelation).identifierScheme = TREAT(rel AS ExternalDatasetRelation).identifierScheme)
                                   )
-                                  AND r2.relationType.id = rel.relationType.id
-                                  AND r2.definitionPoint.id = rel.definitionPoint.id
                             )
                     """),
         @NamedQuery(name = "DatasetRelation.getUniqueRelationsByDatasetIdAndVersionAndType",
@@ -143,12 +152,15 @@ import jakarta.persistence.*;
                                 SELECT MIN(r2.id)
                                 FROM DatasetRelation r2
                                 WHERE r2.dataset.id = rel.dataset.id
+                                  AND ((rel.relationType.id IS NULL AND r2.relationType.id IS NULL) OR r2.relationType.id = rel.relationType.id)
                                   AND (
-                                    (TYPE(rel) = InternalDatasetRelation AND TYPE(r2) = InternalDatasetRelation AND TREAT(r2 AS InternalDatasetRelation).relatedDataset.id = TREAT(rel AS InternalDatasetRelation).relatedDataset.id)
-                                    OR (TYPE(rel) = ExternalDatasetRelation AND TYPE(r2) = ExternalDatasetRelation AND TREAT(r2 AS ExternalDatasetRelation).externalIdentifier = TREAT(rel AS ExternalDatasetRelation).externalIdentifier AND TREAT(r2 AS ExternalDatasetRelation).identifierScheme = TREAT(rel AS ExternalDatasetRelation).identifierScheme)
+                                    (TYPE(rel) = InternalDatasetRelation AND TYPE(r2) = InternalDatasetRelation
+                                     AND TREAT(r2 AS InternalDatasetRelation).relatedDataset.id = TREAT(rel AS InternalDatasetRelation).relatedDataset.id)
+                                    OR
+                                    (TYPE(rel) = ExternalDatasetRelation AND TYPE(r2) = ExternalDatasetRelation
+                                     AND TREAT(r2 AS ExternalDatasetRelation).externalIdentifier = TREAT(rel AS ExternalDatasetRelation).externalIdentifier
+                                     AND TREAT(r2 AS ExternalDatasetRelation).identifierScheme = TREAT(rel AS ExternalDatasetRelation).identifierScheme)
                                   )
-                                  AND r2.relationType.id = rel.relationType.id
-                                  AND r2.definitionPoint.id = rel.definitionPoint.id
                             )
                     """),
         @NamedQuery(name = "DatasetRelation.removeRelationsByDatasetVersionId",
@@ -226,7 +238,6 @@ import jakarta.persistence.*;
                                         OR (dr2.relation_source = 'external' AND dr.relation_source = 'external' AND dr2.externalidentifier = dr.externalidentifier AND dr2.identifierscheme = dr.identifierscheme)
                                       )
                                       AND dr2.relationtype_id = dr.relationtype_id
-                                      AND dr2.definitionpoint_id = dr.definitionpoint_id
                                 )
             ) t
             GROUP BY relation_type_name
@@ -270,7 +281,6 @@ import jakarta.persistence.*;
                                         OR (dr2.relation_source = 'external' AND dr.relation_source = 'external' AND dr2.externalidentifier = dr.externalidentifier AND dr2.identifierscheme = dr.identifierscheme)
                                       )
                                       AND dr2.relationtype_id = dr.relationtype_id
-                                      AND dr2.definitionpoint_id = dr.definitionpoint_id
                                 )
             ) t
             GROUP BY relation_type_name
