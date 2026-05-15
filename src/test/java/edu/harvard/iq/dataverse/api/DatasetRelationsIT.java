@@ -189,8 +189,8 @@ public class DatasetRelationsIT {
         UtilIT.listDatasetRelations(pidA, null, null, null, null, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("data", hasSize(2))
-                .body("relatedDatasetPid", hasItem(pidB))
-                .body("externalIdentifier", hasItem("doi:10.1234/5678"))
-                .body("identifierScheme", hasItem("DOI"));
+                .body("data.relatedDatasetPid", hasItem(pidB))
+                .body("data.externalIdentifier", hasItem("doi:10.1234/5678"))
+                .body("data.identifierScheme", hasItem("DOI"));
     }
 }

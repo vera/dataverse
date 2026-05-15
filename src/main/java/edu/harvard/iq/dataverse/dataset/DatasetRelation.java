@@ -42,132 +42,138 @@ import jakarta.persistence.*;
         }
 )
 @NamedQueries({
-        @NamedQuery(name = "DatasetRelation.getUniqueRelationsByDatasetId",
-                query="""
-                    SELECT rel FROM DatasetRelation rel
-                    WHERE (rel.dataset.id=:datasetId OR (TYPE(rel) = InternalDatasetRelation AND TREAT(rel AS InternalDatasetRelation).relatedDataset.id=:datasetId))
-                            AND rel.definitionPoint.id = (
-                                SELECT dv.id FROM DatasetVersion dv
-                                WHERE dv.dataset.id = rel.definitionPoint.dataset.id
-                                AND dv.versionNumber = (SELECT MAX(dv2.versionNumber) FROM DatasetVersion dv2 WHERE dv2.dataset.id = dv.dataset.id AND dv2.versionState = edu.harvard.iq.dataverse.DatasetVersion.VersionState.RELEASED)
-                            )
-                            AND rel.id = (
-                                SELECT MIN(r2.id)
-                                FROM DatasetRelation r2
-                                WHERE r2.dataset.id = rel.dataset.id
-                                  AND ((rel.relationType.id IS NULL AND r2.relationType.id IS NULL) OR r2.relationType.id = rel.relationType.id)
-                                  AND (
-                                    (TYPE(rel) = InternalDatasetRelation AND TYPE(r2) = InternalDatasetRelation
-                                     AND TREAT(r2 AS InternalDatasetRelation).relatedDataset.id = TREAT(rel AS InternalDatasetRelation).relatedDataset.id)
-                                    OR
-                                    (TYPE(rel) = ExternalDatasetRelation AND TYPE(r2) = ExternalDatasetRelation
-                                     AND TREAT(r2 AS ExternalDatasetRelation).externalIdentifier = TREAT(rel AS ExternalDatasetRelation).externalIdentifier
-                                     AND TREAT(r2 AS ExternalDatasetRelation).identifierScheme = TREAT(rel AS ExternalDatasetRelation).identifierScheme)
-                                  )
-                            )
-                    """),
-        @NamedQuery(name = "DatasetRelation.getUniqueRelationsByDatasetIdAndVersion",
-                query="""
-                    SELECT rel FROM DatasetRelation rel
-                    WHERE (
-                            rel.definitionPoint.id=:versionId 
-                            OR (
-                                (rel.dataset.id=:datasetId OR (TYPE(rel) = InternalDatasetRelation AND TREAT(rel AS InternalDatasetRelation).relatedDataset.id=:datasetId)) 
-                                AND rel.definitionPoint.dataset.id != :datasetId
-                                AND rel.definitionPoint.id = (
-                                    SELECT dv.id FROM DatasetVersion dv
-                                    WHERE dv.dataset.id = rel.definitionPoint.dataset.id
-                                    AND dv.versionNumber = (SELECT MAX(dv2.versionNumber) FROM DatasetVersion dv2 WHERE dv2.dataset.id = dv.dataset.id AND dv2.versionState = edu.harvard.iq.dataverse.DatasetVersion.VersionState.RELEASED)
-                                )
-                            )
-                          )
-                            AND rel.id = (
-                                SELECT MIN(r2.id)
-                                FROM DatasetRelation r2
-                                WHERE r2.dataset.id = rel.dataset.id
-                                  AND ((rel.relationType.id IS NULL AND r2.relationType.id IS NULL) OR r2.relationType.id = rel.relationType.id)
-                                  AND (
-                                    (TYPE(rel) = InternalDatasetRelation AND TYPE(r2) = InternalDatasetRelation
-                                     AND TREAT(r2 AS InternalDatasetRelation).relatedDataset.id = TREAT(rel AS InternalDatasetRelation).relatedDataset.id)
-                                    OR
-                                    (TYPE(rel) = ExternalDatasetRelation AND TYPE(r2) = ExternalDatasetRelation
-                                     AND TREAT(r2 AS ExternalDatasetRelation).externalIdentifier = TREAT(rel AS ExternalDatasetRelation).externalIdentifier
-                                     AND TREAT(r2 AS ExternalDatasetRelation).identifierScheme = TREAT(rel AS ExternalDatasetRelation).identifierScheme)
-                                  )
-                            )
-                    """),
-        @NamedQuery(name = "DatasetRelation.getUniqueRelationsByDatasetIdAndType",
-                query="""
-                    SELECT rel FROM DatasetRelation rel
-                    WHERE (
-                            (rel.dataset.id=:datasetId AND rel.relationType.name=:relationType)
-                            OR (TYPE(rel) = InternalDatasetRelation AND TREAT(rel AS InternalDatasetRelation).relatedDataset.id=:datasetId AND rel.relationType.inverse.name=:relationType)
-                          )
-                            AND rel.definitionPoint.id = (
-                                SELECT dv.id FROM DatasetVersion dv
-                                WHERE dv.dataset.id = rel.definitionPoint.dataset.id
-                                AND dv.versionNumber = (SELECT MAX(dv2.versionNumber) FROM DatasetVersion dv2 WHERE dv2.dataset.id = dv.dataset.id AND dv2.versionState = edu.harvard.iq.dataverse.DatasetVersion.VersionState.RELEASED)
-                            )
-                            AND rel.id = (
-                                SELECT MIN(r2.id)
-                                FROM DatasetRelation r2
-                                WHERE r2.dataset.id = rel.dataset.id
-                                  AND ((rel.relationType.id IS NULL AND r2.relationType.id IS NULL) OR r2.relationType.id = rel.relationType.id)
-                                  AND (
-                                    (TYPE(rel) = InternalDatasetRelation AND TYPE(r2) = InternalDatasetRelation
-                                     AND TREAT(r2 AS InternalDatasetRelation).relatedDataset.id = TREAT(rel AS InternalDatasetRelation).relatedDataset.id)
-                                    OR
-                                    (TYPE(rel) = ExternalDatasetRelation AND TYPE(r2) = ExternalDatasetRelation
-                                     AND TREAT(r2 AS ExternalDatasetRelation).externalIdentifier = TREAT(rel AS ExternalDatasetRelation).externalIdentifier
-                                     AND TREAT(r2 AS ExternalDatasetRelation).identifierScheme = TREAT(rel AS ExternalDatasetRelation).identifierScheme)
-                                  )
-                            )
-                    """),
-        @NamedQuery(name = "DatasetRelation.getUniqueRelationsByDatasetIdAndVersionAndType",
-                query="""
-                    SELECT rel FROM DatasetRelation rel
-                    WHERE (
-                            (rel.definitionPoint.id=:versionId AND rel.dataset.id=:datasetId AND rel.relationType.name=:relationType)
-                            OR (rel.definitionPoint.id=:versionId AND TYPE(rel) = InternalDatasetRelation AND TREAT(rel AS InternalDatasetRelation).relatedDataset.id=:datasetId AND rel.relationType.inverse.name=:relationType)
-                            OR (
-                                rel.definitionPoint.dataset.id != :datasetId 
-                                AND rel.dataset.id=:datasetId AND rel.relationType.name=:relationType
-                                AND rel.definitionPoint.id = (
-                                    SELECT dv.id FROM DatasetVersion dv
-                                    WHERE dv.dataset.id = rel.definitionPoint.dataset.id
-                                    AND dv.versionNumber = (SELECT MAX(dv2.versionNumber) FROM DatasetVersion dv2 WHERE dv2.dataset.id = dv.dataset.id AND dv2.versionState = edu.harvard.iq.dataverse.DatasetVersion.VersionState.RELEASED)
-                                )
-                            )
-                            OR (
-                                rel.definitionPoint.dataset.id != :datasetId 
-                                AND (TYPE(rel) = InternalDatasetRelation AND TREAT(rel AS InternalDatasetRelation).relatedDataset.id=:datasetId AND rel.relationType.inverse.name=:relationType)
-                                AND rel.definitionPoint.id = (
-                                    SELECT dv.id FROM DatasetVersion dv
-                                    WHERE dv.dataset.id = rel.definitionPoint.dataset.id
-                                    AND dv.versionNumber = (SELECT MAX(dv2.versionNumber) FROM DatasetVersion dv2 WHERE dv2.dataset.id = dv.dataset.id AND dv2.versionState = edu.harvard.iq.dataverse.DatasetVersion.VersionState.RELEASED)
-                                )
-                            )
-                          )
-                            AND rel.id = (
-                                SELECT MIN(r2.id)
-                                FROM DatasetRelation r2
-                                WHERE r2.dataset.id = rel.dataset.id
-                                  AND ((rel.relationType.id IS NULL AND r2.relationType.id IS NULL) OR r2.relationType.id = rel.relationType.id)
-                                  AND (
-                                    (TYPE(rel) = InternalDatasetRelation AND TYPE(r2) = InternalDatasetRelation
-                                     AND TREAT(r2 AS InternalDatasetRelation).relatedDataset.id = TREAT(rel AS InternalDatasetRelation).relatedDataset.id)
-                                    OR
-                                    (TYPE(rel) = ExternalDatasetRelation AND TYPE(r2) = ExternalDatasetRelation
-                                     AND TREAT(r2 AS ExternalDatasetRelation).externalIdentifier = TREAT(rel AS ExternalDatasetRelation).externalIdentifier
-                                     AND TREAT(r2 AS ExternalDatasetRelation).identifierScheme = TREAT(rel AS ExternalDatasetRelation).identifierScheme)
-                                  )
-                            )
-                    """),
         @NamedQuery(name = "DatasetRelation.removeRelationsByDatasetVersionId",
                 query = "DELETE FROM DatasetRelation rel WHERE rel.definitionPoint.id=:versionId"),
         @NamedQuery(name = "DatasetRelation.getRelationsDefinedAtDatasetVersionId",
                 query="SELECT rel FROM DatasetRelation rel WHERE rel.definitionPoint.id=:versionId")
 })
+@NamedNativeQuery(
+        name= "DatasetRelation.getUniqueRelationsByDatasetId",
+        query="""
+            SELECT rel.* FROM datasetrelation rel
+            WHERE (rel.dataset_id = ?1 OR (rel.relation_source = 'internal' AND rel.relateddataset_id = ?1))
+                    AND rel.definitionpoint_id = (
+                        SELECT dv.id FROM datasetversion dv
+                        WHERE dv.dataset_id = (SELECT dv2.dataset_id FROM datasetversion dv2 WHERE dv2.id = rel.definitionpoint_id)
+                        AND dv.versionnumber = (SELECT MAX(dv2.versionnumber) FROM datasetversion dv2 WHERE dv2.dataset_id = dv.dataset_id AND dv2.versionstate = 'RELEASED')
+                    )
+                    AND rel.id = (
+                        SELECT MIN(r2.id)
+                        FROM datasetrelation r2
+                        WHERE r2.dataset_id = rel.dataset_id
+                          AND ((rel.relationtype_id IS NULL AND r2.relationtype_id IS NULL) OR r2.relationtype_id = rel.relationtype_id)
+                          AND (
+                            (rel.relation_source = 'internal' AND r2.relation_source = 'internal' AND r2.relateddataset_id = rel.relateddataset_id)
+                            OR
+                            (rel.relation_source = 'external' AND r2.relation_source = 'external' AND r2.externalidentifier = rel.externalidentifier AND r2.identifierscheme = rel.identifierscheme)
+                          )
+                    )
+            """,
+        resultClass = DatasetRelation.class
+)
+@NamedNativeQuery(
+        name= "DatasetRelation.getUniqueRelationsByDatasetIdAndVersion",
+        query="""
+            SELECT rel.* FROM datasetrelation rel
+            JOIN datasetversion dv_def ON rel.definitionpoint_id = dv_def.id
+            WHERE (
+                    rel.definitionpoint_id = ?2 
+                    OR (
+                        (rel.dataset_id = ?1 OR (rel.relation_source = 'internal' AND rel.relateddataset_id = ?1)) 
+                        AND dv_def.dataset_id != ?1
+                        AND rel.definitionpoint_id = (
+                            SELECT dv.id FROM datasetversion dv
+                            WHERE dv.dataset_id = dv_def.dataset_id
+                            AND dv.versionnumber = (SELECT MAX(dv2.versionnumber) FROM datasetversion dv2 WHERE dv2.dataset_id = dv.dataset_id AND dv2.versionstate = 'RELEASED')
+                        )
+                    )
+                  )
+                    AND rel.id = (
+                        SELECT MIN(r2.id)
+                        FROM datasetrelation r2
+                        WHERE r2.dataset_id = rel.dataset_id
+                          AND ((rel.relationtype_id IS NULL AND r2.relationtype_id IS NULL) OR r2.relationtype_id = rel.relationtype_id)
+                          AND (
+                            (rel.relation_source = 'internal' AND r2.relation_source = 'internal' AND r2.relateddataset_id = rel.relateddataset_id)
+                            OR
+                            (rel.relation_source = 'external' AND r2.relation_source = 'external' AND r2.externalidentifier = rel.externalidentifier AND r2.identifierscheme = rel.identifierscheme)
+                          )
+                    )
+            """,
+        resultClass = DatasetRelation.class
+)
+@NamedNativeQuery(
+        name= "DatasetRelation.getUniqueRelationsByDatasetIdAndType",
+        query="""
+            SELECT rel.* FROM datasetrelation rel
+            JOIN datasetrelationtype rt ON rel.relationtype_id = rt.id
+            LEFT JOIN datasetrelationtype inv ON rt.inverse_id = inv.id
+            WHERE (
+                    (rel.dataset_id = ?1 AND rt.name = ?2)
+                    OR (rel.relation_source = 'internal' AND rel.relateddataset_id = ?1 AND inv.name = ?2)
+                  )
+                    AND rel.definitionpoint_id = (
+                        SELECT dv.id FROM datasetversion dv
+                        WHERE dv.dataset_id = (SELECT dv2.dataset_id FROM datasetversion dv2 WHERE dv2.id = rel.definitionpoint_id)
+                        AND dv.versionnumber = (SELECT MAX(dv2.versionnumber) FROM datasetversion dv2 WHERE dv2.dataset_id = dv.dataset_id AND dv2.versionstate = 'RELEASED')
+                    )
+                    AND rel.id = (
+                        SELECT MIN(r2.id)
+                        FROM datasetrelation r2
+                        WHERE r2.dataset_id = rel.dataset_id
+                          AND ((rel.relationtype_id IS NULL AND r2.relationtype_id IS NULL) OR r2.relationtype_id = rel.relationtype_id)
+                          AND (
+                            (rel.relation_source = 'internal' AND r2.relation_source = 'internal' AND r2.relateddataset_id = rel.relateddataset_id)
+                            OR
+                            (rel.relation_source = 'external' AND r2.relation_source = 'external' AND r2.externalidentifier = rel.externalidentifier AND r2.identifierscheme = rel.identifierscheme)
+                          )
+                    )
+            """,
+        resultClass = DatasetRelation.class
+)
+@NamedNativeQuery(
+        name= "DatasetRelation.getUniqueRelationsByDatasetIdAndVersionAndType",
+        query="""
+            SELECT rel.* FROM datasetrelation rel
+            JOIN datasetversion dv_def ON rel.definitionpoint_id = dv_def.id
+            JOIN datasetrelationtype rt ON rel.relationtype_id = rt.id
+            LEFT JOIN datasetrelationtype inv ON rt.inverse_id = inv.id
+            WHERE (
+                    (rel.definitionpoint_id = ?2 AND rel.dataset_id = ?1 AND rt.name = ?3)
+                    OR (rel.definitionpoint_id = ?2 AND rel.relation_source = 'internal' AND rel.relateddataset_id = ?1 AND inv.name = ?3)
+                    OR (
+                        dv_def.dataset_id != ?1 
+                        AND rel.dataset_id = ?1 AND rt.name = ?3
+                        AND rel.definitionpoint_id = (
+                            SELECT dv.id FROM datasetversion dv
+                            WHERE dv.dataset_id = dv_def.dataset_id
+                            AND dv.versionnumber = (SELECT MAX(dv2.versionnumber) FROM datasetversion dv2 WHERE dv2.dataset_id = dv.dataset_id AND dv2.versionstate = 'RELEASED')
+                        )
+                    )
+                    OR (
+                        dv_def.dataset_id != ?1 
+                        AND (rel.relation_source = 'internal' AND rel.relateddataset_id = ?1 AND inv.name = ?3)
+                        AND rel.definitionpoint_id = (
+                            SELECT dv.id FROM datasetversion dv
+                            WHERE dv.dataset_id = dv_def.dataset_id
+                            AND dv.versionnumber = (SELECT MAX(dv2.versionnumber) FROM datasetversion dv2 WHERE dv2.dataset_id = dv.dataset_id AND dv2.versionstate = 'RELEASED')
+                        )
+                    )
+                  )
+                    AND rel.id = (
+                        SELECT MIN(r2.id)
+                        FROM datasetrelation r2
+                        WHERE r2.dataset_id = rel.dataset_id
+                          AND ((rel.relationtype_id IS NULL AND r2.relationtype_id IS NULL) OR r2.relationtype_id = rel.relationtype_id)
+                          AND (
+                            (rel.relation_source = 'internal' AND r2.relation_source = 'internal' AND r2.relateddataset_id = rel.relateddataset_id)
+                            OR
+                            (rel.relation_source = 'external' AND r2.relation_source = 'external' AND r2.externalidentifier = rel.externalidentifier AND r2.identifierscheme = rel.identifierscheme)
+                          )
+                    )
+            """,
+        resultClass = DatasetRelation.class
+)
 @NamedNativeQuery(
         name= "DatasetRelation.getTotalCountByDatasetId",
         query= """
@@ -187,7 +193,7 @@ import jakarta.persistence.*;
         """
 )
 @NamedNativeQuery(
-        name= "DatasetNativeRelation.getTotalCountByDatasetIdAndVersion",
+        name= "DatasetRelation.getTotalCountByDatasetIdAndVersion",
         query= """
             SELECT COUNT(DISTINCT 
                 CASE 
@@ -246,7 +252,7 @@ import jakarta.persistence.*;
     resultSetMapping = "RelationCountMapping"
 )
 @NamedNativeQuery(
-    name = "DatasetNativeRelation.getRelationCountsByDatasetIdAndVersion",
+    name = "DatasetRelation.getRelationCountsByDatasetIdAndVersion",
     query = """
             SELECT
                 relation_type_name,

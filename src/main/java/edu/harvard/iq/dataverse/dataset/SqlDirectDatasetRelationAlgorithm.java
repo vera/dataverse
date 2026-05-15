@@ -21,16 +21,16 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
         if (v != null) {
             if (relationTypeName != null) {
                 return em.createNamedQuery("DatasetRelation.getUniqueRelationsByDatasetIdAndVersionAndType", DatasetRelation.class)
-                        .setParameter("datasetId", d.getId())
-                        .setParameter("versionId", v.getId())
-                        .setParameter("relationType", relationTypeName)
+                        .setParameter(1, d.getId())
+                        .setParameter(2, v.getId())
+                        .setParameter(3, relationTypeName)
                         .setMaxResults(limit)
                         .setFirstResult(offset)
                         .getResultList();
             } else {
                 return em.createNamedQuery("DatasetRelation.getUniqueRelationsByDatasetIdAndVersion", DatasetRelation.class)
-                        .setParameter("datasetId", d.getId())
-                        .setParameter("versionId", v.getId())
+                        .setParameter(1, d.getId())
+                        .setParameter(2, v.getId())
                         .setMaxResults(limit)
                         .setFirstResult(offset)
                         .getResultList();
@@ -38,14 +38,14 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
         } else {
             if (relationTypeName != null) {
                 return em.createNamedQuery("DatasetRelation.getUniqueRelationsByDatasetIdAndType", DatasetRelation.class)
-                        .setParameter("datasetId", d.getId())
-                        .setParameter("relationType", relationTypeName)
+                        .setParameter(1, d.getId())
+                        .setParameter(2, relationTypeName)
                         .setMaxResults(limit)
                         .setFirstResult(offset)
                         .getResultList();
             } else {
                 return em.createNamedQuery("DatasetRelation.getUniqueRelationsByDatasetId", DatasetRelation.class)
-                        .setParameter("datasetId", d.getId())
+                        .setParameter(1, d.getId())
                         .setMaxResults(limit)
                         .setFirstResult(offset)
                         .getResultList();
@@ -56,7 +56,7 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
     @Override
     public List<Object[]> getRelationCounts(Dataset d, DatasetVersion v) {
         if (v != null) {
-            return em.createNamedQuery("DatasetNativeRelation.getRelationCountsByDatasetIdAndVersion", Object[].class)
+            return em.createNamedQuery("DatasetRelation.getRelationCountsByDatasetIdAndVersion", Object[].class)
                     .setParameter(1, d.getId())
                     .setParameter(2, v.getId())
                     .getResultList();
@@ -70,7 +70,7 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
     @Override
     public Long getRelatedDatasetCount(Dataset d, DatasetVersion v) {
         if (v != null) {
-            return em.createNamedQuery("DatasetNativeRelation.getTotalCountByDatasetIdAndVersion", Long.class)
+            return em.createNamedQuery("DatasetRelation.getTotalCountByDatasetIdAndVersion", Long.class)
                     .setParameter(1, d.getId())
                     .setParameter(2, v.getId())
                     .getSingleResult();
