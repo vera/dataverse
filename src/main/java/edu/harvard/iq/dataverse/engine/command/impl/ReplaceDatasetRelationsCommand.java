@@ -8,6 +8,9 @@ package edu.harvard.iq.dataverse.engine.command.impl;
 import edu.harvard.iq.dataverse.Dataset;
 import edu.harvard.iq.dataverse.DatasetVersion;
 import edu.harvard.iq.dataverse.dataset.DatasetRelation;
+import edu.harvard.iq.dataverse.dataset.DatasetRelationType;
+import edu.harvard.iq.dataverse.dataset.ExternalDatasetRelation;
+import edu.harvard.iq.dataverse.dataset.InternalDatasetRelation;
 import edu.harvard.iq.dataverse.api.dto.DatasetRelationDTO;
 import edu.harvard.iq.dataverse.authorization.Permission;
 import edu.harvard.iq.dataverse.engine.command.*;
@@ -41,19 +44,21 @@ public class ReplaceDatasetRelationsCommand extends AbstractCommand<List<Dataset
         try {
             List<DatasetRelation> relations = relationDTOs.stream().flatMap(relationDTO -> {
                 Dataset d = relationDTO.getDatasetPid() != null ? ctxt.datasets().findByGlobalId(relationDTO.getDatasetPid()) : this.version.getDataset();
-                Dataset relatedDataset = ctxt.datasets().findByGlobalId(relationDTO.getRelatedDatasetPid());
+                DatasetRelationType type = ctxt.datasetRelationTypes().findByName(relationDTO.getRelationTypeName());
 
-                if (relatedDataset == null) {
-                    logger.severe("Failed to find related dataset with PID " + relationDTO.getRelatedDatasetPid());
+                if (relationDTO.getRelatedDatasetPid() != null) {
+                    Dataset relatedDataset = ctxt.datasets().findByGlobalId(relationDTO.getRelatedDatasetPid());
+                    if (relatedDataset == null) {
+                        logger.severe("Failed to find related dataset with PID " + relationDTO.getRelatedDatasetPid());
+                        return java.util.stream.Stream.empty();
+                    }
+                    return java.util.stream.Stream.of(new InternalDatasetRelation(d, relatedDataset, type, version));
+                } else if (relationDTO.getExternalIdentifier() != null) {
+                    return java.util.stream.Stream.of(new ExternalDatasetRelation(d, relationDTO.getExternalIdentifier(), relationDTO.getIdentifierScheme(), type, version));
+                } else {
+                    logger.severe("Relation DTO must have either relatedDatasetPid or externalIdentifier");
                     return java.util.stream.Stream.empty();
                 }
-
-                return java.util.stream.Stream.of(new DatasetRelation(
-                        d,
-                        relatedDataset,
-                        ctxt.datasetRelationTypes().findByName(relationDTO.getRelationTypeName()),
-                        version
-                ));
             }).toList();
             List<DatasetRelation> addedRelations = ctxt.datasetRelations().replaceAllDatasetRelationsFor(version, relations);
             // Reindex dataset to update relatedDatasetCount

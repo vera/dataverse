@@ -18,6 +18,8 @@ import edu.harvard.iq.dataverse.authorization.users.User;
 import edu.harvard.iq.dataverse.branding.BrandingUtil;
 import edu.harvard.iq.dataverse.dataaccess.DataAccess;
 import edu.harvard.iq.dataverse.dataaccess.StorageIO;
+import edu.harvard.iq.dataverse.dataset.ExternalDatasetRelation;
+import edu.harvard.iq.dataverse.dataset.InternalDatasetRelation;
 import edu.harvard.iq.dataverse.dataset.DatasetRelation;
 import edu.harvard.iq.dataverse.dataset.DatasetType;
 import edu.harvard.iq.dataverse.dataset.DatasetUtil;
@@ -1071,28 +1073,43 @@ public class JsonPrinter {
     public static JsonObjectBuilder json(DatasetRelation rel, boolean invertRelation, boolean includeMetadataBlocks) {
         JsonObjectBuilder result = Json.createObjectBuilder();
 
-        result.add("datasetPid", invertRelation ? rel.getRelatedDataset().getGlobalId().toString() : rel.getDataset().getGlobalId().toString())
-              .add("relatedDatasetPid", invertRelation ? rel.getDataset().getGlobalId().toString() : rel.getRelatedDataset().getGlobalId().toString())
-              .add("definitionPointPid", rel.getDefinitionPoint().getDataset().getGlobalId().toString());
+        result.add("definitionPointPid", rel.getDefinitionPoint().getDataset().getGlobalId().toString());
 
-        if (rel.getRelationType() != null) {
-            result.add("relationTypeName", invertRelation ? rel.getRelationType().getInverse().getName() : rel.getRelationType().getName());
+        if (rel instanceof InternalDatasetRelation) {
+            InternalDatasetRelation irel = (InternalDatasetRelation) rel;
+            result.add("datasetPid", invertRelation ? irel.getRelatedDataset().getGlobalId().toString() : irel.getDataset().getGlobalId().toString())
+                  .add("relatedDatasetPid", invertRelation ? irel.getDataset().getGlobalId().toString() : irel.getRelatedDataset().getGlobalId().toString());
+
+            if (includeMetadataBlocks) {
+                DatasetVersion releasedVersion = invertRelation ? irel.getDataset().getReleasedVersion() : irel.getRelatedDataset().getReleasedVersion();
+                if (releasedVersion != null) {
+                    result.add("relatedDataset",
+                            Json.createObjectBuilder().add("metadataBlocks", jsonByBlocks(releasedVersion.getDatasetFields()))
+                    );
+                }
+            }
+        } else if (rel instanceof ExternalDatasetRelation) {
+            ExternalDatasetRelation erel = (ExternalDatasetRelation) rel;
+            result.add("datasetPid", erel.getDataset().getGlobalId().toString())
+                  .add("externalIdentifier", erel.getExternalIdentifier());
+            if (erel.getIdentifierScheme() != null) {
+                result.add("identifierScheme", erel.getIdentifierScheme());
+            }
         }
 
-        if (includeMetadataBlocks) {
-            DatasetVersion releasedVersion = invertRelation ? rel.getDataset().getReleasedVersion() : rel.getRelatedDataset().getReleasedVersion();
-            if (releasedVersion != null) {
-                result.add("relatedDataset",
-                        Json.createObjectBuilder().add("metadataBlocks", jsonByBlocks(releasedVersion.getDatasetFields()))
-                );
-            }
+        if (rel.getRelationType() != null) {
+            result.add("relationTypeName", (rel instanceof InternalDatasetRelation && invertRelation) ? rel.getRelationType().getInverse().getName() : rel.getRelationType().getName());
         }
 
         return result;
     }
 
     public static JsonObjectBuilder json(DatasetRelation rel, Dataset forDataset, boolean includeMetadataBlocks) {
-        return json(rel, rel.getRelatedDataset().equals(forDataset), includeMetadataBlocks);
+        boolean invertRelation = false;
+        if (rel instanceof InternalDatasetRelation) {
+            invertRelation = ((InternalDatasetRelation) rel).getRelatedDataset().equals(forDataset);
+        }
+        return json(rel, invertRelation, includeMetadataBlocks);
     }
 
     public static JsonArrayBuilder json(List<DatasetRelation> rel, Dataset forDataset, boolean includeMetadataBlocks) {
