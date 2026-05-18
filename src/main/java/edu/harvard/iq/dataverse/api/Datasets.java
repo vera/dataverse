@@ -4085,6 +4085,42 @@ public class Datasets extends AbstractApiBean {
                 Integer effectiveOffset = offset != null ? offset : 0;
 
                 List<DatasetRelation> relations = datasetRelationService.getDatasetRelationsFor(dataset, version, relationTypeName, effectiveLimit, effectiveOffset);
+                long totalCount = datasetRelationService.getRelatedDatasetCountFor(dataset, version, relationTypeName);
+
+                return ok(json(relations, dataset, includeMetadataBlocks), totalCount);
+            } catch (WrappedResponse wr) {
+                return wr.getResponse();
+            }
+        }, getRequestUser(crc));
+    }
+
+    @GET
+    @AuthRequired
+    @Path("{identifier}/relations/old")
+    public Response listRelationsOld(
+            @Context ContainerRequestContext crc,
+            @PathParam("identifier") String id,
+            @QueryParam("includeMetadataBlocks") boolean includeMetadataBlocks,
+            @QueryParam("limit") Integer limit,
+            @QueryParam("offset") Integer offset,
+            @QueryParam("type") String relationTypeName,
+            @QueryParam("version") String versionNumber
+    ) {
+        return response(req -> {
+            try {
+                Dataset dataset = findDatasetOrDie(id);
+                DatasetVersion version = null;
+                if (versionNumber != null) {
+                    version = findDatasetVersionOrDie(req, versionNumber, dataset, false, false);
+                } else {
+                    // By default, get latest accessible version
+                    version = execCommand(new GetLatestAccessibleDatasetVersionCommand(req, dataset, false, false));
+                }
+
+                Integer effectiveLimit = limit != null ? limit : 10;
+                Integer effectiveOffset = offset != null ? offset : 0;
+
+                List<DatasetRelation> relations = datasetRelationService.getDatasetRelationsFor(dataset, version, relationTypeName, effectiveLimit, effectiveOffset);
 
                 return ok(json(relations, dataset, includeMetadataBlocks));
             } catch (WrappedResponse wr) {

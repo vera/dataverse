@@ -215,6 +215,66 @@ import jakarta.persistence.*;
         """
 )
 @NamedNativeQuery(
+        name= "DatasetRelation.getTotalCountByDatasetIdAndVersionAndType",
+        query= """
+            SELECT COUNT(DISTINCT 
+                CASE 
+                    WHEN rel.relation_source = 'internal' THEN 
+                        CASE WHEN rel.dataset_id = ?1 THEN CAST(rel.relateddataset_id AS VARCHAR) ELSE CAST(rel.dataset_id AS VARCHAR) END
+                    ELSE rel.externalidentifier
+                END)
+            FROM datasetrelation rel
+            JOIN datasetversion dv_def ON rel.definitionpoint_id = dv_def.id
+            JOIN datasetrelationtype rt ON rel.relationtype_id = rt.id
+            LEFT JOIN datasetrelationtype inv ON rt.inverse_id = inv.id
+            WHERE (
+                    (rel.definitionpoint_id = ?2 AND rel.dataset_id = ?1 AND rt.name = ?3)
+                    OR (rel.definitionpoint_id = ?2 AND rel.relation_source = 'internal' AND rel.relateddataset_id = ?1 AND inv.name = ?3)
+                    OR (
+                        dv_def.dataset_id != ?1 
+                        AND rel.dataset_id = ?1 AND rt.name = ?3
+                        AND rel.definitionpoint_id = (
+                            SELECT dv.id FROM datasetversion dv
+                            WHERE dv.dataset_id = dv_def.dataset_id
+                            AND dv.versionnumber = (SELECT MAX(dv2.versionnumber) FROM datasetversion dv2 WHERE dv2.dataset_id = dv.dataset_id AND dv2.versionstate = 'RELEASED')
+                        )
+                    )
+                    OR (
+                        dv_def.dataset_id != ?1 
+                        AND (rel.relation_source = 'internal' AND rel.relateddataset_id = ?1 AND inv.name = ?3)
+                        AND rel.definitionpoint_id = (
+                            SELECT dv.id FROM datasetversion dv
+                            WHERE dv.dataset_id = dv_def.dataset_id
+                            AND dv.versionnumber = (SELECT MAX(dv2.versionnumber) FROM datasetversion dv2 WHERE dv2.dataset_id = dv.dataset_id AND dv2.versionstate = 'RELEASED')
+                        )
+                    )
+                  )
+        """
+)
+@NamedNativeQuery(
+        name= "DatasetRelation.getTotalCountByDatasetIdAndType",
+        query= """
+            SELECT COUNT(DISTINCT 
+                CASE 
+                    WHEN rel.relation_source = 'internal' THEN 
+                        CASE WHEN rel.dataset_id = ?1 THEN CAST(rel.relateddataset_id AS VARCHAR) ELSE CAST(rel.dataset_id AS VARCHAR) END
+                    ELSE rel.externalidentifier
+                END)
+            FROM datasetrelation rel
+            JOIN datasetrelationtype rt ON rel.relationtype_id = rt.id
+            LEFT JOIN datasetrelationtype inv ON rt.inverse_id = inv.id
+            WHERE (
+                   (rel.dataset_id = ?1 AND rt.name = ?2)
+                   OR (rel.relation_source = 'internal' AND rel.relateddataset_id = ?1 AND inv.name = ?2)
+                 )
+                   AND rel.definitionpoint_id = (
+                       SELECT dv.id FROM datasetversion dv
+                       WHERE dv.dataset_id = (SELECT dv2.dataset_id FROM datasetversion dv2 WHERE dv2.id = rel.definitionpoint_id)
+                       AND dv.versionnumber = (SELECT MAX(dv2.versionnumber) FROM datasetversion dv2 WHERE dv2.dataset_id = dv.dataset_id AND dv2.versionstate = 'RELEASED')
+                   )
+        """
+)
+@NamedNativeQuery(
         name = "DatasetRelation.getRelationCountsByDatasetId",
         query = """
             SELECT

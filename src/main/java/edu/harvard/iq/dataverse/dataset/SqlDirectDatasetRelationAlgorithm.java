@@ -68,16 +68,31 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
     }
 
     @Override
-    public Long getRelatedDatasetCount(Dataset d, DatasetVersion v) {
-        if (v != null) {
-            return em.createNamedQuery("DatasetRelation.getTotalCountByDatasetIdAndVersion", Long.class)
-                    .setParameter(1, d.getId())
-                    .setParameter(2, v.getId())
-                    .getSingleResult();
+    public Long getRelatedDatasetCount(Dataset d, DatasetVersion v, String relationTypeName) {
+        if (relationTypeName != null) {
+            if (v != null) {
+                return em.createNamedQuery("DatasetRelation.getTotalCountByDatasetIdAndVersionAndType", Long.class)
+                        .setParameter(1, d.getId())
+                        .setParameter(2, v.getId())
+                        .setParameter(3, relationTypeName)
+                        .getSingleResult();
+            } else {
+                return em.createNamedQuery("DatasetRelation.getTotalCountByDatasetIdAndType", Long.class)
+                        .setParameter(1, d.getId())
+                        .setParameter(2, relationTypeName)
+                        .getSingleResult();
+            }
         } else {
-            return em.createNamedQuery("DatasetRelation.getTotalCountByDatasetId", Long.class)
-                    .setParameter(1, d.getId())
-                    .getSingleResult();
+            if (v != null) {
+                return em.createNamedQuery("DatasetRelation.getTotalCountByDatasetIdAndVersion", Long.class)
+                        .setParameter(1, d.getId())
+                        .setParameter(2, v.getId())
+                        .getSingleResult();
+            } else {
+                return em.createNamedQuery("DatasetRelation.getTotalCountByDatasetId", Long.class)
+                        .setParameter(1, d.getId())
+                        .getSingleResult();
+            }
         }
     }
 }
