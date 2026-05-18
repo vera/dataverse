@@ -55,7 +55,8 @@ import jakarta.persistence.*;
                     AND rel.definitionpoint_id = (
                         SELECT dv.id FROM datasetversion dv
                         WHERE dv.dataset_id = (SELECT dv2.dataset_id FROM datasetversion dv2 WHERE dv2.id = rel.definitionpoint_id)
-                        AND dv.versionnumber = (SELECT MAX(dv2.versionnumber) FROM datasetversion dv2 WHERE dv2.dataset_id = dv.dataset_id AND dv2.versionstate = 'RELEASED')
+                        AND dv.id = (SELECT MAX(dv2.id) FROM datasetversion dv2 WHERE dv2.dataset_id = dv.dataset_id AND dv2.versionstate = 'RELEASED')
+                        AND dv.versionstate = 'RELEASED'
                     )
                     AND rel.id = (
                         SELECT MIN(r2.id)
@@ -84,7 +85,7 @@ import jakarta.persistence.*;
                         AND rel.definitionpoint_id = (
                             SELECT dv.id FROM datasetversion dv
                             WHERE dv.dataset_id = dv_def.dataset_id
-                            AND dv.versionnumber = (SELECT MAX(dv2.versionnumber) FROM datasetversion dv2 WHERE dv2.dataset_id = dv.dataset_id AND dv2.versionstate = 'RELEASED')
+                            AND dv.id = (SELECT MAX(dv2.id) FROM datasetversion dv2 WHERE dv2.dataset_id = dv.dataset_id AND dv2.versionstate = 'RELEASED')
                         )
                     )
                   )
@@ -115,7 +116,8 @@ import jakarta.persistence.*;
                     AND rel.definitionpoint_id = (
                         SELECT dv.id FROM datasetversion dv
                         WHERE dv.dataset_id = (SELECT dv2.dataset_id FROM datasetversion dv2 WHERE dv2.id = rel.definitionpoint_id)
-                        AND dv.versionnumber = (SELECT MAX(dv2.versionnumber) FROM datasetversion dv2 WHERE dv2.dataset_id = dv.dataset_id AND dv2.versionstate = 'RELEASED')
+                        AND dv.id = (SELECT MAX(dv2.id) FROM datasetversion dv2 WHERE dv2.dataset_id = dv.dataset_id AND dv2.versionstate = 'RELEASED')
+                        AND dv.versionstate = 'RELEASED'
                     )
                     AND rel.id = (
                         SELECT MIN(r2.id)
@@ -147,7 +149,7 @@ import jakarta.persistence.*;
                         AND rel.definitionpoint_id = (
                             SELECT dv.id FROM datasetversion dv
                             WHERE dv.dataset_id = dv_def.dataset_id
-                            AND dv.versionnumber = (SELECT MAX(dv2.versionnumber) FROM datasetversion dv2 WHERE dv2.dataset_id = dv.dataset_id AND dv2.versionstate = 'RELEASED')
+                            AND dv.id = (SELECT MAX(dv2.id) FROM datasetversion dv2 WHERE dv2.dataset_id = dv.dataset_id AND dv2.versionstate = 'RELEASED')
                         )
                     )
                     OR (
@@ -156,7 +158,7 @@ import jakarta.persistence.*;
                         AND rel.definitionpoint_id = (
                             SELECT dv.id FROM datasetversion dv
                             WHERE dv.dataset_id = dv_def.dataset_id
-                            AND dv.versionnumber = (SELECT MAX(dv2.versionnumber) FROM datasetversion dv2 WHERE dv2.dataset_id = dv.dataset_id AND dv2.versionstate = 'RELEASED')
+                            AND dv.id = (SELECT MAX(dv2.id) FROM datasetversion dv2 WHERE dv2.dataset_id = dv.dataset_id AND dv2.versionstate = 'RELEASED')
                         )
                     )
                   )
@@ -188,7 +190,7 @@ import jakarta.persistence.*;
               AND dr.definitionpoint_id = (
                   SELECT dv.id FROM datasetversion dv
                   WHERE dv.dataset_id = (SELECT dv2.dataset_id FROM datasetversion dv2 WHERE dv2.id = dr.definitionpoint_id)
-                  AND dv.versionnumber = (SELECT MAX(dv3.versionnumber) FROM datasetversion dv3 WHERE dv3.dataset_id = dv.dataset_id AND dv3.versionstate = 'RELEASED')
+                  AND dv.id = (SELECT MAX(dv3.id) FROM datasetversion dv3 WHERE dv3.dataset_id = dv.dataset_id AND dv3.versionstate = 'RELEASED')
               )
         """
 )
@@ -209,7 +211,7 @@ import jakarta.persistence.*;
                    AND dr.definitionpoint_id = (
                        SELECT dv.id FROM datasetversion dv
                        WHERE dv.dataset_id = dv_def.dataset_id
-                       AND dv.versionnumber = (SELECT MAX(dv3.versionnumber) FROM datasetversion dv3 WHERE dv3.dataset_id = dv.dataset_id AND dv3.versionstate = 'RELEASED')
+                       AND dv.id = (SELECT MAX(dv3.id) FROM datasetversion dv3 WHERE dv3.dataset_id = dv.dataset_id AND dv3.versionstate = 'RELEASED')
                    )
                )
         """
@@ -236,7 +238,7 @@ import jakarta.persistence.*;
                         AND rel.definitionpoint_id = (
                             SELECT dv.id FROM datasetversion dv
                             WHERE dv.dataset_id = dv_def.dataset_id
-                            AND dv.versionnumber = (SELECT MAX(dv2.versionnumber) FROM datasetversion dv2 WHERE dv2.dataset_id = dv.dataset_id AND dv2.versionstate = 'RELEASED')
+                            AND dv.id = (SELECT MAX(dv2.id) FROM datasetversion dv2 WHERE dv2.dataset_id = dv.dataset_id AND dv2.versionstate = 'RELEASED')
                         )
                     )
                     OR (
@@ -245,7 +247,7 @@ import jakarta.persistence.*;
                         AND rel.definitionpoint_id = (
                             SELECT dv.id FROM datasetversion dv
                             WHERE dv.dataset_id = dv_def.dataset_id
-                            AND dv.versionnumber = (SELECT MAX(dv2.versionnumber) FROM datasetversion dv2 WHERE dv2.dataset_id = dv.dataset_id AND dv2.versionstate = 'RELEASED')
+                            AND dv.id = (SELECT MAX(dv2.id) FROM datasetversion dv2 WHERE dv2.dataset_id = dv.dataset_id AND dv2.versionstate = 'RELEASED')
                         )
                     )
                   )
@@ -270,7 +272,7 @@ import jakarta.persistence.*;
                    AND rel.definitionpoint_id = (
                        SELECT dv.id FROM datasetversion dv
                        WHERE dv.dataset_id = (SELECT dv2.dataset_id FROM datasetversion dv2 WHERE dv2.id = rel.definitionpoint_id)
-                       AND dv.versionnumber = (SELECT MAX(dv2.versionnumber) FROM datasetversion dv2 WHERE dv2.dataset_id = dv.dataset_id AND dv2.versionstate = 'RELEASED')
+                       AND dv.id = (SELECT MAX(dv2.id) FROM datasetversion dv2 WHERE dv2.dataset_id = dv.dataset_id AND dv2.versionstate = 'RELEASED')
                    )
         """
 )
@@ -293,7 +295,7 @@ import jakarta.persistence.*;
                     AND dr.definitionpoint_id = (
                         SELECT dv.id FROM datasetversion dv
                         WHERE dv.dataset_id = (SELECT dv2.dataset_id FROM datasetversion dv2 WHERE dv2.id = dr.definitionpoint_id)
-                        AND dv.versionnumber = (SELECT MAX(dv3.versionnumber) FROM datasetversion dv3 WHERE dv3.dataset_id = dv.dataset_id AND dv3.versionstate = 'RELEASED')
+                        AND dv.id = (SELECT MAX(dv3.id) FROM datasetversion dv3 WHERE dv3.dataset_id = dv.dataset_id AND dv3.versionstate = 'RELEASED')
                     )
                     AND dr.id = (
                                     SELECT MIN(dr2.id)
@@ -334,7 +336,7 @@ import jakarta.persistence.*;
                            AND dr.definitionpoint_id = (
                                SELECT dv.id FROM datasetversion dv
                                WHERE dv.dataset_id = dv_def.dataset_id
-                               AND dv.versionnumber = (SELECT MAX(dv3.versionnumber) FROM datasetversion dv3 WHERE dv3.dataset_id = dv.dataset_id AND dv3.versionstate = 'RELEASED')
+                               AND dv.id = (SELECT MAX(dv3.id) FROM datasetversion dv3 WHERE dv3.dataset_id = dv.dataset_id AND dv3.versionstate = 'RELEASED')
                            )
                        )
                 ) 
