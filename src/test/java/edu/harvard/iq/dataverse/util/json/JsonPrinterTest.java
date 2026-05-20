@@ -889,7 +889,7 @@ public class JsonPrinterTest {
         version.setDataset(datasetA);
 
         DatasetRelationType relType = new DatasetRelationType("isReferencedBy", "Is referenced by");
-        DatasetRelationType relTypeInv = new DatasetRelationType("references", "References", relType);
+        DatasetRelationType relTypeInv = new DatasetRelationType("references", "References", null, relType);
 
         InternalDatasetRelation rel = new InternalDatasetRelation(datasetA, datasetB, relType, version);
 

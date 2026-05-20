@@ -378,13 +378,13 @@ public class DatasetRelationsIT {
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("data", hasSize(3))
                 // 1st: isCitedBy (count 3)
-                .body("data[0].relationTypeName", equalTo("isCitedBy"))
+                .body("data[0].relationType.name", equalTo("isCitedBy"))
                 .body("data[0].count", equalTo(3))
                 // 2nd: isRelatedTo (count 2)
-                .body("data[1].relationTypeName", equalTo("isRelatedTo"))
+                .body("data[1].relationType.name", equalTo("isRelatedTo"))
                 .body("data[1].count", equalTo(2))
                 // 3rd: isSupplementTo (count 2)
-                .body("data[2].relationTypeName", equalTo("isSupplementTo"))
+                .body("data[2].relationType.name", equalTo("isSupplementTo"))
                 .body("data[2].count", equalTo(2));
     }
 }
