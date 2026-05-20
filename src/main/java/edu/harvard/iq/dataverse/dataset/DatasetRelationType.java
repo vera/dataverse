@@ -21,6 +21,9 @@ public class DatasetRelationType implements Serializable {
     @Column(nullable=false, unique=true)
     private String displayName;
 
+    @Column
+    private String description;
+
     @OneToOne(cascade = {CascadeType.PERSIST})
     @JoinColumn(unique=true)
     private DatasetRelationType inverse;
@@ -29,21 +32,36 @@ public class DatasetRelationType implements Serializable {
     /**
      * Constructing a relation type with an inverse relation type.
      * @param name The name of the relation type.
+     * @param displayName The display name of the relation type.
+     * @param description The description of the relation type.
      * @param inverse The inverse relation type.
      */
-    public DatasetRelationType(String name, String displayName, DatasetRelationType inverse) {
+    public DatasetRelationType(String name, String displayName, String description, DatasetRelationType inverse) {
         this.name = name;
         this.displayName = displayName;
+        this.description = description;
         this.inverse = inverse;
         if (inverse.getInverse() != this) {
             inverse.setInverse(this);
         }
     }
 
+    /**
+     * Constructing a relation type.
+     * @param name The name of the relation type.
+     * @param displayName The display name of the relation type.
+     * @param description The description of the relation type.
+     */
+    public DatasetRelationType(String name, String displayName, String description) {
+        this.name = name;
+        this.displayName = displayName;
+        this.description = description;
+    }
 
     /**
      * Constructing a relation type.
      * @param name The name of the relation type.
+     * @param displayName The display name of the relation type.
      */
     public DatasetRelationType(String name, String displayName) {
         this.name = name;
@@ -90,5 +108,13 @@ public class DatasetRelationType implements Serializable {
 
     public void setDisplayName(String displayName) {
         this.displayName = displayName;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 }

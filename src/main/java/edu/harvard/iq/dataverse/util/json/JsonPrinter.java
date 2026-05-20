@@ -1067,7 +1067,7 @@ public class JsonPrinter {
     }
 
     public static JsonObjectBuilder json(DatasetRelation rel, boolean invertRelation, boolean includeMetadataBlocks) {
-        JsonObjectBuilder result = Json.createObjectBuilder();
+        JsonObjectBuilder result = new NullSafeJsonBuilder();
 
         result.add("definitionPointPid", rel.getDefinitionPoint().getDataset().getGlobalId().toString());
 
@@ -1094,10 +1094,9 @@ public class JsonPrinter {
         } else if (rel instanceof ExternalDatasetRelation) {
             ExternalDatasetRelation erel = (ExternalDatasetRelation) rel;
             result.add("datasetPid", erel.getDataset().getGlobalId().toString())
-                  .add("externalIdentifier", erel.getExternalIdentifier());
-            if (erel.getIdentifierScheme() != null) {
-                result.add("identifierScheme", erel.getIdentifierScheme());
-            }
+                  .add("externalIdentifier", erel.getExternalIdentifier())
+                    .add("identifierScheme", erel.getIdentifierScheme());
+
             if (erel.getDatasetType() != null) {
                   result.add("relatedDatasetType",
                         Json.createObjectBuilder().add("displayName", erel.getDatasetType()));
@@ -1106,9 +1105,10 @@ public class JsonPrinter {
 
         if (rel.getRelationType() != null) {
             DatasetRelationType relType = (rel instanceof InternalDatasetRelation && invertRelation) ? rel.getRelationType().getInverse() : rel.getRelationType();
-            result.add("relationType", Json.createObjectBuilder()
+            result.add("relationType", new NullSafeJsonBuilder()
                     .add("name", relType.getName())
                     .add("displayName", relType.getDisplayName())
+                    .add("description", relType.getDescription())
             );
         }
 

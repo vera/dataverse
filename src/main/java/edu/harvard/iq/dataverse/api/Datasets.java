@@ -4116,8 +4116,12 @@ public class Datasets extends AbstractApiBean {
                 List<Object[]> relationCounts = datasetRelationService.getDatasetRelationCountsFor(dataset, version);
 
                 return ok(relationCounts.stream().map(relCount -> Json.createObjectBuilder()
-                                .add("relationTypeName", relCount[0].toString())
-                                .add("count", ((Number) relCount[1]).longValue()))
+                                .add("relationType", new NullSafeJsonBuilder()
+                                        .add("name", relCount[0] != null ? relCount[0].toString() : null)
+                                        .add("displayName", relCount[1] != null ? relCount[1].toString() : null)
+                                        .add("description", relCount[2] != null ? relCount[2].toString() : null)
+                                )
+                                .add("count", ((Number) relCount[3]).longValue()))
                         .collect(toJsonArray()));
             } catch (WrappedResponse wr) {
                 return wr.getResponse();
@@ -4143,12 +4147,15 @@ public class Datasets extends AbstractApiBean {
             JsonObject datasetRelationTypeObj = JsonUtil.getJsonObject(jsonIn);
             String name = datasetRelationTypeObj.getString("name");
             String displayName = datasetRelationTypeObj.getString("displayName");
-            DatasetRelationType relationType = new DatasetRelationType(name, displayName);
-            String inverseName = datasetRelationTypeObj.getString("inverseName", "");
-            String inverseDisplayName = datasetRelationTypeObj.getString("inverseDisplayName", "");
-            if (!inverseName.isEmpty()) {
+            String description = datasetRelationTypeObj.getString("description", null);
+            DatasetRelationType relationType = new DatasetRelationType(name, displayName, description);
+
+            String inverseName = datasetRelationTypeObj.getString("inverseName", null);
+            if (inverseName != null && !inverseName.isEmpty()) {
                 if (!inverseName.equals(name)) {
-                    new DatasetRelationType(inverseName, inverseDisplayName, relationType);
+                    String inverseDisplayName = datasetRelationTypeObj.getString("inverseDisplayName", null);
+                    String inverseDescription = datasetRelationTypeObj.getString("inverseDescription",  null);
+                    new DatasetRelationType(inverseName, inverseDisplayName, inverseDescription, relationType);
                 } else {
                     // Some relation types may be the inverse of themselves, e.g. "is identical to"
                     relationType.setInverse(relationType);

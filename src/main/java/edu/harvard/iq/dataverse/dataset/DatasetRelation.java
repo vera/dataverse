@@ -281,13 +281,23 @@ import jakarta.persistence.*;
         query = """
             SELECT
                 relation_type_name,
+                relation_type_displayname,
+                relation_type_description,
                 COUNT(*) AS related_datasets_count
             FROM (
                 SELECT
                     CASE
                         WHEN dr.dataset_id = ?1 THEN rt.name
                         ELSE inv.name
-                    END AS relation_type_name
+                    END AS relation_type_name,
+                    CASE
+                        WHEN dr.dataset_id = ?1 THEN rt.displayname
+                        ELSE inv.displayname
+                    END AS relation_type_displayname,
+                    CASE
+                        WHEN dr.dataset_id = ?1 THEN rt.description
+                        ELSE inv.description
+                    END AS relation_type_description
                 FROM datasetrelation dr
                 JOIN datasetrelationtype rt ON dr.relationtype_id = rt.id
                 JOIN datasetrelationtype inv ON rt.inverse_id = inv.id
@@ -308,7 +318,7 @@ import jakarta.persistence.*;
                                       AND dr2.relationtype_id = dr.relationtype_id
                                 )
             ) t
-            GROUP BY relation_type_name
+            GROUP BY relation_type_name, relation_type_displayname, relation_type_description
             ORDER BY related_datasets_count DESC, relation_type_name ASC;
     """,
     resultSetMapping = "RelationCountMapping"
@@ -318,13 +328,23 @@ import jakarta.persistence.*;
     query = """
             SELECT
                 relation_type_name,
+                relation_type_displayname,
+                relation_type_description,
                 COUNT(*) AS related_datasets_count
             FROM (
                 SELECT
                     CASE
                         WHEN dr.dataset_id = ?1 THEN rt.name
                         ELSE inv.name
-                    END AS relation_type_name
+                    END AS relation_type_name,
+                    CASE
+                        WHEN dr.dataset_id = ?1 THEN rt.displayname
+                        ELSE inv.displayname
+                    END AS relation_type_displayname,
+                    CASE
+                        WHEN dr.dataset_id = ?1 THEN rt.description
+                        ELSE inv.description
+                    END AS relation_type_description
                 FROM datasetrelation dr
                 JOIN datasetrelationtype rt ON dr.relationtype_id = rt.id
                 JOIN datasetrelationtype inv ON rt.inverse_id = inv.id
@@ -351,7 +371,7 @@ import jakarta.persistence.*;
                                       AND dr2.relationtype_id = dr.relationtype_id
                                 )
             ) t
-            GROUP BY relation_type_name
+            GROUP BY relation_type_name, relation_type_displayname, relation_type_description
             ORDER BY related_datasets_count DESC, relation_type_name ASC;
     """,
     resultSetMapping = "RelationCountMapping"
@@ -360,6 +380,8 @@ import jakarta.persistence.*;
         name = "RelationCountMapping",
         columns = {
                 @ColumnResult(name = "relation_type_name", type = String.class),
+                @ColumnResult(name = "relation_type_displayname", type = String.class),
+                @ColumnResult(name = "relation_type_description", type = String.class),
                 @ColumnResult(name = "related_datasets_count", type = Long.class)
         }
 )
