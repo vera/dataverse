@@ -309,7 +309,7 @@ import jakarta.persistence.*;
                                 )
             ) t
             GROUP BY relation_type_name
-            ORDER BY relation_type_name;
+            ORDER BY related_datasets_count DESC, relation_type_name ASC;
     """,
     resultSetMapping = "RelationCountMapping"
 )
@@ -352,7 +352,7 @@ import jakarta.persistence.*;
                                 )
             ) t
             GROUP BY relation_type_name
-            ORDER BY relation_type_name;
+            ORDER BY related_datasets_count DESC, relation_type_name ASC;
     """,
     resultSetMapping = "RelationCountMapping"
 )
