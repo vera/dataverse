@@ -28,21 +28,24 @@ public class DatasetRelationsIT {
         apiTokenSuperuser = UtilIT.getApiTokenFromResponse(createUser);
         UtilIT.setSuperuserStatus(usernameSuperuser, true).then().assertThat().statusCode(OK.getStatusCode());
 
-        // Ensure relation type exists
+        // Ensure relation types exist
         String relationTypeJson = Json.createObjectBuilder()
                 .add("name", "isRelatedTo")
-                .add("displayName", "Is Related To")
                 .add("inverseName", "isRelatedTo")
                 .build().toString();
         UtilIT.addDatasetRelationType(relationTypeJson, apiTokenSuperuser);
         
-        // Add another relation type
         String relationTypeJson2 = Json.createObjectBuilder()
                 .add("name", "isSupplementTo")
-                .add("displayName", "Is Supplement To")
                 .add("inverseName", "isSupplementedBy")
                 .build().toString();
         UtilIT.addDatasetRelationType(relationTypeJson2, apiTokenSuperuser);
+
+        String relationTypeJson3 = Json.createObjectBuilder()
+                .add("name", "isCitedBy")
+                .add("inverseName", "cites")
+                .build().toString();
+        UtilIT.addDatasetRelationType(relationTypeJson3, apiTokenSuperuser);
     }
 
     @Test
@@ -324,5 +327,59 @@ public class DatasetRelationsIT {
         UtilIT.listDatasetRelations(pidA, null, null, null, null, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("totalCount", equalTo(2));
+    }
+
+    @Test
+    public void testDatasetRelationCounts() {
+        String dataverseAlias = UtilIT.createRandomCollectionGetAlias(apiTokenSuperuser);
+        UtilIT.publishDataverseViaNativeApi(dataverseAlias, apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
+
+        // Create main Dataset A
+        Response createDatasetA = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
+        String pidA = UtilIT.getDatasetPersistentIdFromResponse(createDatasetA);
+
+        // Create other datasets to relate to
+        String[] pids = new String[7];
+        for (int i = 0; i < 7; i++) {
+            Response createDataset = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
+            pids[i] = UtilIT.getDatasetPersistentIdFromResponse(createDataset);
+        }
+
+        // Setup relations:
+        // isCitedBy: 3 relations
+        // isRelatedTo: 2 relations
+        // isSupplementTo: 2 relations
+        // (Alphabetical: isCitedBy < isRelatedTo < isSupplementTo)
+        // Expected order:
+        // 1. isCitedBy (count: 3)
+        // 2. isRelatedTo (count: 2)
+        // 3. isSupplementTo (count: 2)
+
+        JsonArray relations = Json.createArrayBuilder()
+                .add(Json.createObjectBuilder().add("relatedDatasetPid", pids[0]).add("relationTypeName", "isCitedBy"))
+                .add(Json.createObjectBuilder().add("relatedDatasetPid", pids[1]).add("relationTypeName", "isCitedBy"))
+                .add(Json.createObjectBuilder().add("relatedDatasetPid", pids[2]).add("relationTypeName", "isCitedBy"))
+                .add(Json.createObjectBuilder().add("relatedDatasetPid", pids[3]).add("relationTypeName", "isRelatedTo"))
+                .add(Json.createObjectBuilder().add("relatedDatasetPid", pids[4]).add("relationTypeName", "isRelatedTo"))
+                .add(Json.createObjectBuilder().add("relatedDatasetPid", pids[5]).add("relationTypeName", "isSupplementTo"))
+                .add(Json.createObjectBuilder().add("relatedDatasetPid", pids[6]).add("relationTypeName", "isSupplementTo"))
+                .build();
+
+        UtilIT.replaceDatasetRelations(pidA, relations.toString(), apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode());
+
+        // Check counts and sorting
+        UtilIT.getDatasetRelationCounts(pidA, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("data", hasSize(3))
+                // 1st: isCitedBy (count 3)
+                .body("data[0].relationTypeName", equalTo("isCitedBy"))
+                .body("data[0].count", equalTo(3))
+                // 2nd: isRelatedTo (count 2)
+                .body("data[1].relationTypeName", equalTo("isRelatedTo"))
+                .body("data[1].count", equalTo(2))
+                // 3rd: isSupplementTo (count 2)
+                .body("data[2].relationTypeName", equalTo("isSupplementTo"))
+                .body("data[2].count", equalTo(2));
     }
 }
