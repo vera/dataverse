@@ -189,6 +189,27 @@ public class DatasetRelationsIT {
                 .body("data[0].identifierScheme", equalTo("URL"))
                 .body("data[0].relationTypeName", equalTo("isRelatedTo"));
 
+        // Add external relation with datasetType
+        String externalUrlWithDocType = "https://example.org/dataset/67890";
+        JsonArray relationsWithDocType = Json.createArrayBuilder()
+                .add(Json.createObjectBuilder()
+                        .add("externalIdentifier", externalUrlWithDocType)
+                        .add("identifierScheme", "URL")
+                        .add("datasetType", "Document")
+                        .add("relationTypeName", "isRelatedTo"))
+                .build();
+
+        UtilIT.replaceDatasetRelations(pidA, relationsWithDocType.toString(), apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode());
+
+        // Verify external relation with datasetType is listed
+        UtilIT.listDatasetRelations(pidA, null, null, null, null, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("totalCount", equalTo(1))
+                .body("data", hasSize(1))
+                .body("data[0].externalIdentifier", equalTo(externalUrlWithDocType))
+                .body("data[0].relatedDatasetType.displayName", equalTo("Document"));
+
         // Add both internal and external relations
         Response createDatasetB = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
         String pidB = UtilIT.getDatasetPersistentIdFromResponse(createDatasetB);
@@ -212,7 +233,9 @@ public class DatasetRelationsIT {
                 .body("data", hasSize(2))
                 .body("data.relatedDatasetPid", hasItem(pidB))
                 .body("data.externalIdentifier", hasItem("doi:10.1234/5678"))
-                .body("data.identifierScheme", hasItem("DOI"));
+                .body("data.identifierScheme", hasItem("DOI"))
+                .body("data.relatedDatasetType.name", hasItem("dataset"))
+                .body("data.relatedDatasetType.displayName", hasItem("Dataset"));
     }
 
     @Test
