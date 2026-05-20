@@ -848,7 +848,7 @@ public class JsonPrinterTest {
         version.setId(10L);
         version.setDataset(dataset);
 
-        DatasetRelationType type = new DatasetRelationType("isReferencedBy");
+        DatasetRelationType type = new DatasetRelationType("isReferencedBy", "Is referenced by");
 
         ExternalDatasetRelation rel = new ExternalDatasetRelation(dataset, "10.1234/ext-1", "doi", "Journal Article", type, version);
 
@@ -857,7 +857,8 @@ public class JsonPrinterTest {
         assertEquals("doi:10.5072/FK2/ORIG", result.getString("datasetPid"));
         assertEquals("10.1234/ext-1", result.getString("externalIdentifier"));
         assertEquals("doi", result.getString("identifierScheme"));
-        assertEquals("isReferencedBy", result.getString("relationTypeName"));
+        assertEquals("isReferencedBy", result.getJsonObject("relationType").getString("name"));
+        assertEquals("Is referenced by", result.getJsonObject("relationType").getString("displayName"));
         assertEquals("Journal Article", result.getJsonObject("relatedDatasetType").getString("displayName"));
     }
 
@@ -887,8 +888,8 @@ public class JsonPrinterTest {
         version.setId(10L);
         version.setDataset(datasetA);
 
-        DatasetRelationType relType = new DatasetRelationType("isReferencedBy");
-        DatasetRelationType relTypeInv = new DatasetRelationType("references", relType);
+        DatasetRelationType relType = new DatasetRelationType("isReferencedBy", "Is referenced by");
+        DatasetRelationType relTypeInv = new DatasetRelationType("references", "References", relType);
 
         InternalDatasetRelation rel = new InternalDatasetRelation(datasetA, datasetB, relType, version);
 
@@ -897,7 +898,8 @@ public class JsonPrinterTest {
 
         assertEquals("doi:10.5072/FK2/A", result.getString("datasetPid"));
         assertEquals("doi:10.5072/FK2/B", result.getString("relatedDatasetPid"));
-        assertEquals("isReferencedBy", result.getString("relationTypeName"));
+        assertEquals("isReferencedBy", result.getJsonObject("relationType").getString("name"));
+        assertEquals("Is referenced by", result.getJsonObject("relationType").getString("displayName"));
         assertEquals("software", result.getJsonObject("relatedDatasetType").getString("name"));
         assertEquals("Software", result.getJsonObject("relatedDatasetType").getString("displayName"));
 
@@ -905,7 +907,8 @@ public class JsonPrinterTest {
         JsonObject resultInverted = JsonPrinter.json(rel, true, false).build();
         assertEquals("doi:10.5072/FK2/B", resultInverted.getString("datasetPid"));
         assertEquals("doi:10.5072/FK2/A", resultInverted.getString("relatedDatasetPid"));
-        assertEquals("references", resultInverted.getString("relationTypeName"));
+        assertEquals("references", resultInverted.getJsonObject("relationType").getString("name"));
+        assertEquals("References", resultInverted.getJsonObject("relationType").getString("displayName"));
         assertEquals("dataset", resultInverted.getJsonObject("relatedDatasetType").getString("name"));
         assertEquals("Dataset", resultInverted.getJsonObject("relatedDatasetType").getString("displayName"));
     }

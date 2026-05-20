@@ -31,19 +31,24 @@ public class DatasetRelationsIT {
         // Ensure relation types exist
         String relationTypeJson = Json.createObjectBuilder()
                 .add("name", "isRelatedTo")
+                .add("displayName", "Is related to")
                 .add("inverseName", "isRelatedTo")
                 .build().toString();
         UtilIT.addDatasetRelationType(relationTypeJson, apiTokenSuperuser);
         
         String relationTypeJson2 = Json.createObjectBuilder()
                 .add("name", "isSupplementTo")
+                .add("displayName", "Is supplement to")
                 .add("inverseName", "isSupplementedBy")
+                .add("inverseDisplayName", "Is supplemented by")
                 .build().toString();
         UtilIT.addDatasetRelationType(relationTypeJson2, apiTokenSuperuser);
 
         String relationTypeJson3 = Json.createObjectBuilder()
                 .add("name", "isCitedBy")
+                .add("displayName", "Is cited by")
                 .add("inverseName", "cites")
+                .add("inverseDisplayName", "Cites")
                 .build().toString();
         UtilIT.addDatasetRelationType(relationTypeJson3, apiTokenSuperuser);
     }
@@ -77,7 +82,7 @@ public class DatasetRelationsIT {
                 .body("totalCount", equalTo(1))
                 .body("data", hasSize(1))
                 .body("data[0].relatedDatasetPid", equalTo(pidA))
-                .body("data[0].relationTypeName", equalTo("isRelatedTo"));
+                .body("data[0].relationType.name", equalTo("isRelatedTo"));
 
         // Verify relation is not listed when requesting relations for Dataset A (v1)
         // since Dataset B, where the relation was defined, is still in Draft status
@@ -95,7 +100,7 @@ public class DatasetRelationsIT {
                 .body("totalCount", equalTo(1))
                 .body("data", hasSize(1))
                 .body("data[0].relatedDatasetPid", equalTo(pidB))
-                .body("data[0].relationTypeName", equalTo("isRelatedTo"));
+                .body("data[0].relationType.name", equalTo("isRelatedTo"));
 
         // Verify relation is listed when requesting relations for Dataset B v1.0
         UtilIT.listDatasetRelations(pidB, "1.0", null, null, null, apiTokenSuperuser)
@@ -103,7 +108,7 @@ public class DatasetRelationsIT {
                 .body("totalCount", equalTo(1))
                 .body("data", hasSize(1))
                 .body("data[0].relatedDatasetPid", equalTo(pidA))
-                .body("data[0].relationTypeName", equalTo("isRelatedTo"));
+                .body("data[0].relationType.name", equalTo("isRelatedTo"));
 
         // Remove the relation in new version of Dataset B (draft)
         UtilIT.replaceDatasetRelations(pidB, "[]", apiTokenSuperuser)
@@ -116,7 +121,7 @@ public class DatasetRelationsIT {
                 .body("totalCount", equalTo(1))
                 .body("data", hasSize(1))
                 .body("data[0].relatedDatasetPid", equalTo(pidB))
-                .body("data[0].relationTypeName", equalTo("isRelatedTo"));
+                .body("data[0].relationType.name", equalTo("isRelatedTo"));
 
         // Verify relation is still listed when requesting relations for Dataset B without a token
         // Because without a token, users cannot see Dataset B's draft
@@ -125,7 +130,7 @@ public class DatasetRelationsIT {
                 .body("totalCount", equalTo(1))
                 .body("data", hasSize(1))
                 .body("data[0].relatedDatasetPid", equalTo(pidA))
-                .body("data[0].relationTypeName", equalTo("isRelatedTo"));
+                .body("data[0].relationType.name", equalTo("isRelatedTo"));
 
         // Verify relation is not listed when requesting relations for Dataset B's draft specifically
         UtilIT.listDatasetRelations(pidB, ":draft", null, null, null, apiTokenSuperuser)
@@ -149,7 +154,7 @@ public class DatasetRelationsIT {
                 .body("totalCount", equalTo(1))
                 .body("data", hasSize(1))
                 .body("data[0].relatedDatasetPid", equalTo(pidA))
-                .body("data[0].relationTypeName", equalTo("isRelatedTo"));
+                .body("data[0].relationType.name", equalTo("isRelatedTo"));
 
         // Verify relation is NOT listed when requesting relations for Dataset B v2
         UtilIT.listDatasetRelations(pidB, "2.0", null, null, null, apiTokenSuperuser)
@@ -190,7 +195,7 @@ public class DatasetRelationsIT {
                 .body("data", hasSize(1))
                 .body("data[0].externalIdentifier", equalTo(externalUrl))
                 .body("data[0].identifierScheme", equalTo("URL"))
-                .body("data[0].relationTypeName", equalTo("isRelatedTo"));
+                .body("data[0].relationType.name", equalTo("isRelatedTo"));
 
         // Add external relation with datasetType
         String externalUrlWithDocType = "https://example.org/dataset/67890";
