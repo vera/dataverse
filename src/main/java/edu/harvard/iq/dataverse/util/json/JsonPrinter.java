@@ -1077,11 +1077,18 @@ public class JsonPrinter {
 
         if (rel instanceof InternalDatasetRelation) {
             InternalDatasetRelation irel = (InternalDatasetRelation) rel;
-            result.add("datasetPid", invertRelation ? irel.getRelatedDataset().getGlobalId().toString() : irel.getDataset().getGlobalId().toString())
-                  .add("relatedDatasetPid", invertRelation ? irel.getDataset().getGlobalId().toString() : irel.getRelatedDataset().getGlobalId().toString());
+            Dataset dataset = invertRelation ? irel.getRelatedDataset() : irel.getDataset();
+            Dataset relatedDataset = invertRelation ? irel.getDataset() : irel.getRelatedDataset();
+
+            result.add("datasetPid", dataset.getGlobalId().toString())
+                  .add("relatedDatasetPid", relatedDataset.getGlobalId().toString())
+                  .add("relatedDatasetType",
+                          Json.createObjectBuilder()
+                                  .add("name", relatedDataset.getDatasetType().getName())
+                                  .add("displayName", relatedDataset.getDatasetType().getDisplayName()));
 
             if (includeMetadataBlocks) {
-                DatasetVersion releasedVersion = invertRelation ? irel.getDataset().getReleasedVersion() : irel.getRelatedDataset().getReleasedVersion();
+                DatasetVersion releasedVersion = relatedDataset.getReleasedVersion();
                 if (releasedVersion != null) {
                     result.add("relatedDataset",
                             Json.createObjectBuilder().add("metadataBlocks", jsonByBlocks(releasedVersion.getDatasetFields()))
@@ -1094,6 +1101,10 @@ public class JsonPrinter {
                   .add("externalIdentifier", erel.getExternalIdentifier());
             if (erel.getIdentifierScheme() != null) {
                 result.add("identifierScheme", erel.getIdentifierScheme());
+            }
+            if (erel.getDatasetType() != null) {
+                  result.add("relatedDatasetType",
+                        Json.createObjectBuilder().add("displayName", erel.getDatasetType()));
             }
         }
 

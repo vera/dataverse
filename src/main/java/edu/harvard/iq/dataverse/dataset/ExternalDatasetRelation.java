@@ -11,11 +11,13 @@ public class ExternalDatasetRelation extends DatasetRelation {
 
     private String externalIdentifier;
     private String identifierScheme;
+    private String datasetType;
 
-    public ExternalDatasetRelation(Dataset dataset, String externalIdentifier, String identifierScheme, DatasetRelationType relationType, DatasetVersion definitionPoint) {
+    public ExternalDatasetRelation(Dataset dataset, String externalIdentifier, String identifierScheme, String datasetType, DatasetRelationType relationType, DatasetVersion definitionPoint) {
         super(dataset, relationType, definitionPoint);
         this.externalIdentifier = externalIdentifier;
         this.identifierScheme = identifierScheme;
+        this.datasetType = datasetType;
     }
 
     protected ExternalDatasetRelation() {
@@ -38,13 +40,21 @@ public class ExternalDatasetRelation extends DatasetRelation {
         this.identifierScheme = identifierScheme;
     }
 
+    public String getDatasetType() {
+        return datasetType;
+    }
+
+    public void setDatasetType(String datasetType) {
+        this.datasetType = datasetType;
+    }
+
     @Override
     public String toKey() {
-        return getDataset().getId() + "|" + externalIdentifier + "|" + (identifierScheme != null ? identifierScheme : "") + "|" + (getRelationType() != null ? getRelationType().getId() : "") + "|" + getDefinitionPoint().getId();
+        return getDataset().getId() + "|" + externalIdentifier + "|" + (identifierScheme != null ? identifierScheme : "") + "|" + (datasetType != null ? datasetType : "") + "|" + (getRelationType() != null ? getRelationType().getId() : "") + "|" + getDefinitionPoint().getId();
     }
 
     @Override
     public DatasetRelation copy(DatasetVersion newDefinitionPoint) {
-        return new ExternalDatasetRelation(getDataset(), externalIdentifier, identifierScheme, getRelationType(), newDefinitionPoint);
+        return new ExternalDatasetRelation(getDataset(), externalIdentifier, identifierScheme, datasetType, getRelationType(), newDefinitionPoint);
     }
 }

@@ -54,7 +54,7 @@ public class ReplaceDatasetRelationsCommand extends AbstractCommand<List<Dataset
                     }
                     return java.util.stream.Stream.of(new InternalDatasetRelation(d, relatedDataset, type, version));
                 } else if (relationDTO.getExternalIdentifier() != null) {
-                    return java.util.stream.Stream.of(new ExternalDatasetRelation(d, relationDTO.getExternalIdentifier(), relationDTO.getIdentifierScheme(), type, version));
+                    return java.util.stream.Stream.of(new ExternalDatasetRelation(d, relationDTO.getExternalIdentifier(), relationDTO.getIdentifierScheme(), relationDTO.getDatasetType(), type, version));
                 } else {
                     logger.severe("Relation DTO must have either relatedDatasetPid or externalIdentifier");
                     return java.util.stream.Stream.empty();

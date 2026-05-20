@@ -2,10 +2,15 @@ package edu.harvard.iq.dataverse.api.dto;
 
 public class DatasetRelationDTO {
     private String datasetPid;
+    private String relationTypeName;
+
+    // For internal dataset relations
     private String relatedDatasetPid;
+
+    // For external dataset relations
     private String externalIdentifier;
     private String identifierScheme;
-    private String relationTypeName;
+    private String datasetType;
 
     public String getDatasetPid() {
         return datasetPid;
@@ -45,5 +50,13 @@ public class DatasetRelationDTO {
 
     public void setRelationTypeName(String relationTypeName) {
         this.relationTypeName = relationTypeName;
+    }
+
+    public String getDatasetType() {
+        return datasetType;
+    }
+
+    public void setDatasetType(String datasetType) {
+        this.datasetType = datasetType;
     }
 }
