@@ -22,6 +22,7 @@ import edu.harvard.iq.dataverse.engine.command.DataverseRequest;
 import edu.harvard.iq.dataverse.license.LicenseServiceBean;
 import edu.harvard.iq.dataverse.mocks.MockDatasetFieldSvc;
 import edu.harvard.iq.dataverse.settings.SettingsServiceBean;
+import edu.harvard.iq.dataverse.api.dto.DatasetRelationDTO;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
@@ -796,6 +797,19 @@ public class JsonParserTest {
         assertEquals(4, gb.getCustomQuestions().get(2).getCustomQuestionValues().size());
         assertEquals("Purple", gb.getCustomQuestions().get(2).getCustomQuestionValues().get(3).getValueString());
         assertEquals(3, gb.getCustomQuestions().get(2).getCustomQuestionValues().get(3).getDisplayOrder());
+    }
+
+    @Test
+    public void testParseExternalDatasetRelationDTOWithDatasetType() throws JsonParseException {
+        String json = "{\"externalIdentifier\":\"10.1234/ext-1\", \"identifierScheme\":\"doi\", \"datasetType\":\"Journal Article\", \"relationTypeName\":\"isReferencedBy\"}";
+        JsonObject jsonObject = JsonUtil.getJsonObject(json);
+        DatasetRelationDTO dto = sut.parseDatasetRelationDTO(jsonObject);
+
+        assertNotNull(dto);
+        assertEquals("10.1234/ext-1", dto.getExternalIdentifier());
+        assertEquals("doi", dto.getIdentifierScheme());
+        assertEquals("Journal Article", dto.getDatasetType());
+        assertEquals("isReferencedBy", dto.getRelationTypeName());
     }
 
     @Test
