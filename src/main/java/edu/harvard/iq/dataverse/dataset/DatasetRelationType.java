@@ -18,6 +18,9 @@ public class DatasetRelationType implements Serializable {
     @Column(nullable=false, unique=true)
     private String name;
 
+    @Column(nullable=false, unique=true)
+    private String displayName;
+
     @OneToOne(cascade = {CascadeType.PERSIST})
     @JoinColumn(unique=true)
     private DatasetRelationType inverse;
@@ -28,8 +31,9 @@ public class DatasetRelationType implements Serializable {
      * @param name The name of the relation type.
      * @param inverse The inverse relation type.
      */
-    public DatasetRelationType(String name, DatasetRelationType inverse) {
+    public DatasetRelationType(String name, String displayName, DatasetRelationType inverse) {
         this.name = name;
+        this.displayName = displayName;
         this.inverse = inverse;
         if (inverse.getInverse() != this) {
             inverse.setInverse(this);
@@ -41,8 +45,9 @@ public class DatasetRelationType implements Serializable {
      * Constructing a relation type.
      * @param name The name of the relation type.
      */
-    public DatasetRelationType(String name) {
+    public DatasetRelationType(String name, String displayName) {
         this.name = name;
+        this.displayName = displayName;
     }
 
     /**
@@ -77,5 +82,13 @@ public class DatasetRelationType implements Serializable {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
     }
 }

@@ -4142,11 +4142,13 @@ public class Datasets extends AbstractApiBean {
         try {
             JsonObject datasetRelationTypeObj = JsonUtil.getJsonObject(jsonIn);
             String name = datasetRelationTypeObj.getString("name");
-            DatasetRelationType relationType = new DatasetRelationType(name);
+            String displayName = datasetRelationTypeObj.getString("displayName");
+            DatasetRelationType relationType = new DatasetRelationType(name, displayName);
             String inverseName = datasetRelationTypeObj.getString("inverseName", "");
+            String inverseDisplayName = datasetRelationTypeObj.getString("inverseDisplayName", "");
             if (!inverseName.isEmpty()) {
                 if (!inverseName.equals(name)) {
-                    new DatasetRelationType(inverseName, relationType);
+                    new DatasetRelationType(inverseName, inverseDisplayName, relationType);
                 } else {
                     // Some relation types may be the inverse of themselves, e.g. "is identical to"
                     relationType.setInverse(relationType);

@@ -18,11 +18,7 @@ import edu.harvard.iq.dataverse.authorization.users.User;
 import edu.harvard.iq.dataverse.branding.BrandingUtil;
 import edu.harvard.iq.dataverse.dataaccess.DataAccess;
 import edu.harvard.iq.dataverse.dataaccess.StorageIO;
-import edu.harvard.iq.dataverse.dataset.ExternalDatasetRelation;
-import edu.harvard.iq.dataverse.dataset.InternalDatasetRelation;
-import edu.harvard.iq.dataverse.dataset.DatasetRelation;
-import edu.harvard.iq.dataverse.dataset.DatasetType;
-import edu.harvard.iq.dataverse.dataset.DatasetUtil;
+import edu.harvard.iq.dataverse.dataset.*;
 import edu.harvard.iq.dataverse.datasetversionsummaries.*;
 import edu.harvard.iq.dataverse.datavariable.*;
 import edu.harvard.iq.dataverse.dataverse.featured.DataverseFeaturedItem;
@@ -1109,7 +1105,11 @@ public class JsonPrinter {
         }
 
         if (rel.getRelationType() != null) {
-            result.add("relationTypeName", (rel instanceof InternalDatasetRelation && invertRelation) ? rel.getRelationType().getInverse().getName() : rel.getRelationType().getName());
+            DatasetRelationType relType = (rel instanceof InternalDatasetRelation && invertRelation) ? rel.getRelationType().getInverse() : rel.getRelationType();
+            result.add("relationType", Json.createObjectBuilder()
+                    .add("name", relType.getName())
+                    .add("displayName", relType.getDisplayName())
+            );
         }
 
         return result;
