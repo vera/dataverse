@@ -4086,7 +4086,7 @@ public class Datasets extends AbstractApiBean {
                 Integer effectiveOffset = offset != null ? offset : 0;
 
                 List<DatasetRelation> relations = datasetRelationService.getDatasetRelationsFor(dataset, version, relationTypeName, effectiveLimit, effectiveOffset);
-                long totalCount = datasetRelationService.getRelatedDatasetCountFor(dataset, version, relationTypeName);
+                long totalCount = datasetRelationService.getTotalDatasetRelationCountFor(dataset, version, relationTypeName);
 
                 return ok(json(relations, dataset, includeMetadataBlocks), totalCount);
             } catch (WrappedResponse wr) {

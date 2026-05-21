@@ -70,7 +70,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
@@ -95,7 +94,6 @@ import jakarta.inject.Named;
 import jakarta.json.JsonObject;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
-import jakarta.persistence.Query;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -1071,7 +1069,7 @@ public class IndexServiceBean {
         String parentDatasetTitle = "TBD";
         if (datasetVersion != null) {
 
-            solrInputDocument.addField(SearchFields.RELATED_DATASET_COUNT, datasetRelationService.getRelatedDatasetCountFor(dataset, datasetVersion));
+            solrInputDocument.addField(SearchFields.RELATED_DATASET_COUNT, datasetRelationService.getTotalDatasetRelationCountFor(dataset, datasetVersion));
 
             addLicenseToSolrDoc(solrInputDocument, datasetVersion);
 

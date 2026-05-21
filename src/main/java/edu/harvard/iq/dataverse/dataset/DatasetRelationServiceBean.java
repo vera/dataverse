@@ -55,12 +55,12 @@ public class DatasetRelationServiceBean {
         return algorithm.getRelationCounts(d, v);
     }
 
-    public Long getRelatedDatasetCountFor(Dataset d, DatasetVersion v) {
-        return algorithm.getRelatedDatasetCount(d, v, null);
+    public Long getTotalDatasetRelationCountFor(Dataset d, DatasetVersion v) {
+        return algorithm.getTotalDatasetRelationCountFor(d, v, null);
     }
 
-    public Long getRelatedDatasetCountFor(Dataset d, DatasetVersion v, String relationTypeName) {
-        return algorithm.getRelatedDatasetCount(d, v, relationTypeName);
+    public Long getTotalDatasetRelationCountFor(Dataset d, DatasetVersion v, String relationTypeName) {
+        return algorithm.getTotalDatasetRelationCountFor(d, v, relationTypeName);
     }
 
     public List<DatasetRelation> addDatasetRelations(List<DatasetRelation> relations) {

@@ -39,5 +39,5 @@ public interface DatasetRelationAlgorithm {
      * @param relationTypeName Optional filter by relation type name.
      * @return Total number of unique related datasets.
      */
-    Long getRelatedDatasetCount(Dataset dataset, DatasetVersion version, String relationTypeName);
+    Long getTotalDatasetRelationCountFor(Dataset dataset, DatasetVersion version, String relationTypeName);
 }
