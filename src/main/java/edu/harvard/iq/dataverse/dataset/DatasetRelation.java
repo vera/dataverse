@@ -59,14 +59,28 @@ import jakarta.persistence.*;
                         AND dv.versionstate = 'RELEASED'
                     )
                     AND rel.id = (
-                        SELECT MIN(r2.id)
-                        FROM datasetrelation r2
-                        WHERE r2.dataset_id = rel.dataset_id
-                          AND ((rel.relationtype_id IS NULL AND r2.relationtype_id IS NULL) OR r2.relationtype_id = rel.relationtype_id)
+                        SELECT MIN(rel2.id) FROM datasetrelation rel2
+                        JOIN datasetversion dv_def2 ON rel2.definitionpoint_id = dv_def2.id
+                        WHERE (rel2.dataset_id = ?1 OR (rel2.relation_source = 'internal' AND rel2.relateddataset_id = ?1))
+                          AND rel2.definitionpoint_id = (
+                              SELECT dv2.id FROM datasetversion dv2
+                              WHERE dv2.dataset_id = dv_def2.dataset_id
+                              AND dv2.id = (SELECT MAX(dv3.id) FROM datasetversion dv3 WHERE dv3.dataset_id = dv2.dataset_id AND dv3.versionstate = 'RELEASED')
+                              AND dv2.versionstate = 'RELEASED'
+                          )
                           AND (
-                            (rel.relation_source = 'internal' AND r2.relation_source = 'internal' AND r2.relateddataset_id = rel.relateddataset_id)
-                            OR
-                            (rel.relation_source = 'external' AND r2.relation_source = 'external' AND r2.externalidentifier = rel.externalidentifier AND r2.identifierscheme = rel.identifierscheme)
+                            CASE WHEN rel.dataset_id = ?1 THEN rel.relationtype_id ELSE (SELECT rt.inverse_id FROM datasetrelationtype rt WHERE rt.id = rel.relationtype_id) END
+                            =
+                            CASE WHEN rel2.dataset_id = ?1 THEN rel2.relationtype_id ELSE (SELECT rt2.inverse_id FROM datasetrelationtype rt2 WHERE rt2.id = rel2.relationtype_id) END
+                          )
+                          AND (
+                            CASE WHEN rel.relation_source = 'internal' THEN 
+                                CASE WHEN rel.dataset_id = ?1 THEN CAST(rel.relateddataset_id AS VARCHAR) ELSE CAST(rel.dataset_id AS VARCHAR) END
+                            ELSE rel.externalidentifier END
+                            =
+                            CASE WHEN rel2.relation_source = 'internal' THEN 
+                                CASE WHEN rel2.dataset_id = ?1 THEN CAST(rel2.relateddataset_id AS VARCHAR) ELSE CAST(rel2.dataset_id AS VARCHAR) END
+                            ELSE rel2.externalidentifier END
                           )
                     )
             """,
@@ -89,17 +103,36 @@ import jakarta.persistence.*;
                         )
                     )
                   )
-                    AND rel.id = (
-                        SELECT MIN(r2.id)
-                        FROM datasetrelation r2
-                        WHERE r2.dataset_id = rel.dataset_id
-                          AND ((rel.relationtype_id IS NULL AND r2.relationtype_id IS NULL) OR r2.relationtype_id = rel.relationtype_id)
-                          AND (
-                            (rel.relation_source = 'internal' AND r2.relation_source = 'internal' AND r2.relateddataset_id = rel.relateddataset_id)
-                            OR
-                            (rel.relation_source = 'external' AND r2.relation_source = 'external' AND r2.externalidentifier = rel.externalidentifier AND r2.identifierscheme = rel.identifierscheme)
+                  AND rel.id = (
+                        SELECT MIN(rel2.id) FROM datasetrelation rel2
+                        JOIN datasetversion dv_def2 ON rel2.definitionpoint_id = dv_def2.id
+                        WHERE (
+                            rel2.definitionpoint_id = ?2 
+                            OR (
+                                (rel2.dataset_id = ?1 OR (rel2.relation_source = 'internal' AND rel2.relateddataset_id = ?1)) 
+                                AND dv_def2.dataset_id != ?1
+                                AND rel2.definitionpoint_id = (
+                                    SELECT dv2.id FROM datasetversion dv2
+                                    WHERE dv2.dataset_id = dv_def2.dataset_id
+                                    AND dv2.id = (SELECT MAX(dv3.id) FROM datasetversion dv3 WHERE dv3.dataset_id = dv2.dataset_id AND dv3.versionstate = 'RELEASED')
+                                )
+                            )
                           )
-                    )
+                          AND (
+                            CASE WHEN rel.dataset_id = ?1 THEN rel.relationtype_id ELSE (SELECT rt.inverse_id FROM datasetrelationtype rt WHERE rt.id = rel.relationtype_id) END
+                            =
+                            CASE WHEN rel2.dataset_id = ?1 THEN rel2.relationtype_id ELSE (SELECT rt2.inverse_id FROM datasetrelationtype rt2 WHERE rt2.id = rel2.relationtype_id) END
+                          )
+                          AND (
+                            CASE WHEN rel.relation_source = 'internal' THEN 
+                                CASE WHEN rel.dataset_id = ?1 THEN CAST(rel.relateddataset_id AS VARCHAR) ELSE CAST(rel.dataset_id AS VARCHAR) END
+                            ELSE rel.externalidentifier END
+                            =
+                            CASE WHEN rel2.relation_source = 'internal' THEN 
+                                CASE WHEN rel2.dataset_id = ?1 THEN CAST(rel2.relateddataset_id AS VARCHAR) ELSE CAST(rel2.dataset_id AS VARCHAR) END
+                            ELSE rel2.externalidentifier END
+                          )
+                  )
             """,
         resultClass = DatasetRelation.class
 )
@@ -120,14 +153,27 @@ import jakarta.persistence.*;
                         AND dv.versionstate = 'RELEASED'
                     )
                     AND rel.id = (
-                        SELECT MIN(r2.id)
-                        FROM datasetrelation r2
-                        WHERE r2.dataset_id = rel.dataset_id
-                          AND ((rel.relationtype_id IS NULL AND r2.relationtype_id IS NULL) OR r2.relationtype_id = rel.relationtype_id)
+                        SELECT MIN(rel2.id) FROM datasetrelation rel2
+                        JOIN datasetrelationtype rt2 ON rel2.relationtype_id = rt2.id
+                        LEFT JOIN datasetrelationtype inv2 ON rt2.inverse_id = inv2.id
+                        WHERE (
+                                (rel2.dataset_id = ?1 AND rt2.name = ?2)
+                                OR (rel2.relation_source = 'internal' AND rel2.relateddataset_id = ?1 AND inv2.name = ?2)
+                              )
+                          AND rel2.definitionpoint_id = (
+                              SELECT dv2.id FROM datasetversion dv2
+                              WHERE dv2.dataset_id = (SELECT dv3.dataset_id FROM datasetversion dv3 WHERE dv3.id = rel2.definitionpoint_id)
+                              AND dv2.id = (SELECT MAX(dv4.id) FROM datasetversion dv4 WHERE dv4.dataset_id = dv2.dataset_id AND dv4.versionstate = 'RELEASED')
+                              AND dv2.versionstate = 'RELEASED'
+                          )
                           AND (
-                            (rel.relation_source = 'internal' AND r2.relation_source = 'internal' AND r2.relateddataset_id = rel.relateddataset_id)
-                            OR
-                            (rel.relation_source = 'external' AND r2.relation_source = 'external' AND r2.externalidentifier = rel.externalidentifier AND r2.identifierscheme = rel.identifierscheme)
+                            CASE WHEN rel.relation_source = 'internal' THEN 
+                                CASE WHEN rel.dataset_id = ?1 THEN CAST(rel.relateddataset_id AS VARCHAR) ELSE CAST(rel.dataset_id AS VARCHAR) END
+                            ELSE rel.externalidentifier END
+                            =
+                            CASE WHEN rel2.relation_source = 'internal' THEN 
+                                CASE WHEN rel2.dataset_id = ?1 THEN CAST(rel2.relateddataset_id AS VARCHAR) ELSE CAST(rel2.dataset_id AS VARCHAR) END
+                            ELSE rel2.externalidentifier END
                           )
                     )
             """,
@@ -162,17 +208,43 @@ import jakarta.persistence.*;
                         )
                     )
                   )
-                    AND rel.id = (
-                        SELECT MIN(r2.id)
-                        FROM datasetrelation r2
-                        WHERE r2.dataset_id = rel.dataset_id
-                          AND ((rel.relationtype_id IS NULL AND r2.relationtype_id IS NULL) OR r2.relationtype_id = rel.relationtype_id)
+                  AND rel.id = (
+                        SELECT MIN(rel2.id) FROM datasetrelation rel2
+                        JOIN datasetversion dv_def2 ON rel2.definitionpoint_id = dv_def2.id
+                        JOIN datasetrelationtype rt2 ON rel2.relationtype_id = rt2.id
+                        LEFT JOIN datasetrelationtype inv2 ON rt2.inverse_id = inv2.id
+                        WHERE (
+                                (rel2.definitionpoint_id = ?2 AND rel2.dataset_id = ?1 AND rt2.name = ?3)
+                                OR (rel2.definitionpoint_id = ?2 AND rel2.relation_source = 'internal' AND rel2.relateddataset_id = ?1 AND inv2.name = ?3)
+                                OR (
+                                    dv_def2.dataset_id != ?1 
+                                    AND rel2.dataset_id = ?1 AND rt2.name = ?3
+                                    AND rel2.definitionpoint_id = (
+                                        SELECT dv2.id FROM datasetversion dv2
+                                        WHERE dv2.dataset_id = dv_def2.dataset_id
+                                        AND dv2.id = (SELECT MAX(dv3.id) FROM datasetversion dv3 WHERE dv3.dataset_id = dv2.dataset_id AND dv3.versionstate = 'RELEASED')
+                                    )
+                                )
+                                OR (
+                                    dv_def2.dataset_id != ?1 
+                                    AND (rel2.relation_source = 'internal' AND rel2.relateddataset_id = ?1 AND inv2.name = ?3)
+                                    AND rel2.definitionpoint_id = (
+                                        SELECT dv2.id FROM datasetversion dv2
+                                        WHERE dv2.dataset_id = dv_def2.dataset_id
+                                        AND dv2.id = (SELECT MAX(dv3.id) FROM datasetversion dv3 WHERE dv3.dataset_id = dv2.dataset_id AND dv3.versionstate = 'RELEASED')
+                                    )
+                                )
+                              )
                           AND (
-                            (rel.relation_source = 'internal' AND r2.relation_source = 'internal' AND r2.relateddataset_id = rel.relateddataset_id)
-                            OR
-                            (rel.relation_source = 'external' AND r2.relation_source = 'external' AND r2.externalidentifier = rel.externalidentifier AND r2.identifierscheme = rel.identifierscheme)
+                            CASE WHEN rel.relation_source = 'internal' THEN 
+                                CASE WHEN rel.dataset_id = ?1 THEN CAST(rel.relateddataset_id AS VARCHAR) ELSE CAST(rel.dataset_id AS VARCHAR) END
+                            ELSE rel.externalidentifier END
+                            =
+                            CASE WHEN rel2.relation_source = 'internal' THEN 
+                                CASE WHEN rel2.dataset_id = ?1 THEN CAST(rel2.relateddataset_id AS VARCHAR) ELSE CAST(rel2.dataset_id AS VARCHAR) END
+                            ELSE rel2.externalidentifier END
                           )
-                    )
+                  )
             """,
         resultClass = DatasetRelation.class
 )
@@ -283,7 +355,13 @@ import jakarta.persistence.*;
                 relation_type_name,
                 relation_type_displayname,
                 relation_type_description,
-                COUNT(*) AS related_datasets_count
+                COUNT(DISTINCT 
+                    CASE 
+                        WHEN relation_source = 'internal' THEN 
+                            CASE WHEN dataset_id = ?1 THEN CAST(relateddataset_id AS VARCHAR) ELSE CAST(dataset_id AS VARCHAR) END
+                        ELSE externalidentifier
+                    END
+                ) AS related_datasets_count
             FROM (
                 SELECT
                     CASE
@@ -297,26 +375,20 @@ import jakarta.persistence.*;
                     CASE
                         WHEN dr.dataset_id = ?1 THEN rt.description
                         ELSE inv.description
-                    END AS relation_type_description
+                    END AS relation_type_description,
+                    dr.relation_source,
+                    dr.dataset_id,
+                    dr.relateddataset_id,
+                    dr.externalidentifier
                 FROM datasetrelation dr
                 JOIN datasetrelationtype rt ON dr.relationtype_id = rt.id
-                JOIN datasetrelationtype inv ON rt.inverse_id = inv.id
+                LEFT JOIN datasetrelationtype inv ON rt.inverse_id = inv.id
                 WHERE (dr.dataset_id = ?1 OR dr.relateddataset_id = ?1)
                     AND dr.definitionpoint_id = (
                         SELECT dv.id FROM datasetversion dv
                         WHERE dv.dataset_id = (SELECT dv2.dataset_id FROM datasetversion dv2 WHERE dv2.id = dr.definitionpoint_id)
                         AND dv.id = (SELECT MAX(dv3.id) FROM datasetversion dv3 WHERE dv3.dataset_id = dv.dataset_id AND dv3.versionstate = 'RELEASED')
                     )
-                    AND dr.id = (
-                                    SELECT MIN(dr2.id)
-                                    FROM datasetrelation dr2
-                                    WHERE dr2.dataset_id = dr.dataset_id
-                                      AND (
-                                        (dr2.relation_source = 'internal' AND dr.relation_source = 'internal' AND dr2.relateddataset_id = dr.relateddataset_id)
-                                        OR (dr2.relation_source = 'external' AND dr.relation_source = 'external' AND dr2.externalidentifier = dr.externalidentifier AND dr2.identifierscheme = dr.identifierscheme)
-                                      )
-                                      AND dr2.relationtype_id = dr.relationtype_id
-                                )
             ) t
             GROUP BY relation_type_name, relation_type_displayname, relation_type_description
             ORDER BY related_datasets_count DESC, relation_type_name ASC;
@@ -330,7 +402,13 @@ import jakarta.persistence.*;
                 relation_type_name,
                 relation_type_displayname,
                 relation_type_description,
-                COUNT(*) AS related_datasets_count
+                COUNT(DISTINCT 
+                    CASE 
+                        WHEN relation_source = 'internal' THEN 
+                            CASE WHEN dataset_id = ?1 THEN CAST(relateddataset_id AS VARCHAR) ELSE CAST(dataset_id AS VARCHAR) END
+                        ELSE externalidentifier
+                    END
+                ) AS related_datasets_count
             FROM (
                 SELECT
                     CASE
@@ -344,10 +422,14 @@ import jakarta.persistence.*;
                     CASE
                         WHEN dr.dataset_id = ?1 THEN rt.description
                         ELSE inv.description
-                    END AS relation_type_description
+                    END AS relation_type_description,
+                    dr.relation_source,
+                    dr.dataset_id,
+                    dr.relateddataset_id,
+                    dr.externalidentifier
                 FROM datasetrelation dr
                 JOIN datasetrelationtype rt ON dr.relationtype_id = rt.id
-                JOIN datasetrelationtype inv ON rt.inverse_id = inv.id
+                LEFT JOIN datasetrelationtype inv ON rt.inverse_id = inv.id
                 JOIN datasetversion dv_def ON dr.definitionpoint_id = dv_def.id
                 WHERE (
                        dr.definitionpoint_id = ?2
@@ -360,16 +442,6 @@ import jakarta.persistence.*;
                            )
                        )
                 ) 
-                    AND dr.id = (
-                                    SELECT MIN(dr2.id)
-                                    FROM datasetrelation dr2
-                                    WHERE dr2.dataset_id = dr.dataset_id
-                                      AND (
-                                        (dr2.relation_source = 'internal' AND dr.relation_source = 'internal' AND dr2.relateddataset_id = dr.relateddataset_id)
-                                        OR (dr2.relation_source = 'external' AND dr.relation_source = 'external' AND dr2.externalidentifier = dr.externalidentifier AND dr2.identifierscheme = dr.identifierscheme)
-                                      )
-                                      AND dr2.relationtype_id = dr.relationtype_id
-                                )
             ) t
             GROUP BY relation_type_name, relation_type_displayname, relation_type_description
             ORDER BY related_datasets_count DESC, relation_type_name ASC;
