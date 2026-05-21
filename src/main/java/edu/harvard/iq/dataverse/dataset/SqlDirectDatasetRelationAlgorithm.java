@@ -8,7 +8,7 @@ import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.Query;
 
 import java.util.List;
-import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 /**
  * Default implementation of DatasetRelationAlgorithm using JPA and SQL queries.
@@ -98,15 +98,26 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
             "      ) " +
             " ) ";
 
+    private static final String JOIN_DATASET_TYPES = 
+            " JOIN dataset d_related ON (CASE WHEN dr.dataset_id = ? THEN dr.relateddataset_id ELSE dr.dataset_id END) = d_related.id " +
+            " JOIN datasettype dt ON d_related.datasettype_id = dt.id ";
+
+    private static final String WHERE_DATASET_TYPE_MATCHES = 
+            " (dr.relation_source = 'internal' AND dt.name IN (?)) ";
+
     @SuppressWarnings("unchecked")
     @Override
-    public List<DatasetRelation> getRelations(Dataset d, DatasetVersion v, String relationTypeName, Integer limit, Integer offset) {
+    public List<DatasetRelation> getRelations(Dataset d, DatasetVersion v, String relationTypeName, List<String> datasetTypeNames, Integer limit, Integer offset) {
         StringBuilder sql = new StringBuilder();
 
         sql.append(GET_RELATIONS_QUERY_BASE);
 
         if (relationTypeName != null) {
             sql.append(JOIN_RELATION_TYPES);
+        }
+        
+        if (datasetTypeNames != null && !datasetTypeNames.isEmpty()) {
+            sql.append(JOIN_DATASET_TYPES);
         }
 
         sql.append(" WHERE ")
@@ -117,9 +128,20 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
         if (relationTypeName != null) {
             sql.append(" AND ").append(WHERE_RELATION_TYPE_MATCHES);
         }
+        
+        if (datasetTypeNames != null && !datasetTypeNames.isEmpty()) {
+            sql.append(" AND ").append(WHERE_DATASET_TYPE_MATCHES.replace("(?)", 
+                    "(" + datasetTypeNames.stream().map(n -> "?").collect(Collectors.joining(",")) + ")"));
+        }
 
         Query query = em.createNativeQuery(sql.toString(), DatasetRelation.class);
         int i = 1;
+        
+        if (datasetTypeNames != null && !datasetTypeNames.isEmpty()) {
+            // JOIN_DATASET_TYPES
+            query.setParameter(i++, d.getId());
+        }
+
         // WHERE_DATASET_OR_DATASET_VERSION_MATCHES
         query.setParameter(i++, v.getId());
         query.setParameter(i++, d.getId());
@@ -143,6 +165,13 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
             query.setParameter(i++, d.getId());
             query.setParameter(i++, relationTypeName);
         }
+        
+        if (datasetTypeNames != null && !datasetTypeNames.isEmpty()) {
+            // WHERE_DATASET_TYPE_MATCHES
+            for (String typeName : datasetTypeNames) {
+                query.setParameter(i++, typeName);
+            }
+        }
 
         return (List<DatasetRelation>) query.setMaxResults(limit)
                 .setFirstResult(offset)
@@ -158,7 +187,7 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
     }
 
     @Override
-    public Long getTotalDatasetRelationCountFor(Dataset d, DatasetVersion v, String relationTypeName) {
+    public Long getTotalDatasetRelationCountFor(Dataset d, DatasetVersion v, String relationTypeName, List<String> datasetTypeNames) {
         StringBuilder sql = new StringBuilder();
 
         sql.append(GET_TOTAL_RELATION_COUNT_QUERY_BASE);
@@ -166,17 +195,31 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
         if (relationTypeName != null) {
             sql.append(JOIN_RELATION_TYPES);
         }
+        
+        if (datasetTypeNames != null && !datasetTypeNames.isEmpty()) {
+            sql.append(JOIN_DATASET_TYPES);
+        }
 
         sql.append(" WHERE ").append(WHERE_DATASET_OR_DATASET_VERSION_MATCHES);
 
         if (relationTypeName != null) {
             sql.append(" AND ").append(WHERE_RELATION_TYPE_MATCHES);
         }
+        
+        if (datasetTypeNames != null && !datasetTypeNames.isEmpty()) {
+            sql.append(" AND ").append(WHERE_DATASET_TYPE_MATCHES.replace("(?)", 
+                    "(" + datasetTypeNames.stream().map(n -> "?").collect(Collectors.joining(",")) + ")"));
+        }
 
         Query query = em.createNativeQuery(sql.toString());
         int i = 1;
         // GET_TOTAL_RELATION_COUNT_QUERY_BASE
         query.setParameter(i++, d.getId());
+
+        if (datasetTypeNames != null && !datasetTypeNames.isEmpty()) {
+            // JOIN_DATASET_TYPES
+            query.setParameter(i++, d.getId());
+        }
 
         // WHERE_DATASET_OR_DATASET_VERSION_MATCHES
         query.setParameter(i++, v.getId());
@@ -190,6 +233,13 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
             query.setParameter(i++, relationTypeName);
             query.setParameter(i++, d.getId());
             query.setParameter(i++, relationTypeName);
+        }
+        
+        if (datasetTypeNames != null && !datasetTypeNames.isEmpty()) {
+            // WHERE_DATASET_TYPE_MATCHES
+            for (String typeName : datasetTypeNames) {
+                query.setParameter(i++, typeName);
+            }
         }
 
         return (Long) query.getSingleResult();
