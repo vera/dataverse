@@ -1,12 +1,15 @@
 package edu.harvard.iq.dataverse.api;
 
 import io.restassured.RestAssured;
+import io.restassured.path.json.JsonPath;
 import io.restassured.response.Response;
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+
+import java.util.Arrays;
 
 import static jakarta.ws.rs.core.Response.Status.OK;
 import static org.hamcrest.Matchers.*;
@@ -404,6 +407,87 @@ public class DatasetRelationsIT {
         UtilIT.listDatasetRelations(pidA, null, null, null, null, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("totalCount", equalTo(2));
+    }
+
+    @Test
+    public void testListDatasetRelationsDatasetTypeFiltering() {
+        String dataverseAlias = UtilIT.createRandomCollectionGetAlias(apiTokenSuperuser);
+        UtilIT.publishDataverseViaNativeApi(dataverseAlias, apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
+
+        // Ensure 'software' type exists in the system
+        Response getDatasetType = UtilIT.getDatasetType("software");
+        String typeFound = JsonPath.from(getDatasetType.getBody().asString()).getString("data.name");
+        if (!("software".equals(typeFound))) {
+            JsonObject softwareTypeJson = Json.createObjectBuilder()
+                    .add("name", "software")
+                    .add("displayName", "Software")
+                    .add("description", "Software Dataset Type")
+                    .build();
+            UtilIT.addDatasetType(softwareTypeJson.toString(), apiTokenSuperuser);
+        }
+
+        // We need to ensure 'software' type is allowed in this collection
+        Response setAllowed = UtilIT.setCollectionAttribute(dataverseAlias, "allowedDatasetTypes", "dataset,software", apiTokenSuperuser);
+        setAllowed.then().assertThat().statusCode(OK.getStatusCode());
+
+        // Dataset A (Source) - type 'dataset' (default)
+        Response createDatasetA = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
+        String pidA = UtilIT.getDatasetPersistentIdFromResponse(createDatasetA);
+
+        // Dataset B (Target 1) - type 'dataset' (default)
+        Response createDatasetB = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
+        String pidB = UtilIT.getDatasetPersistentIdFromResponse(createDatasetB);
+
+        // Dataset C (Target 2) - type 'software'
+        String softwareJson = UtilIT.getDatasetJson("doc/sphinx-guides/source/_static/api/dataset-create-software.json");
+        Response createDatasetC = UtilIT.createDataset(dataverseAlias, softwareJson, apiTokenSuperuser);
+        createDatasetC.then().assertThat().statusCode(201);
+        String pidC = UtilIT.getDatasetPersistentIdFromResponse(createDatasetC);
+
+        // Create relations: A -> B (isRelatedTo), A -> C (isRelatedTo), A -> External (isRelatedTo)
+        JsonArray relations = Json.createArrayBuilder()
+                .add(Json.createObjectBuilder()
+                        .add("relatedDatasetPid", pidB)
+                        .add("relationTypeName", "isRelatedTo"))
+                .add(Json.createObjectBuilder()
+                        .add("relatedDatasetPid", pidC)
+                        .add("relationTypeName", "isRelatedTo"))
+                .add(Json.createObjectBuilder()
+                        .add("externalIdentifier", "doi:10.1234/external")
+                        .add("identifierScheme", "DOI")
+                        .add("relationTypeName", "isRelatedTo")
+                        .add("relationSource", "external"))
+                .build();
+        UtilIT.replaceDatasetRelations(pidA, relations.toString(), apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
+        UtilIT.publishDatasetViaNativeApi(pidA, "major", apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
+
+        // No type filter -> Expect 3
+        UtilIT.listDatasetRelations(pidA, null, null, null, null, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("totalCount", equalTo(3));
+
+        // Filter by datasetType=dataset -> Expect 1 (Dataset B)
+        UtilIT.listDatasetRelations(pidA, null, null, Arrays.asList("dataset"), null, null, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("totalCount", equalTo(1))
+                .body("data[0].relatedDatasetPid", equalTo(pidB));
+
+        // Filter by datasetType=software -> Expect 1 (Dataset C)
+        UtilIT.listDatasetRelations(pidA, null, null, Arrays.asList("software"), null, null, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("totalCount", equalTo(1))
+                .body("data[0].relatedDatasetPid", equalTo(pidC));
+
+        // Filter by both -> Expect 2 (B and C)
+        UtilIT.listDatasetRelations(pidA, null, null, Arrays.asList("dataset", "software"), null, null, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("totalCount", equalTo(2))
+                .body("data.relatedDatasetPid", hasItems(pidB, pidC));
+
+        // Filter by a non-existent type -> Expect 0
+        UtilIT.listDatasetRelations(pidA, null, null, Arrays.asList("workflow"), null, null, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("totalCount", equalTo(0));
     }
 
     @Test

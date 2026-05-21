@@ -5528,12 +5528,21 @@ public class UtilIT {
     }
 
     public static Response listDatasetRelations(String persistentId, String version, String type, Integer limit, Integer offset, String apiToken) {
+        return listDatasetRelations(persistentId, version, type, null, limit, offset, apiToken);
+    }
+
+    public static Response listDatasetRelations(String persistentId, String version, String type, List<String> datasetTypes, Integer limit, Integer offset, String apiToken) {
         String path = "/api/datasets/:persistentId/relations?persistentId=" + persistentId;
         if (version != null) {
             path += "&version=" + version;
         }
         if (type != null) {
             path += "&type=" + type;
+        }
+        if (datasetTypes != null) {
+            for (String dt : datasetTypes) {
+                path += "&datasetType=" + dt;
+            }
         }
         if (limit != null) {
             path += "&limit=" + limit;
