@@ -48,45 +48,6 @@ import jakarta.persistence.*;
                 query="SELECT rel FROM DatasetRelation rel WHERE rel.definitionPoint.id=:versionId")
 })
 @NamedNativeQuery(
-        name= "DatasetRelation.getUniqueRelationsByDatasetId",
-        query="""
-            SELECT rel.* FROM datasetrelation rel
-            WHERE (rel.dataset_id = ?1 OR (rel.relation_source = 'internal' AND rel.relateddataset_id = ?1))
-                    AND rel.definitionpoint_id = (
-                        SELECT dv.id FROM datasetversion dv
-                        WHERE dv.dataset_id = (SELECT dv2.dataset_id FROM datasetversion dv2 WHERE dv2.id = rel.definitionpoint_id)
-                        AND dv.id = (SELECT MAX(dv2.id) FROM datasetversion dv2 WHERE dv2.dataset_id = dv.dataset_id AND dv2.versionstate = 'RELEASED')
-                        AND dv.versionstate = 'RELEASED'
-                    )
-                    AND rel.id = (
-                        SELECT MIN(rel2.id) FROM datasetrelation rel2
-                        JOIN datasetversion dv_def2 ON rel2.definitionpoint_id = dv_def2.id
-                        WHERE (rel2.dataset_id = ?1 OR (rel2.relation_source = 'internal' AND rel2.relateddataset_id = ?1))
-                          AND rel2.definitionpoint_id = (
-                              SELECT dv2.id FROM datasetversion dv2
-                              WHERE dv2.dataset_id = dv_def2.dataset_id
-                              AND dv2.id = (SELECT MAX(dv3.id) FROM datasetversion dv3 WHERE dv3.dataset_id = dv2.dataset_id AND dv3.versionstate = 'RELEASED')
-                              AND dv2.versionstate = 'RELEASED'
-                          )
-                          AND (
-                            CASE WHEN rel.dataset_id = ?1 THEN rel.relationtype_id ELSE (SELECT rt.inverse_id FROM datasetrelationtype rt WHERE rt.id = rel.relationtype_id) END
-                            =
-                            CASE WHEN rel2.dataset_id = ?1 THEN rel2.relationtype_id ELSE (SELECT rt2.inverse_id FROM datasetrelationtype rt2 WHERE rt2.id = rel2.relationtype_id) END
-                          )
-                          AND (
-                            CASE WHEN rel.relation_source = 'internal' THEN 
-                                CASE WHEN rel.dataset_id = ?1 THEN CAST(rel.relateddataset_id AS VARCHAR) ELSE CAST(rel.dataset_id AS VARCHAR) END
-                            ELSE rel.externalidentifier END
-                            =
-                            CASE WHEN rel2.relation_source = 'internal' THEN 
-                                CASE WHEN rel2.dataset_id = ?1 THEN CAST(rel2.relateddataset_id AS VARCHAR) ELSE CAST(rel2.dataset_id AS VARCHAR) END
-                            ELSE rel2.externalidentifier END
-                          )
-                    )
-            """,
-        resultClass = DatasetRelation.class
-)
-@NamedNativeQuery(
         name= "DatasetRelation.getUniqueRelationsByDatasetIdAndVersion",
         query="""
             SELECT rel.* FROM datasetrelation rel
@@ -133,49 +94,6 @@ import jakarta.persistence.*;
                             ELSE rel2.externalidentifier END
                           )
                   )
-            """,
-        resultClass = DatasetRelation.class
-)
-@NamedNativeQuery(
-        name= "DatasetRelation.getUniqueRelationsByDatasetIdAndType",
-        query="""
-            SELECT rel.* FROM datasetrelation rel
-            JOIN datasetrelationtype rt ON rel.relationtype_id = rt.id
-            LEFT JOIN datasetrelationtype inv ON rt.inverse_id = inv.id
-            WHERE (
-                    (rel.dataset_id = ?1 AND rt.name = ?2)
-                    OR (rel.relation_source = 'internal' AND rel.relateddataset_id = ?1 AND inv.name = ?2)
-                  )
-                    AND rel.definitionpoint_id = (
-                        SELECT dv.id FROM datasetversion dv
-                        WHERE dv.dataset_id = (SELECT dv2.dataset_id FROM datasetversion dv2 WHERE dv2.id = rel.definitionpoint_id)
-                        AND dv.id = (SELECT MAX(dv2.id) FROM datasetversion dv2 WHERE dv2.dataset_id = dv.dataset_id AND dv2.versionstate = 'RELEASED')
-                        AND dv.versionstate = 'RELEASED'
-                    )
-                    AND rel.id = (
-                        SELECT MIN(rel2.id) FROM datasetrelation rel2
-                        JOIN datasetrelationtype rt2 ON rel2.relationtype_id = rt2.id
-                        LEFT JOIN datasetrelationtype inv2 ON rt2.inverse_id = inv2.id
-                        WHERE (
-                                (rel2.dataset_id = ?1 AND rt2.name = ?2)
-                                OR (rel2.relation_source = 'internal' AND rel2.relateddataset_id = ?1 AND inv2.name = ?2)
-                              )
-                          AND rel2.definitionpoint_id = (
-                              SELECT dv2.id FROM datasetversion dv2
-                              WHERE dv2.dataset_id = (SELECT dv3.dataset_id FROM datasetversion dv3 WHERE dv3.id = rel2.definitionpoint_id)
-                              AND dv2.id = (SELECT MAX(dv4.id) FROM datasetversion dv4 WHERE dv4.dataset_id = dv2.dataset_id AND dv4.versionstate = 'RELEASED')
-                              AND dv2.versionstate = 'RELEASED'
-                          )
-                          AND (
-                            CASE WHEN rel.relation_source = 'internal' THEN 
-                                CASE WHEN rel.dataset_id = ?1 THEN CAST(rel.relateddataset_id AS VARCHAR) ELSE CAST(rel.dataset_id AS VARCHAR) END
-                            ELSE rel.externalidentifier END
-                            =
-                            CASE WHEN rel2.relation_source = 'internal' THEN 
-                                CASE WHEN rel2.dataset_id = ?1 THEN CAST(rel2.relateddataset_id AS VARCHAR) ELSE CAST(rel2.dataset_id AS VARCHAR) END
-                            ELSE rel2.externalidentifier END
-                          )
-                    )
             """,
         resultClass = DatasetRelation.class
 )
@@ -249,24 +167,6 @@ import jakarta.persistence.*;
         resultClass = DatasetRelation.class
 )
 @NamedNativeQuery(
-        name= "DatasetRelation.getTotalCountByDatasetId",
-        query= """
-            SELECT COUNT(DISTINCT 
-                CASE 
-                    WHEN dr.relation_source = 'internal' THEN 
-                        CASE WHEN dr.dataset_id = ?1 THEN CAST(dr.relateddataset_id AS VARCHAR) ELSE CAST(dr.dataset_id AS VARCHAR) END
-                    ELSE dr.externalidentifier
-                END)
-            FROM datasetrelation dr
-            WHERE (dr.dataset_id = ?1 OR dr.relateddataset_id = ?1)
-              AND dr.definitionpoint_id = (
-                  SELECT dv.id FROM datasetversion dv
-                  WHERE dv.dataset_id = (SELECT dv2.dataset_id FROM datasetversion dv2 WHERE dv2.id = dr.definitionpoint_id)
-                  AND dv.id = (SELECT MAX(dv3.id) FROM datasetversion dv3 WHERE dv3.dataset_id = dv.dataset_id AND dv3.versionstate = 'RELEASED')
-              )
-        """
-)
-@NamedNativeQuery(
         name= "DatasetRelation.getTotalCountByDatasetIdAndVersion",
         query= """
             SELECT COUNT(DISTINCT 
@@ -324,76 +224,6 @@ import jakarta.persistence.*;
                     )
                   )
         """
-)
-@NamedNativeQuery(
-        name= "DatasetRelation.getTotalCountByDatasetIdAndType",
-        query= """
-            SELECT COUNT(DISTINCT 
-                CASE 
-                    WHEN rel.relation_source = 'internal' THEN 
-                        CASE WHEN rel.dataset_id = ?1 THEN CAST(rel.relateddataset_id AS VARCHAR) ELSE CAST(rel.dataset_id AS VARCHAR) END
-                    ELSE rel.externalidentifier
-                END)
-            FROM datasetrelation rel
-            JOIN datasetrelationtype rt ON rel.relationtype_id = rt.id
-            LEFT JOIN datasetrelationtype inv ON rt.inverse_id = inv.id
-            WHERE (
-                   (rel.dataset_id = ?1 AND rt.name = ?2)
-                   OR (rel.relation_source = 'internal' AND rel.relateddataset_id = ?1 AND inv.name = ?2)
-                 )
-                   AND rel.definitionpoint_id = (
-                       SELECT dv.id FROM datasetversion dv
-                       WHERE dv.dataset_id = (SELECT dv2.dataset_id FROM datasetversion dv2 WHERE dv2.id = rel.definitionpoint_id)
-                       AND dv.id = (SELECT MAX(dv2.id) FROM datasetversion dv2 WHERE dv2.dataset_id = dv.dataset_id AND dv2.versionstate = 'RELEASED')
-                   )
-        """
-)
-@NamedNativeQuery(
-        name = "DatasetRelation.getRelationCountsByDatasetId",
-        query = """
-            SELECT
-                relation_type_name,
-                relation_type_displayname,
-                relation_type_description,
-                COUNT(DISTINCT 
-                    CASE 
-                        WHEN relation_source = 'internal' THEN 
-                            CASE WHEN dataset_id = ?1 THEN CAST(relateddataset_id AS VARCHAR) ELSE CAST(dataset_id AS VARCHAR) END
-                        ELSE externalidentifier
-                    END
-                ) AS related_datasets_count
-            FROM (
-                SELECT
-                    CASE
-                        WHEN dr.dataset_id = ?1 THEN rt.name
-                        ELSE inv.name
-                    END AS relation_type_name,
-                    CASE
-                        WHEN dr.dataset_id = ?1 THEN rt.displayname
-                        ELSE inv.displayname
-                    END AS relation_type_displayname,
-                    CASE
-                        WHEN dr.dataset_id = ?1 THEN rt.description
-                        ELSE inv.description
-                    END AS relation_type_description,
-                    dr.relation_source,
-                    dr.dataset_id,
-                    dr.relateddataset_id,
-                    dr.externalidentifier
-                FROM datasetrelation dr
-                JOIN datasetrelationtype rt ON dr.relationtype_id = rt.id
-                LEFT JOIN datasetrelationtype inv ON rt.inverse_id = inv.id
-                WHERE (dr.dataset_id = ?1 OR dr.relateddataset_id = ?1)
-                    AND dr.definitionpoint_id = (
-                        SELECT dv.id FROM datasetversion dv
-                        WHERE dv.dataset_id = (SELECT dv2.dataset_id FROM datasetversion dv2 WHERE dv2.id = dr.definitionpoint_id)
-                        AND dv.id = (SELECT MAX(dv3.id) FROM datasetversion dv3 WHERE dv3.dataset_id = dv.dataset_id AND dv3.versionstate = 'RELEASED')
-                    )
-            ) t
-            GROUP BY relation_type_name, relation_type_displayname, relation_type_description
-            ORDER BY related_datasets_count DESC, relation_type_name ASC;
-    """,
-    resultSetMapping = "RelationCountMapping"
 )
 @NamedNativeQuery(
     name = "DatasetRelation.getRelationCountsByDatasetIdAndVersion",

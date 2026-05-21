@@ -4079,6 +4079,7 @@ public class Datasets extends AbstractApiBean {
                 } else {
                     // By default, get latest accessible version
                     version = execCommand(new GetLatestAccessibleDatasetVersionCommand(req, dataset, false, false));
+                    failIfNull(version, "Latest accessible version not found for dataset " + dataset.getGlobalId().asString());
                 }
 
                 Integer effectiveLimit = limit != null ? limit : 10;
@@ -4111,6 +4112,7 @@ public class Datasets extends AbstractApiBean {
                 } else {
                     // By default, get latest accessible version
                     version = execCommand(new GetLatestAccessibleDatasetVersionCommand(req, dataset, false, false));
+                    failIfNull(version, "Latest accessible version not found for dataset " + dataset.getGlobalId().asString());
                 }
 
                 List<Object[]> relationCounts = datasetRelationService.getDatasetRelationCountsFor(dataset, version);

@@ -1067,11 +1067,11 @@ public class IndexServiceBean {
         DatasetType datasetType = dataset.getDatasetType();
         solrInputDocument.addField(SearchFields.DATASET_TYPE, datasetType.getName());
 
-        solrInputDocument.addField(SearchFields.RELATED_DATASET_COUNT, datasetRelationService.getRelatedDatasetCountFor(dataset));
-
         DatasetVersion datasetVersion = indexableDataset.getDatasetVersion();
         String parentDatasetTitle = "TBD";
         if (datasetVersion != null) {
+
+            solrInputDocument.addField(SearchFields.RELATED_DATASET_COUNT, datasetRelationService.getRelatedDatasetCountFor(dataset, datasetVersion));
 
             addLicenseToSolrDoc(solrInputDocument, datasetVersion);
 
