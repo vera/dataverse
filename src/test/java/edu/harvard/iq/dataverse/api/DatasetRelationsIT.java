@@ -54,6 +54,78 @@ public class DatasetRelationsIT {
     }
 
     @Test
+    public void testDatasetRelationDeduplication() {
+        // Create Dataset A
+        String dataverseAlias = UtilIT.createRandomCollectionGetAlias(apiTokenSuperuser);
+        UtilIT.publishDataverseViaNativeApi(dataverseAlias, apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
+        Response createDatasetA = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
+        String pidA = UtilIT.getDatasetPersistentIdFromResponse(createDatasetA);
+        
+        // Create Dataset B
+        Response createDatasetB = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
+        String pidB = UtilIT.getDatasetPersistentIdFromResponse(createDatasetB);
+        UtilIT.publishDatasetViaNativeApi(pidB, "major", apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
+
+        // Define relation A (draft) -> B
+        JsonArray relations = Json.createArrayBuilder()
+                .add(Json.createObjectBuilder()
+                        .add("relatedDatasetPid", pidB)
+                        .add("relationTypeName", "isCitedBy"))
+                .build();
+        UtilIT.replaceDatasetRelations(pidA, relations.toString(), apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode());
+
+        // Publish A v1.0
+        UtilIT.publishDatasetViaNativeApi(pidA, "major", apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
+
+        // Define the SAME relation in inverse direction: B (draft) -> A
+        JsonArray relationsInverse = Json.createArrayBuilder()
+                .add(Json.createObjectBuilder()
+                        .add("relatedDatasetPid", pidA)
+                        .add("relationTypeName", "cites"))
+                .build();
+        UtilIT.replaceDatasetRelations(pidB, relationsInverse.toString(), apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode());
+
+        // Publish A v1.0
+        UtilIT.publishDatasetViaNativeApi(pidB, "major", apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
+
+        // Create A v2 (draft) and redefine the SAME relation plus one more
+        String externalUrl = "https://example.org/dataset/12345";
+        JsonArray relationsNew = Json.createArrayBuilder()
+                .add(Json.createObjectBuilder()
+                        .add("relatedDatasetPid", pidB)
+                        .add("relationTypeName", "isCitedBy"))
+                .add(Json.createObjectBuilder()
+                        .add("externalIdentifier", externalUrl)
+                        .add("identifierScheme", "URL")
+                        .add("relationTypeName", "isRelatedTo"))
+                .build();
+        UtilIT.replaceDatasetRelations(pidA, relationsNew.toString(), apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode());
+
+        // The relation "A is cited by B" is now present 3 times: in A v1, B v1, A draft
+        // Plus the additional relation "A is related to https://example.org/dataset/12345"
+
+        // Verify only those two relations are listed for A (draft) (no duplicates)
+        UtilIT.listDatasetRelations(pidA, ":draft", null, null, null, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("totalCount", equalTo(2))
+                .body("data", hasSize(2))
+                .body("data[0].relatedDatasetPid", equalTo(pidB))
+                .body("data[1].externalIdentifier", equalTo(externalUrl));
+
+        // Also verify counts
+        UtilIT.getDatasetRelationCounts(pidA, ":draft", apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("data", hasSize(2))
+                .body("data[0].relationType.name", equalTo("isCitedBy"))
+                .body("data[0].count", equalTo(1))
+                .body("data[1].relationType.name", equalTo("isRelatedTo"))
+                .body("data[1].count", equalTo(1));
+    }
+
+    @Test
     public void testDatasetRelationsVersionIsolation() {
         // Create Dataset A, published v1.0
         String dataverseAlias = UtilIT.createRandomCollectionGetAlias(apiTokenSuperuser);
