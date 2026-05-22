@@ -207,14 +207,6 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
     }
 
     @Override
-    public List<Object[]> getRelationCounts(Dataset d, DatasetVersion v) {
-        return em.createNamedQuery("DatasetRelation.getRelationCountsByDatasetIdAndVersion", Object[].class)
-                .setParameter(1, d.getId())
-                .setParameter(2, v.getId())
-                .getResultList();
-    }
-
-    @Override
     public Long getTotalDatasetRelationCountFor(Dataset d, DatasetVersion v, List<String> relationTypeNames, List<String> datasetTypeNames, List<String> relationSources) {
         StringBuilder sql = new StringBuilder();
 
@@ -288,5 +280,110 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
         }
 
         return (Long) query.getSingleResult();
+    }
+
+    private static final String GET_RELATION_COUNTS_QUERY_BASE =
+            " SELECT " +
+                    "    %s, " + // Dynamic select for grouping fields
+                    "    COUNT(DISTINCT " +
+                    "        CASE " +
+                    "            WHEN dr.relation_source = 'internal' THEN " +
+                    "                CASE WHEN dr.dataset_id = ? THEN CAST(dr.relateddataset_id AS VARCHAR) ELSE CAST(dr.dataset_id AS VARCHAR) END " +
+                    "            ELSE dr.externalidentifier " +
+                    "        END " +
+                    "    ) AS related_datasets_count " +
+                    " FROM ( " +
+                    "    SELECT " +
+                    "        %s " + // Dynamic select for columns in subquery
+                    "        dr.relation_source, " +
+                    "        dr.dataset_id, " +
+                    "        dr.relateddataset_id, " +
+                    "        dr.externalidentifier " +
+                    "    FROM datasetrelation dr " +
+                    "    JOIN datasetrelationtype rt ON dr.relationtype_id = rt.id " +
+                    "    LEFT JOIN datasetrelationtype inv ON rt.inverse_id = inv.id " +
+                    "    JOIN datasetversion dv_def ON dr.definitionpoint_id = dv_def.id " +
+                    "    %s " + // Optional join (for dataset type)
+                    "    WHERE %s " + // Combined WHERE clause
+                    " ) t " +
+                    " GROUP BY %s " + // Dynamic GROUP BY
+                    " ORDER BY related_datasets_count DESC, %s ASC "; // Dynamic ORDER BY
+
+    private static final String SUBQUERY_COLS_RELATION_TYPE =
+            " CASE WHEN dr.dataset_id = ? THEN rt.name ELSE inv.name END AS relation_type_name, " +
+                    " CASE WHEN dr.dataset_id = ? THEN rt.displayname ELSE inv.displayname END AS relation_type_displayname, " +
+                    " CASE WHEN dr.dataset_id = ? THEN rt.description ELSE inv.description END AS relation_type_description, ";
+
+    private static final String SUBQUERY_COLS_DATASET_TYPE =
+            " dt.name AS dataset_type_name, " +
+                    " dt.displayname AS dataset_type_displayname, " +
+                    " dt.description AS dataset_type_description, ";
+
+    private static final String WHERE_FOR_COUNTS =
+            " ( " +
+                    "   dr.definitionpoint_id = ? " +
+                    "   OR ( " +
+                    "       ((dr.dataset_id = ? OR dr.relateddataset_id = ?) AND dv_def.dataset_id != ?) " +
+                    "       AND dr.definitionpoint_id = ( " +
+                    "           SELECT dv.id FROM datasetversion dv " +
+                    "           WHERE dv.dataset_id = dv_def.dataset_id " +
+                    "           AND dv.id = (SELECT MAX(dv3.id) FROM datasetversion dv3 WHERE dv3.dataset_id = dv.dataset_id AND dv3.versionstate = 'RELEASED') " +
+                    "       ) " +
+                    "   ) " +
+                    " ) ";
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public List<Object[]> getRelationCounts(Dataset d, DatasetVersion v, String groupBy) {
+        String selectCols;
+        String subqueryCols;
+        String join = "";
+        String where = WHERE_FOR_COUNTS;
+        String groupByCols;
+        String orderByCol;
+
+        boolean isGroupByDatasetType = "datasetType".equals(groupBy);
+
+        if (isGroupByDatasetType) {
+            selectCols = "dataset_type_name, dataset_type_displayname, dataset_type_description";
+            subqueryCols = SUBQUERY_COLS_DATASET_TYPE;
+            join = JOIN_DATASET_TYPES;
+            where += " AND dr.relation_source = 'internal' ";
+            groupByCols = selectCols;
+            orderByCol = "dataset_type_name";
+        } else {
+            selectCols = "relation_type_name, relation_type_displayname, relation_type_description";
+            subqueryCols = SUBQUERY_COLS_RELATION_TYPE;
+            groupByCols = selectCols;
+            orderByCol = "relation_type_name";
+        }
+
+        String sql = String.format(GET_RELATION_COUNTS_QUERY_BASE, selectCols, subqueryCols, join, where, groupByCols, orderByCol);
+
+        Query query = em.createNativeQuery(sql);
+        int i = 1;
+
+        // Grouping columns (COUNT DISTINCT)
+        query.setParameter(i++, d.getId());
+
+        if (!isGroupByDatasetType) {
+            // SUBQUERY_COLS_RELATION_TYPE
+            query.setParameter(i++, d.getId());
+            query.setParameter(i++, d.getId());
+            query.setParameter(i++, d.getId());
+        }
+
+        if (isGroupByDatasetType) {
+            // JOIN_DATASET_TYPES
+            query.setParameter(i++, d.getId());
+        }
+
+        // WHERE_FOR_COUNTS
+        query.setParameter(i++, v.getId());
+        query.setParameter(i++, d.getId());
+        query.setParameter(i++, d.getId());
+        query.setParameter(i++, d.getId());
+
+        return (List<Object[]>) query.getResultList();
     }
 }

@@ -47,68 +47,6 @@ import jakarta.persistence.*;
         @NamedQuery(name = "DatasetRelation.getRelationsDefinedAtDatasetVersionId",
                 query="SELECT rel FROM DatasetRelation rel WHERE rel.definitionPoint.id=:versionId")
 })
-@NamedNativeQuery(
-    name = "DatasetRelation.getRelationCountsByDatasetIdAndVersion",
-    query = """
-            SELECT
-                relation_type_name,
-                relation_type_displayname,
-                relation_type_description,
-                COUNT(DISTINCT 
-                    CASE 
-                        WHEN relation_source = 'internal' THEN 
-                            CASE WHEN dataset_id = ?1 THEN CAST(relateddataset_id AS VARCHAR) ELSE CAST(dataset_id AS VARCHAR) END
-                        ELSE externalidentifier
-                    END
-                ) AS related_datasets_count
-            FROM (
-                SELECT
-                    CASE
-                        WHEN dr.dataset_id = ?1 THEN rt.name
-                        ELSE inv.name
-                    END AS relation_type_name,
-                    CASE
-                        WHEN dr.dataset_id = ?1 THEN rt.displayname
-                        ELSE inv.displayname
-                    END AS relation_type_displayname,
-                    CASE
-                        WHEN dr.dataset_id = ?1 THEN rt.description
-                        ELSE inv.description
-                    END AS relation_type_description,
-                    dr.relation_source,
-                    dr.dataset_id,
-                    dr.relateddataset_id,
-                    dr.externalidentifier
-                FROM datasetrelation dr
-                JOIN datasetrelationtype rt ON dr.relationtype_id = rt.id
-                LEFT JOIN datasetrelationtype inv ON rt.inverse_id = inv.id
-                JOIN datasetversion dv_def ON dr.definitionpoint_id = dv_def.id
-                WHERE (
-                       dr.definitionpoint_id = ?2
-                       OR (
-                           ((dr.dataset_id = ?1 OR dr.relateddataset_id = ?1) AND dv_def.dataset_id != ?1)
-                           AND dr.definitionpoint_id = (
-                               SELECT dv.id FROM datasetversion dv
-                               WHERE dv.dataset_id = dv_def.dataset_id
-                               AND dv.id = (SELECT MAX(dv3.id) FROM datasetversion dv3 WHERE dv3.dataset_id = dv.dataset_id AND dv3.versionstate = 'RELEASED')
-                           )
-                       )
-                ) 
-            ) t
-            GROUP BY relation_type_name, relation_type_displayname, relation_type_description
-            ORDER BY related_datasets_count DESC, relation_type_name ASC;
-    """,
-    resultSetMapping = "RelationCountMapping"
-)
-@SqlResultSetMapping(
-        name = "RelationCountMapping",
-        columns = {
-                @ColumnResult(name = "relation_type_name", type = String.class),
-                @ColumnResult(name = "relation_type_displayname", type = String.class),
-                @ColumnResult(name = "relation_type_description", type = String.class),
-                @ColumnResult(name = "related_datasets_count", type = Long.class)
-        }
-)
 public abstract class DatasetRelation implements Serializable {
 
     private static final long serialVersionUID = 1L;

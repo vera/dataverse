@@ -29,9 +29,10 @@ public interface DatasetRelationAlgorithm {
      * 
      * @param dataset The dataset.
      * @param version Optional dataset version for version-specific filtering.
-     * @return A list of Object arrays, each containing relation type name and count.
+     * @param groupBy The field to group by (e.g. "relationType", "datasetType").
+     * @return A list of Object arrays, each containing grouping information and count.
      */
-    List<Object[]> getRelationCounts(Dataset dataset, DatasetVersion version);
+    List<Object[]> getRelationCounts(Dataset dataset, DatasetVersion version, String groupBy);
 
     /**
      * Retrieves the total count of related datasets for a dataset.

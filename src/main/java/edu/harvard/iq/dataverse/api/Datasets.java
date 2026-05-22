@@ -4103,7 +4103,8 @@ public class Datasets extends AbstractApiBean {
     public Response getRelationCounts(
             @Context ContainerRequestContext crc,
             @PathParam("identifier") String id,
-            @QueryParam("version") String versionNumber
+            @QueryParam("version") String versionNumber,
+            @QueryParam("groupBy") @DefaultValue("relationType") String groupBy
     ) {
         return response(req -> {
             try {
@@ -4117,15 +4118,20 @@ public class Datasets extends AbstractApiBean {
                     failIfNull(version, "Latest accessible version not found for dataset " + dataset.getGlobalId().asString());
                 }
 
-                List<Object[]> relationCounts = datasetRelationService.getDatasetRelationCountsFor(dataset, version);
+                List<Object[]> relationCounts = datasetRelationService.getDatasetRelationCountsFor(dataset, version, groupBy);
 
-                return ok(relationCounts.stream().map(relCount -> Json.createObjectBuilder()
-                                .add("relationType", new NullSafeJsonBuilder()
-                                        .add("name", relCount[0] != null ? relCount[0].toString() : null)
-                                        .add("displayName", relCount[1] != null ? relCount[1].toString() : null)
-                                        .add("description", relCount[2] != null ? relCount[2].toString() : null)
-                                )
-                                .add("count", ((Number) relCount[3]).longValue()))
+                return ok(relationCounts.stream().map(relCount -> {
+                                    // Group by "relationType" by default
+                                    // Other valid option: "datasetType"
+                                    String typeKey = "datasetType".equals(groupBy) ? "datasetType" : "relationType";
+                                    return Json.createObjectBuilder()
+                                            .add(typeKey, new NullSafeJsonBuilder()
+                                                    .add("name", relCount[0] != null ? relCount[0].toString() : null)
+                                                    .add("displayName", relCount[1] != null ? relCount[1].toString() : null)
+                                                    .add("description", relCount[2] != null ? relCount[2].toString() : null)
+                                            )
+                                            .add("count", ((Number) relCount[3]).longValue());
+                                })
                         .collect(toJsonArray()));
             } catch (WrappedResponse wr) {
                 return wr.getResponse();
