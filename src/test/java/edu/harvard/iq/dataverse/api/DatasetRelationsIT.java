@@ -119,8 +119,8 @@ public class DatasetRelationsIT {
                 .body("data[0].relatedDatasetPid", equalTo(pidB))
                 .body("data[1].externalIdentifier", equalTo(externalUrl));
 
-        // Also verify counts
-        UtilIT.getDatasetRelationCounts(pidA, ":draft", apiTokenSuperuser)
+        // Also verify counts (grouped by relation type by default)
+        UtilIT.getDatasetRelationCounts(pidA, ":draft", null, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("data", hasSize(2))
                 .body("data[0].relationType.name", equalTo("isCitedBy"))
@@ -494,6 +494,15 @@ public class DatasetRelationsIT {
         UtilIT.listDatasetRelations(pidA, null, null, Arrays.asList("workflow"), null, null, null, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("totalCount", equalTo(0));
+
+        // Also check counts grouped by dataset type
+        UtilIT.getDatasetRelationCounts(pidA, null, "datasetType", apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("data", hasSize(2))
+                .body("data[0].name", equalTo("dataset"))
+                .body("data[0].count", equalTo(2))
+                .body("data[0].name", equalTo("software"))
+                .body("data[0].count", equalTo(1));
     }
 
     @Test

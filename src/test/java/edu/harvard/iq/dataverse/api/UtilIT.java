@@ -5561,13 +5561,16 @@ public class UtilIT {
     }
 
     public static Response getDatasetRelationCounts(String persistentId, String apiToken) {
-        return getDatasetRelationCounts(persistentId, null, apiToken);
+        return getDatasetRelationCounts(persistentId, null, null, apiToken);
     }
 
-    public static Response getDatasetRelationCounts(String persistentId, String version, String apiToken) {
+    public static Response getDatasetRelationCounts(String persistentId, String version, String groupBy, String apiToken) {
         String path = "/api/datasets/:persistentId/relations/counts?persistentId=" + persistentId;
         if (version != null) {
             path += "&version=" + version;
+        }
+        if (groupBy != null) {
+            path += "&groupBy=" + groupBy;
         }
         return given()
                 .header(API_TOKEN_HTTP_HEADER, apiToken)
