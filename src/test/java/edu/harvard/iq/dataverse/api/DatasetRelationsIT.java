@@ -10,6 +10,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
+import java.util.List;
 
 import static jakarta.ws.rs.core.Response.Status.OK;
 import static org.hamcrest.Matchers.*;
@@ -542,5 +543,59 @@ public class DatasetRelationsIT {
                 // 3rd: isSupplementTo (count 2)
                 .body("data[2].relationType.name", equalTo("isSupplementTo"))
                 .body("data[2].count", equalTo(2));
+    }
+
+    @Test
+    public void testDatasetRelationsOrdering() {
+        String dataverseAlias = UtilIT.createRandomCollectionGetAlias(apiTokenSuperuser);
+        UtilIT.publishDataverseViaNativeApi(dataverseAlias, apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
+
+        // Create Dataset A
+        Response createDatasetA = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
+        String pidA = UtilIT.getDatasetPersistentIdFromResponse(createDatasetA);
+
+        // Create Dataset B
+        Response createDatasetB = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
+        String pidB = UtilIT.getDatasetPersistentIdFromResponse(createDatasetB);
+
+        // Create Dataset C
+        Response createDatasetC = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
+        String pidC = UtilIT.getDatasetPersistentIdFromResponse(createDatasetC);
+
+        // Define relation B -> A (defined on B)
+        JsonArray relationsB = Json.createArrayBuilder()
+                .add(Json.createObjectBuilder()
+                        .add("relatedDatasetPid", pidA)
+                        .add("relationTypeName", "isRelatedTo"))
+                .build();
+        UtilIT.replaceDatasetRelations(pidB, relationsB.toString(), apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode());
+        UtilIT.publishDatasetViaNativeApi(pidB, "major", apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
+
+        // Define relation A -> C (defined on A)
+        JsonArray relationsA = Json.createArrayBuilder()
+                .add(Json.createObjectBuilder()
+                        .add("relatedDatasetPid", pidC)
+                        .add("relationTypeName", "isRelatedTo"))
+                .build();
+        UtilIT.replaceDatasetRelations(pidA, relationsA.toString(), apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode());
+
+        // List relations for A
+        // Expecting:
+        // 1. A -> C (defined on A)
+        // 2. B -> A (defined on B)
+        
+        Response listResponse = UtilIT.listDatasetRelations(pidA, apiTokenSuperuser);
+        listResponse.then().assertThat().statusCode(OK.getStatusCode())
+                .body("data", hasSize(2));
+
+        // We want relations defined ON dataset A to come first:
+        // Relation A -> C is defined on A (definitionPointPid should be pidA)
+        // Relation B -> A is defined on B (definitionPointPid should be pidB)
+
+        List<String> definitionPointPids = listResponse.jsonPath().getList("data.definitionPointPid");
+        assertEquals(pidA, definitionPointPids.get(0));
+        assertEquals(pidB, definitionPointPids.get(1));
     }
 }
