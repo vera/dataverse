@@ -47,8 +47,8 @@ public class DatasetRelationServiceBean {
                 .executeUpdate();
     }
 
-    public List<DatasetRelation> getDatasetRelationsFor(Dataset d, DatasetVersion v, String relationTypeName, List<String> datasetTypeNames, Integer limit, Integer offset) {
-        return algorithm.getRelations(d, v, relationTypeName, datasetTypeNames, limit, offset);
+    public List<DatasetRelation> getDatasetRelationsFor(Dataset d, DatasetVersion v, String relationTypeName, List<String> datasetTypeNames, List<String> relationSources, Integer limit, Integer offset) {
+        return algorithm.getRelations(d, v, relationTypeName, datasetTypeNames, relationSources, limit, offset);
     }
 
     public List<Object[]> getDatasetRelationCountsFor(Dataset d, DatasetVersion v) {
@@ -56,11 +56,11 @@ public class DatasetRelationServiceBean {
     }
 
     public Long getTotalDatasetRelationCountFor(Dataset d, DatasetVersion v) {
-        return algorithm.getTotalDatasetRelationCountFor(d, v, null, null);
+        return algorithm.getTotalDatasetRelationCountFor(d, v, null, null, null);
     }
 
-    public Long getTotalDatasetRelationCountFor(Dataset d, DatasetVersion v, String relationTypeName, List<String> datasetTypeNames) {
-        return algorithm.getTotalDatasetRelationCountFor(d, v, relationTypeName, datasetTypeNames);
+    public Long getTotalDatasetRelationCountFor(Dataset d, DatasetVersion v, String relationTypeName, List<String> datasetTypeNames, List<String> relationSources) {
+        return algorithm.getTotalDatasetRelationCountFor(d, v, relationTypeName, datasetTypeNames, relationSources);
     }
 
     public List<DatasetRelation> addDatasetRelations(List<DatasetRelation> relations) {

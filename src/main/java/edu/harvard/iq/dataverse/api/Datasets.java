@@ -4069,6 +4069,7 @@ public class Datasets extends AbstractApiBean {
             @QueryParam("offset") Integer offset,
             @QueryParam("type") String relationTypeName,
             @QueryParam("datasetType") List<String> datasetTypeNames,
+            @QueryParam("source") List<String> relationSources,
             @QueryParam("version") String versionNumber
     ) {
         return response(req -> {
@@ -4086,8 +4087,8 @@ public class Datasets extends AbstractApiBean {
                 Integer effectiveLimit = limit != null ? limit : 10;
                 Integer effectiveOffset = offset != null ? offset : 0;
 
-                List<DatasetRelation> relations = datasetRelationService.getDatasetRelationsFor(dataset, version, relationTypeName, datasetTypeNames, effectiveLimit, effectiveOffset);
-                long totalCount = datasetRelationService.getTotalDatasetRelationCountFor(dataset, version, relationTypeName, datasetTypeNames);
+                List<DatasetRelation> relations = datasetRelationService.getDatasetRelationsFor(dataset, version, relationTypeName, datasetTypeNames, relationSources, effectiveLimit, effectiveOffset);
+                long totalCount = datasetRelationService.getTotalDatasetRelationCountFor(dataset, version, relationTypeName, datasetTypeNames, relationSources);
 
                 return ok(json(relations, dataset, includeMetadataBlocks), totalCount);
             } catch (WrappedResponse wr) {
