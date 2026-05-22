@@ -116,8 +116,8 @@ public class DatasetRelationsIT {
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("totalCount", equalTo(2))
                 .body("data", hasSize(2))
-                .body("data[0].relatedDatasetPid", equalTo(pidB))
-                .body("data[1].externalIdentifier", equalTo(externalUrl));
+                .body("data.relatedDatasetPid", hasItem(pidB))
+                .body("data.externalIdentifier", hasItem(externalUrl));
 
         // Also verify counts (grouped by relation type by default)
         UtilIT.getDatasetRelationCounts(pidA, ":draft", null, apiTokenSuperuser)
@@ -499,10 +499,10 @@ public class DatasetRelationsIT {
         UtilIT.getDatasetRelationCounts(pidA, null, "datasetType", apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("data", hasSize(2))
-                .body("data[0].name", equalTo("dataset"))
-                .body("data[0].count", equalTo(2))
-                .body("data[0].name", equalTo("software"))
-                .body("data[0].count", equalTo(1));
+                .body("data[0].datasetType.name", equalTo("dataset"))
+                .body("data[0].count", equalTo(1))
+                .body("data[1].datasetType.name", equalTo("software"))
+                .body("data[1].count", equalTo(1));
     }
 
     @Test
