@@ -105,6 +105,9 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
     private static final String WHERE_DATASET_TYPE_MATCHES = 
             " (dr.relation_source = 'internal' AND dt.name IN (?)) ";
 
+    private static final String ORDER_BY_REQUESTED_DATASET_FIRST =
+            " ORDER BY (CASE WHEN dv_def.dataset_id = ? THEN 0 ELSE 1 END) ASC, dr.id ASC ";
+
     @SuppressWarnings("unchecked")
     @Override
     public List<DatasetRelation> getRelations(Dataset d, DatasetVersion v, String relationTypeName, List<String> datasetTypeNames, Integer limit, Integer offset) {
@@ -133,6 +136,8 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
             sql.append(" AND ").append(WHERE_DATASET_TYPE_MATCHES.replace("(?)", 
                     "(" + datasetTypeNames.stream().map(n -> "?").collect(Collectors.joining(",")) + ")"));
         }
+
+        sql.append(ORDER_BY_REQUESTED_DATASET_FIRST);
 
         Query query = em.createNativeQuery(sql.toString(), DatasetRelation.class);
         int i = 1;
@@ -172,6 +177,9 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
                 query.setParameter(i++, typeName);
             }
         }
+
+        // ORDER_BY_REQUESTED_DATASET_FIRST
+        query.setParameter(i++, d.getId());
 
         return (List<DatasetRelation>) query.setMaxResults(limit)
                 .setFirstResult(offset)
