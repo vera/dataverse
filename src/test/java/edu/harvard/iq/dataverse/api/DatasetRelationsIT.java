@@ -112,7 +112,7 @@ public class DatasetRelationsIT {
         // Plus the additional relation "A is related to https://example.org/dataset/12345"
 
         // Verify only those two relations are listed for A (draft) (no duplicates)
-        UtilIT.listDatasetRelations(pidA, ":draft", null, null, null, apiTokenSuperuser)
+        UtilIT.listDatasetRelations(pidA, ":draft", null, null, null, null, null, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("totalCount", equalTo(2))
                 .body("data", hasSize(2))
@@ -153,7 +153,7 @@ public class DatasetRelationsIT {
                 .then().assertThat().statusCode(OK.getStatusCode());
 
         // Verify relation is listed when requesting relations for Dataset B (draft)
-        UtilIT.listDatasetRelations(pidB, null, null, null, null, apiTokenSuperuser)
+        UtilIT.listDatasetRelations(pidB, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("totalCount", equalTo(1))
                 .body("data", hasSize(1))
@@ -162,7 +162,7 @@ public class DatasetRelationsIT {
 
         // Verify relation is not listed when requesting relations for Dataset A (v1)
         // since Dataset B, where the relation was defined, is still in Draft status
-        UtilIT.listDatasetRelations(pidA, null, null, null, null, apiTokenSuperuser)
+        UtilIT.listDatasetRelations(pidA, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("totalCount", equalTo(0))
                 .body("data", hasSize(0));
@@ -179,7 +179,7 @@ public class DatasetRelationsIT {
                 .body("data[0].relationType.name", equalTo("isRelatedTo"));
 
         // Verify relation is listed when requesting relations for Dataset B v1.0
-        UtilIT.listDatasetRelations(pidB, "1.0", null, null, null, apiTokenSuperuser)
+        UtilIT.listDatasetRelations(pidB, "1.0", null, null, null, null, null, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("totalCount", equalTo(1))
                 .body("data", hasSize(1))
@@ -209,7 +209,7 @@ public class DatasetRelationsIT {
                 .body("data[0].relationType.name", equalTo("isRelatedTo"));
 
         // Verify relation is not listed when requesting relations for Dataset B's draft specifically
-        UtilIT.listDatasetRelations(pidB, ":draft", null, null, null, apiTokenSuperuser)
+        UtilIT.listDatasetRelations(pidB, ":draft", null, null, null, null, null, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("totalCount", equalTo(0))
                 .body("data", hasSize(0));
@@ -225,7 +225,7 @@ public class DatasetRelationsIT {
                 .body("data", hasSize(0));
 
         // Verify relation is STILL listed when requesting relations for Dataset B v1 specifically
-        UtilIT.listDatasetRelations(pidB, "1.0", null, null, null, apiTokenSuperuser)
+        UtilIT.listDatasetRelations(pidB, "1.0", null, null, null, null, null, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("totalCount", equalTo(1))
                 .body("data", hasSize(1))
@@ -233,13 +233,13 @@ public class DatasetRelationsIT {
                 .body("data[0].relationType.name", equalTo("isRelatedTo"));
 
         // Verify relation is NOT listed when requesting relations for Dataset B v2
-        UtilIT.listDatasetRelations(pidB, "2.0", null, null, null, apiTokenSuperuser)
+        UtilIT.listDatasetRelations(pidB, "2.0", null, null, null, null, null, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("totalCount", equalTo(0))
                 .body("data", hasSize(0));
 
         // Verify relation is NOT listed when requesting relations for Dataset B
-        UtilIT.listDatasetRelations(pidB, null, null, null, null, apiTokenSuperuser)
+        UtilIT.listDatasetRelations(pidB, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("totalCount", equalTo(0))
                 .body("data", hasSize(0));
@@ -265,7 +265,7 @@ public class DatasetRelationsIT {
                 .then().assertThat().statusCode(OK.getStatusCode());
 
         // Verify external relation is listed
-        UtilIT.listDatasetRelations(pidA, null, null, null, null, apiTokenSuperuser)
+        UtilIT.listDatasetRelations(pidA, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("totalCount", equalTo(1))
                 .body("data", hasSize(1))
@@ -287,7 +287,7 @@ public class DatasetRelationsIT {
                 .then().assertThat().statusCode(OK.getStatusCode());
 
         // Verify external relation with datasetType is listed
-        UtilIT.listDatasetRelations(pidA, null, null, null, null, apiTokenSuperuser)
+        UtilIT.listDatasetRelations(pidA, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("totalCount", equalTo(1))
                 .body("data", hasSize(1))
@@ -311,7 +311,7 @@ public class DatasetRelationsIT {
         UtilIT.replaceDatasetRelations(pidA, mixedRelations.toString(), apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode());
 
-        UtilIT.listDatasetRelations(pidA, null, null, null, null, apiTokenSuperuser)
+        UtilIT.listDatasetRelations(pidA, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("totalCount", equalTo(2))
                 .body("data", hasSize(2))
@@ -370,42 +370,42 @@ public class DatasetRelationsIT {
         // v2.0: 2 relations (isRelatedTo, isSupplementTo)
 
         // 1. Filter by Version AND Type (V1.0, isRelatedTo) -> Expect 1
-        UtilIT.listDatasetRelations(pidA, "1.0", "isRelatedTo", null, null, apiTokenSuperuser)
+        UtilIT.listDatasetRelations(pidA, "1.0", "isRelatedTo", null, null, null, null, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("totalCount", equalTo(1));
 
         // 2. Filter by Version AND Type (V1.0, isSupplementTo) -> Expect 0
-        UtilIT.listDatasetRelations(pidA, "1.0", "isSupplementTo", null, null, apiTokenSuperuser)
+        UtilIT.listDatasetRelations(pidA, "1.0", "isSupplementTo", null, null, null, null, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("totalCount", equalTo(0));
 
         // 3. Filter by Version AND Type (v2.0, isSupplementTo) -> Expect 1
-        UtilIT.listDatasetRelations(pidA, "2.0", "isSupplementTo", null, null, apiTokenSuperuser)
+        UtilIT.listDatasetRelations(pidA, "2.0", "isSupplementTo", null, null, null, null, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("totalCount", equalTo(1));
 
         // 4. Filter by Version only (V1.0) -> Expect 1
-        UtilIT.listDatasetRelations(pidA, "1.0", null, null, null, apiTokenSuperuser)
+        UtilIT.listDatasetRelations(pidA, "1.0", null, null, null, null, null, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("totalCount", equalTo(1));
 
         // 5. Filter by Version only (v2.0) -> Expect 2
-        UtilIT.listDatasetRelations(pidA, "2.0", null, null, null, apiTokenSuperuser)
+        UtilIT.listDatasetRelations(pidA, "2.0", null, null, null, null, null, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("totalCount", equalTo(2));
 
         // 6. Filter by Type only (isSupplementTo) -> Expect 1 (from latest published v2.0)
-        UtilIT.listDatasetRelations(pidA, null, "isSupplementTo", null, null, apiTokenSuperuser)
+        UtilIT.listDatasetRelations(pidA, null, "isSupplementTo", null, null, null, null, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("totalCount", equalTo(1));
 
         // 7. Filter by Type only (isRelatedTo) -> Expect 1 (from latest published v2.0)
-        UtilIT.listDatasetRelations(pidA, null, "isRelatedTo", null, null, apiTokenSuperuser)
+        UtilIT.listDatasetRelations(pidA, null, "isRelatedTo", null, null, null, null, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("totalCount", equalTo(1));
 
         // 8. No filters (latest version) -> Expect 2
-        UtilIT.listDatasetRelations(pidA, null, null, null, null, apiTokenSuperuser)
+        UtilIT.listDatasetRelations(pidA, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("totalCount", equalTo(2));
     }
@@ -463,30 +463,30 @@ public class DatasetRelationsIT {
         UtilIT.publishDatasetViaNativeApi(pidA, "major", apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
 
         // No type filter -> Expect 3
-        UtilIT.listDatasetRelations(pidA, null, null, null, null, apiTokenSuperuser)
+        UtilIT.listDatasetRelations(pidA, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("totalCount", equalTo(3));
 
         // Filter by datasetType=dataset -> Expect 1 (Dataset B)
-        UtilIT.listDatasetRelations(pidA, null, null, Arrays.asList("dataset"), null, null, apiTokenSuperuser)
+        UtilIT.listDatasetRelations(pidA, null, null, Arrays.asList("dataset"), null, null, null, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("totalCount", equalTo(1))
                 .body("data[0].relatedDatasetPid", equalTo(pidB));
 
         // Filter by datasetType=software -> Expect 1 (Dataset C)
-        UtilIT.listDatasetRelations(pidA, null, null, Arrays.asList("software"), null, null, apiTokenSuperuser)
+        UtilIT.listDatasetRelations(pidA, null, null, Arrays.asList("software"), null, null, null, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("totalCount", equalTo(1))
                 .body("data[0].relatedDatasetPid", equalTo(pidC));
 
         // Filter by both -> Expect 2 (B and C)
-        UtilIT.listDatasetRelations(pidA, null, null, Arrays.asList("dataset", "software"), null, null, apiTokenSuperuser)
+        UtilIT.listDatasetRelations(pidA, null, null, Arrays.asList("dataset", "software"), null, null, null, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("totalCount", equalTo(2))
                 .body("data.relatedDatasetPid", hasItems(pidB, pidC));
 
         // Filter by a non-existent type -> Expect 0
-        UtilIT.listDatasetRelations(pidA, null, null, Arrays.asList("workflow"), null, null, apiTokenSuperuser)
+        UtilIT.listDatasetRelations(pidA, null, null, Arrays.asList("workflow"), null, null, null, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("totalCount", equalTo(0));
     }
@@ -597,5 +597,53 @@ public class DatasetRelationsIT {
         List<String> definitionPointPids = listResponse.jsonPath().getList("data.definitionPointPid");
         assertEquals(pidA, definitionPointPids.get(0));
         assertEquals(pidB, definitionPointPids.get(1));
+    }
+
+    @Test
+    public void testListDatasetRelationsSourceFiltering() {
+        String dataverseAlias = UtilIT.createRandomCollectionGetAlias(apiTokenSuperuser);
+        UtilIT.publishDataverseViaNativeApi(dataverseAlias, apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
+
+        // Dataset A
+        Response createDatasetA = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
+        String pidA = UtilIT.getDatasetPersistentIdFromResponse(createDatasetA);
+
+        // Dataset B
+        Response createDatasetB = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
+        String pidB = UtilIT.getDatasetPersistentIdFromResponse(createDatasetB);
+
+        // Create 1 internal and 1 external relation
+        JsonArray relations = Json.createArrayBuilder()
+                .add(Json.createObjectBuilder()
+                        .add("relatedDatasetPid", pidB)
+                        .add("relationTypeName", "isRelatedTo"))
+                .add(Json.createObjectBuilder()
+                        .add("externalIdentifier", "https://example.org/1")
+                        .add("identifierScheme", "URL")
+                        .add("relationTypeName", "isRelatedTo"))
+                .build();
+        UtilIT.replaceDatasetRelations(pidA, relations.toString(), apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
+
+        // No filter -> Expect 2
+        UtilIT.listDatasetRelations(pidA, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("totalCount", equalTo(2));
+
+        // Filter by source=internal -> Expect 1
+        UtilIT.listDatasetRelations(pidA, null, null, null, List.of("internal"), null, null, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("totalCount", equalTo(1))
+                .body("data[0].relatedDatasetPid", equalTo(pidB));
+
+        // Filter by source=external -> Expect 1
+        UtilIT.listDatasetRelations(pidA, null, null, null, List.of("external"), null, null, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("totalCount", equalTo(1))
+                .body("data[0].externalIdentifier", equalTo("https://example.org/1"));
+
+        // Filter by both -> Expect 2
+        UtilIT.listDatasetRelations(pidA, null, null, null, Arrays.asList("internal", "external"), null, null, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("totalCount", equalTo(2));
     }
 }

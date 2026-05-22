@@ -5520,18 +5520,22 @@ public class UtilIT {
     }
 
     public static Response listDatasetRelations(String persistentId) {
-        return listDatasetRelations(persistentId, null, null, null, null, null);
+        return listDatasetRelations(persistentId, null, null, null, null, null, null, null);
     }
 
     public static Response listDatasetRelations(String persistentId, String apiToken) {
-        return listDatasetRelations(persistentId, null, null, null, null, apiToken);
+        return listDatasetRelations(persistentId, null, null, null, null, null, null, apiToken);
     }
 
-    public static Response listDatasetRelations(String persistentId, String version, String type, Integer limit, Integer offset, String apiToken) {
-        return listDatasetRelations(persistentId, version, type, null, limit, offset, apiToken);
-    }
+//    public static Response listDatasetRelations(String persistentId, String version, String type, Integer limit, Integer offset, String apiToken) {
+//        return listDatasetRelations(persistentId, version, type, null, null, limit, offset, apiToken);
+//    }
+//
+//    public static Response listDatasetRelations(String persistentId, String version, String type, List<String> datasetTypes, Integer limit, Integer offset, String apiToken) {
+//        return listDatasetRelations(persistentId, version, type, datasetTypes, null, limit, offset, apiToken);
+//    }
 
-    public static Response listDatasetRelations(String persistentId, String version, String type, List<String> datasetTypes, Integer limit, Integer offset, String apiToken) {
+    public static Response listDatasetRelations(String persistentId, String version, String type, List<String> datasetTypes, List<String> sources, Integer limit, Integer offset, String apiToken) {
         String path = "/api/datasets/:persistentId/relations?persistentId=" + persistentId;
         if (version != null) {
             path += "&version=" + version;
@@ -5542,6 +5546,11 @@ public class UtilIT {
         if (datasetTypes != null) {
             for (String dt : datasetTypes) {
                 path += "&datasetType=" + dt;
+            }
+        }
+        if (sources != null) {
+            for (String s : sources) {
+                path += "&source=" + s;
             }
         }
         if (limit != null) {
