@@ -323,7 +323,7 @@ public class DatasetRelationsIT {
     }
 
     @Test
-    public void testListDatasetRelationsFiltering() {
+    public void testListDatasetRelationsFilteringByRelationTypeAndVersion() {
         String dataverseAlias = UtilIT.createRandomCollectionGetAlias(apiTokenSuperuser);
         UtilIT.publishDataverseViaNativeApi(dataverseAlias, apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
 
@@ -370,17 +370,17 @@ public class DatasetRelationsIT {
         // v2.0: 2 relations (isRelatedTo, isSupplementTo)
 
         // 1. Filter by Version AND Type (V1.0, isRelatedTo) -> Expect 1
-        UtilIT.listDatasetRelations(pidA, "1.0", "isRelatedTo", null, null, null, null, apiTokenSuperuser)
+        UtilIT.listDatasetRelations(pidA, "1.0", List.of("isRelatedTo"), null, null, null, null, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("totalCount", equalTo(1));
 
         // 2. Filter by Version AND Type (V1.0, isSupplementTo) -> Expect 0
-        UtilIT.listDatasetRelations(pidA, "1.0", "isSupplementTo", null, null, null, null, apiTokenSuperuser)
+        UtilIT.listDatasetRelations(pidA, "1.0", List.of("isSupplementTo"), null, null, null, null, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("totalCount", equalTo(0));
 
         // 3. Filter by Version AND Type (v2.0, isSupplementTo) -> Expect 1
-        UtilIT.listDatasetRelations(pidA, "2.0", "isSupplementTo", null, null, null, null, apiTokenSuperuser)
+        UtilIT.listDatasetRelations(pidA, "2.0", List.of("isSupplementTo"), null, null, null, null, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("totalCount", equalTo(1));
 
@@ -395,23 +395,28 @@ public class DatasetRelationsIT {
                 .body("totalCount", equalTo(2));
 
         // 6. Filter by Type only (isSupplementTo) -> Expect 1 (from latest published v2.0)
-        UtilIT.listDatasetRelations(pidA, null, "isSupplementTo", null, null, null, null, apiTokenSuperuser)
+        UtilIT.listDatasetRelations(pidA, null, List.of("isSupplementTo"), null, null, null, null, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("totalCount", equalTo(1));
 
         // 7. Filter by Type only (isRelatedTo) -> Expect 1 (from latest published v2.0)
-        UtilIT.listDatasetRelations(pidA, null, "isRelatedTo", null, null, null, null, apiTokenSuperuser)
+        UtilIT.listDatasetRelations(pidA, null, List.of("isRelatedTo"), null, null, null, null, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("totalCount", equalTo(1));
 
-        // 8. No filters (latest version) -> Expect 2
+        // 8. Filter by Types only (isRelatedTo, isSupplementTo) -> Expect 2 (from latest published v2.0)
+        UtilIT.listDatasetRelations(pidA, null, Arrays.asList("isRelatedTo", "isSupplementTo"), null, null, null, null, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("totalCount", equalTo(2));
+
+        // 9. No filters (latest version) -> Expect 2
         UtilIT.listDatasetRelations(pidA, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("totalCount", equalTo(2));
     }
 
     @Test
-    public void testListDatasetRelationsDatasetTypeFiltering() {
+    public void testListDatasetRelationsFilteringByDatasetType() {
         String dataverseAlias = UtilIT.createRandomCollectionGetAlias(apiTokenSuperuser);
         UtilIT.publishDataverseViaNativeApi(dataverseAlias, apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
 
@@ -600,7 +605,7 @@ public class DatasetRelationsIT {
     }
 
     @Test
-    public void testListDatasetRelationsSourceFiltering() {
+    public void testListDatasetRelationsFilteringBySource() {
         String dataverseAlias = UtilIT.createRandomCollectionGetAlias(apiTokenSuperuser);
         UtilIT.publishDataverseViaNativeApi(dataverseAlias, apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
 
