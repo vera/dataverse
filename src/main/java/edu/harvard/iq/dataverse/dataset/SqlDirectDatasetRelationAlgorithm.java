@@ -61,9 +61,9 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
     private static final String WHERE_RELATION_TYPE_MATCHES = 
             // The relation type must match the given one (inverted if necessary)
             " ( " +
-            "    (dr.dataset_id = ? AND rt.name = ?) " +
+            "    (dr.dataset_id = ? AND rt.name IN (?)) " +
             "    OR " +
-            "    (dr.relateddataset_id = ? AND inv.name = ?) " +
+            "    (dr.relateddataset_id = ? AND inv.name IN (?)) " +
             " ) ";
 
     private static final String WHERE_RELATION_IS_NOT_A_DUPLICATE = 
@@ -113,12 +113,12 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
 
     @SuppressWarnings("unchecked")
     @Override
-    public List<DatasetRelation> getRelations(Dataset d, DatasetVersion v, String relationTypeName, List<String> datasetTypeNames, List<String> relationSources, Integer limit, Integer offset) {
+    public List<DatasetRelation> getRelations(Dataset d, DatasetVersion v, List<String> relationTypeNames, List<String> datasetTypeNames, List<String> relationSources, Integer limit, Integer offset) {
         StringBuilder sql = new StringBuilder();
 
         sql.append(GET_RELATIONS_QUERY_BASE);
 
-        if (relationTypeName != null) {
+        if (relationTypeNames != null && !relationTypeNames.isEmpty()) {
             sql.append(JOIN_RELATION_TYPES);
         }
         
@@ -131,8 +131,9 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
                 .append(" AND ")
                 .append(WHERE_RELATION_IS_NOT_A_DUPLICATE);
 
-        if (relationTypeName != null) {
-            sql.append(" AND ").append(WHERE_RELATION_TYPE_MATCHES);
+        if (relationTypeNames != null && !relationTypeNames.isEmpty()) {
+            sql.append(" AND ").append(WHERE_RELATION_TYPE_MATCHES.replace("(?)", 
+                    "(" + relationTypeNames.stream().map(n -> "?").collect(Collectors.joining(",")) + ")"));
         }
         
         if (datasetTypeNames != null && !datasetTypeNames.isEmpty()) {
@@ -171,12 +172,16 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
         query.setParameter(i++, d.getId());
         query.setParameter(i++, d.getId());
 
-        if (relationTypeName != null) {
+        if (relationTypeNames != null && !relationTypeNames.isEmpty()) {
             // WHERE_RELATION_TYPE_MATCHES
             query.setParameter(i++, d.getId());
-            query.setParameter(i++, relationTypeName);
+            for (String typeName : relationTypeNames) {
+                query.setParameter(i++, typeName);
+            }
             query.setParameter(i++, d.getId());
-            query.setParameter(i++, relationTypeName);
+            for (String typeName : relationTypeNames) {
+                query.setParameter(i++, typeName);
+            }
         }
         
         if (datasetTypeNames != null && !datasetTypeNames.isEmpty()) {
@@ -210,12 +215,12 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
     }
 
     @Override
-    public Long getTotalDatasetRelationCountFor(Dataset d, DatasetVersion v, String relationTypeName, List<String> datasetTypeNames, List<String> relationSources) {
+    public Long getTotalDatasetRelationCountFor(Dataset d, DatasetVersion v, List<String> relationTypeNames, List<String> datasetTypeNames, List<String> relationSources) {
         StringBuilder sql = new StringBuilder();
 
         sql.append(GET_TOTAL_RELATION_COUNT_QUERY_BASE);
 
-        if (relationTypeName != null) {
+        if (relationTypeNames != null && !relationTypeNames.isEmpty()) {
             sql.append(JOIN_RELATION_TYPES);
         }
         
@@ -225,8 +230,9 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
 
         sql.append(" WHERE ").append(WHERE_DATASET_OR_DATASET_VERSION_MATCHES);
 
-        if (relationTypeName != null) {
-            sql.append(" AND ").append(WHERE_RELATION_TYPE_MATCHES);
+        if (relationTypeNames != null && !relationTypeNames.isEmpty()) {
+            sql.append(" AND ").append(WHERE_RELATION_TYPE_MATCHES.replace("(?)", 
+                    "(" + relationTypeNames.stream().map(n -> "?").collect(Collectors.joining(",")) + ")"));
         }
         
         if (datasetTypeNames != null && !datasetTypeNames.isEmpty()) {
@@ -255,12 +261,16 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
         query.setParameter(i++, d.getId());
         query.setParameter(i++, d.getId());
 
-        if (relationTypeName != null) {
+        if (relationTypeNames != null && !relationTypeNames.isEmpty()) {
             // WHERE_RELATION_TYPE_MATCHES
             query.setParameter(i++, d.getId());
-            query.setParameter(i++, relationTypeName);
+            for (String typeName : relationTypeNames) {
+                query.setParameter(i++, typeName);
+            }
             query.setParameter(i++, d.getId());
-            query.setParameter(i++, relationTypeName);
+            for (String typeName : relationTypeNames) {
+                query.setParameter(i++, typeName);
+            }
         }
         
         if (datasetTypeNames != null && !datasetTypeNames.isEmpty()) {

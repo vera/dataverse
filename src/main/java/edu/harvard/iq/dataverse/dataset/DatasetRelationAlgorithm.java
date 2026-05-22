@@ -15,14 +15,14 @@ public interface DatasetRelationAlgorithm {
      * 
      * @param dataset The dataset for which to find relations.
      * @param version Optional dataset version for version-specific filtering.
-     * @param relationTypeName Optional filter by relation type name.
+     * @param relationTypeNames Optional filter by relation type names.
      * @param datasetTypeNames Optional filter by dataset type names of the related dataset.
      * @param relationSources Optional filter by relation source (internal, external).
      * @param limit Maximum number of results.
      * @param offset Offset for pagination.
      * @return A list of DatasetRelation objects.
      */
-    List<DatasetRelation> getRelations(Dataset dataset, DatasetVersion version, String relationTypeName, List<String> datasetTypeNames, List<String> relationSources, Integer limit, Integer offset);
+    List<DatasetRelation> getRelations(Dataset dataset, DatasetVersion version, List<String> relationTypeNames, List<String> datasetTypeNames, List<String> relationSources, Integer limit, Integer offset);
 
     /**
      * Retrieves the counts of different types of relations for a dataset.
@@ -38,10 +38,10 @@ public interface DatasetRelationAlgorithm {
      * 
      * @param dataset The dataset.
      * @param version Optional dataset version for version-specific filtering.
-     * @param relationTypeName Optional filter by relation type name.
+     * @param relationTypeNames Optional filter by relation type names.
      * @param datasetTypeNames Optional filter by dataset type names of the related dataset.
      * @param relationSources Optional filter by relation source (internal, external).
      * @return Total number of unique related datasets.
      */
-    Long getTotalDatasetRelationCountFor(Dataset dataset, DatasetVersion version, String relationTypeName, List<String> datasetTypeNames, List<String> relationSources);
+    Long getTotalDatasetRelationCountFor(Dataset dataset, DatasetVersion version, List<String> relationTypeNames, List<String> datasetTypeNames, List<String> relationSources);
 }
