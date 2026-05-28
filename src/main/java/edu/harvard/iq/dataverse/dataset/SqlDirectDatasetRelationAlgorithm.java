@@ -68,7 +68,7 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
 
     private static final String WHERE_RELATION_IS_NOT_A_DUPLICATE = 
             " dr.id = ( " +
-            "    SELECT MIN(dr2.id) FROM datasetrelation dr2 " +
+            "    SELECT dr2.id FROM datasetrelation dr2 " +
             "    JOIN datasetversion dv_def2 ON dr2.definitionpoint_id = dv_def2.id " +
             "    WHERE ( " +
             "        dr2.definitionpoint_id = ? " +
@@ -96,6 +96,8 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
             "            CASE WHEN dr2.dataset_id = ? THEN CAST(dr2.relateddataset_id AS VARCHAR) ELSE CAST(dr2.dataset_id AS VARCHAR) END " +
             "        ELSE dr2.externalidentifier END " +
             "      ) " +
+            "    ORDER BY (CASE WHEN dr2.definitionpoint_id = ? THEN 0 ELSE 1 END) ASC, dr2.id ASC " +
+            "    LIMIT 1 " +
             " ) ";
 
     private static final String JOIN_DATASET_TYPES = 
@@ -171,6 +173,7 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
         query.setParameter(i++, d.getId());
         query.setParameter(i++, d.getId());
         query.setParameter(i++, d.getId());
+        query.setParameter(i++, v.getId());
 
         if (relationTypeNames != null && !relationTypeNames.isEmpty()) {
             // WHERE_RELATION_TYPE_MATCHES
