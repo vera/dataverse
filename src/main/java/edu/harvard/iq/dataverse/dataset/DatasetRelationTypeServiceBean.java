@@ -8,6 +8,8 @@ import jakarta.persistence.NoResultException;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.PersistenceException;
 
+import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 @Stateless
@@ -19,6 +21,21 @@ public class DatasetRelationTypeServiceBean {
     @PersistenceContext
     EntityManager em;
 
+    public List<DatasetRelationType> listAll() {
+        return em.createNamedQuery("DatasetRelationType.findAll", DatasetRelationType.class).getResultList();
+    }
+
+    public DatasetRelationType findById(long id) {
+        try {
+            return em.createNamedQuery("DatasetRelationType.getById", DatasetRelationType.class)
+                    .setParameter("id", id)
+                    .getSingleResult();
+        } catch (NoResultException e) {
+            logger.log(Level.WARNING, "Couldn't find a dataset relation type with id " + id);
+            return null;
+        }
+    }
+
     public DatasetRelationType findByName(String name) {
         if (name == null) {
             return null;
@@ -29,6 +46,7 @@ public class DatasetRelationTypeServiceBean {
                     .setParameter("name", name)
                     .getSingleResult();
         } catch (NoResultException e) {
+            logger.log(Level.WARNING, "Couldn't find a dataset relation type with name " + name);
             return null;
         }
     }
@@ -48,6 +66,18 @@ public class DatasetRelationTypeServiceBean {
             }
         }
         return relationType;
+    }
+
+    public int deleteById(long id) throws AbstractApiBean.WrappedResponse {
+        try {
+            return em.createNamedQuery("DatasetRelationType.deleteById").setParameter("id", id).executeUpdate();
+        } catch (PersistenceException p) {
+            if (p.getMessage().contains("violates foreign key constraint")) {
+                throw new AbstractApiBean.WrappedResponse(new IllegalStateException("Dataset relation type with id " + id + " is referenced and cannot be deleted.", p), null);
+            } else {
+                throw p;
+            }
+        }
     }
 
 }

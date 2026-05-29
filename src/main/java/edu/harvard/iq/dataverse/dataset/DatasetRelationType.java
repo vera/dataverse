@@ -6,8 +6,14 @@ import java.io.Serializable;
 
 @Entity
 @NamedQueries({
+        @NamedQuery(name = "DatasetRelationType.findAll",
+                query = "SELECT drt FROM DatasetRelationType drt"),
+        @NamedQuery(name = "DatasetRelationType.getById",
+                query="SELECT drt FROM DatasetRelationType drt WHERE drt.id=:id"),
         @NamedQuery(name = "DatasetRelationType.getByName",
                 query="SELECT drt FROM DatasetRelationType drt WHERE drt.name=:name"),
+        @NamedQuery(name = "DatasetRelationType.deleteById",
+                query = "DELETE FROM DatasetRelationType drt WHERE drt.id=:id"),
 })
 public class DatasetRelationType implements Serializable {
 

@@ -4189,6 +4189,79 @@ public class Datasets extends AbstractApiBean {
         }
     }
 
+    @DELETE
+    @AuthRequired
+    @Path("relationTypes/{id}")
+    public Response deleteRelationType(@Context ContainerRequestContext crc, @PathParam("id") String doomed) {
+        AuthenticatedUser user;
+        try {
+            user = getRequestAuthenticatedUserOrDie(crc);
+        } catch (WrappedResponse ex) {
+            return error(Response.Status.BAD_REQUEST, "Authentication is required.");
+        }
+        if (!user.isSuperuser()) {
+            return error(Response.Status.FORBIDDEN, "Superusers only.");
+        }
+
+        if (doomed == null || doomed.isEmpty()) {
+            throw new IllegalArgumentException("ID is required!");
+        }
+
+        long idToDelete;
+        try {
+            idToDelete = Long.parseLong(doomed);
+        } catch (NumberFormatException e) {
+            return error(BAD_REQUEST,"ID must be a number");
+        }
+
+        DatasetRelationType drtToDelete = datasetRelationTypeSvc.findById(idToDelete);
+        if (drtToDelete == null) {
+            return error(BAD_REQUEST, "Could not find dataset relation type with id " + idToDelete);
+        }
+
+        try {
+            int numDeleted = datasetRelationTypeSvc.deleteById(idToDelete);
+            if (numDeleted == 1) {
+                return ok("deleted");
+            } else {
+                return error(BAD_REQUEST, "Something went wrong. Number of dataset types deleted: " + numDeleted);
+            }
+        } catch (WrappedResponse ex) {
+            return error(BAD_REQUEST, ex.getMessage());
+        }
+    }
+
+    @GET
+    @Path("relationTypes")
+    public Response getRelationTypes() {
+        JsonArrayBuilder jab = Json.createArrayBuilder();
+        for (DatasetRelationType drt : datasetRelationTypeSvc.listAll()) {
+            jab.add(json(drt));
+        }
+        return ok(jab);
+    }
+
+    @GET
+    @Path("relationTypes/{idOrName}")
+    public Response getRelationType(@PathParam("idOrName") String idOrName) {
+        DatasetRelationType drt = null;
+        if (StringUtils.isNumeric(idOrName)) {
+            try {
+                long id = Long.parseLong(idOrName);
+                drt = datasetRelationTypeSvc.findById(id);
+            } catch (NumberFormatException ex) {
+                return error(NOT_FOUND, "Could not find a dataset type with id " + idOrName);
+            }
+        } else {
+            drt = datasetRelationTypeSvc.findByName(idOrName);
+        }
+        if (drt != null) {
+            return ok(json(drt));
+        } else {
+            return error(NOT_FOUND, "Could not find a dataset relation type with name/id " + idOrName);
+        }
+    }
+
 
 /****************************
  * Globus Support Section:

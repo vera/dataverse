@@ -1069,6 +1069,14 @@ public class JsonPrinter {
         return builder;
     }
 
+    public static JsonObjectBuilder json(DatasetRelationType drt) {
+        JsonObjectBuilder result = new NullSafeJsonBuilder();
+        result.add("name", drt.getName())
+                .add("displayName", drt.getDisplayName())
+                .add("description", drt.getDescription());
+        return result;
+    }
+
     public static JsonObjectBuilder json(DatasetRelation rel, boolean invertRelation, boolean includeMetadataBlocks) {
         JsonObjectBuilder result = new NullSafeJsonBuilder();
 
@@ -1108,11 +1116,7 @@ public class JsonPrinter {
 
         if (rel.getRelationType() != null) {
             DatasetRelationType relType = (rel instanceof InternalDatasetRelation && invertRelation) ? rel.getRelationType().getInverse() : rel.getRelationType();
-            result.add("relationType", new NullSafeJsonBuilder()
-                    .add("name", relType.getName())
-                    .add("displayName", relType.getDisplayName())
-                    .add("description", relType.getDescription())
-            );
+            result.add("relationType", json(relType));
         }
 
         return result;
