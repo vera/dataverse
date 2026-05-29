@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Arrays;
 import java.util.List;
 
+import static jakarta.ws.rs.core.Response.Status.CREATED;
 import static jakarta.ws.rs.core.Response.Status.OK;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -659,5 +660,101 @@ public class DatasetRelationsIT {
         UtilIT.listDatasetRelations(pidA, null, null, null, Arrays.asList("internal", "external"), null, null, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("totalCount", equalTo(2));
+    }
+
+    @Test
+    public void testDatasetRelationsViaVersionApis() {
+        String dataverseAlias = UtilIT.createRandomCollectionGetAlias(apiTokenSuperuser);
+        UtilIT.publishDataverseViaNativeApi(dataverseAlias, apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
+
+        // Create dataset with relations via POST api/dataverses/%s/datasets
+        String externalUrl1 = "https://example.org/dataset/1";
+        JsonObject datasetData = Json.createObjectBuilder()
+                .add("datasetVersion", Json.createObjectBuilder()
+                        .add("metadataBlocks", Json.createObjectBuilder()
+                                .add("citation", Json.createObjectBuilder()
+                                        .add("fields", Json.createArrayBuilder()
+                                                .add(Json.createObjectBuilder()
+                                                        .add("typeName", "title")
+                                                        .add("multiple", false)
+                                                        .add("typeClass", "primitive")
+                                                        .add("value", "Dataset with Relations"))
+                                                .add(Json.createObjectBuilder()
+                                                        .add("typeName", "author")
+                                                        .add("multiple", true)
+                                                        .add("typeClass", "compound")
+                                                        .add("value", Json.createArrayBuilder()
+                                                                .add(Json.createObjectBuilder()
+                                                                        .add("authorName", Json.createObjectBuilder()
+                                                                                .add("typeName", "authorName")
+                                                                                .add("multiple", false)
+                                                                                .add("typeClass", "primitive")
+                                                                                .add("value", "Lastname, Firstname")))))
+                                                .add(Json.createObjectBuilder()
+                                                        .add("typeName", "datasetContact")
+                                                        .add("multiple", true)
+                                                        .add("typeClass", "compound")
+                                                        .add("value", Json.createArrayBuilder()
+                                                                .add(Json.createObjectBuilder()
+                                                                        .add("datasetContactEmail", Json.createObjectBuilder()
+                                                                                .add("typeName", "datasetContactEmail")
+                                                                                .add("multiple", false)
+                                                                                .add("typeClass", "primitive")
+                                                                                .add("value", "test@example.edu")))))
+                                                .add(Json.createObjectBuilder()
+                                                        .add("typeName", "dsDescription")
+                                                        .add("multiple", true)
+                                                        .add("typeClass", "compound")
+                                                        .add("value", Json.createArrayBuilder()
+                                                                .add(Json.createObjectBuilder()
+                                                                        .add("dsDescriptionValue", Json.createObjectBuilder()
+                                                                                .add("typeName", "dsDescriptionValue")
+                                                                                .add("multiple", false)
+                                                                                .add("typeClass", "primitive")
+                                                                                .add("value", "Description text")))))
+                                                .add(Json.createObjectBuilder()
+                                                        .add("typeName", "subject")
+                                                        .add("multiple", true)
+                                                        .add("typeClass", "controlledVocabulary")
+                                                        .add("value", Json.createArrayBuilder().add("Agricultural Sciences"))))))
+                        .add("relations", Json.createArrayBuilder()
+                                .add(Json.createObjectBuilder()
+                                        .add("externalIdentifier", externalUrl1)
+                                        .add("identifierScheme", "URL")
+                                        .add("relationTypeName", "isRelatedTo"))))
+                .build();
+
+        Response createDataset = UtilIT.createDataset(dataverseAlias, datasetData.toString(), apiTokenSuperuser);
+        createDataset.then().assertThat().statusCode(CREATED.getStatusCode());
+        String pid = UtilIT.getDatasetPersistentIdFromResponse(createDataset);
+
+        // Read dataset and verify relations are present via GET api/datasets/:persistentId/versions/:draft
+        UtilIT.getDatasetVersion(pid, ":draft", apiTokenSuperuser, false, false, false, false)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("data.relations", hasSize(1))
+                .body("data.relations[0].externalIdentifier", equalTo(externalUrl1))
+                .body("data.relations[0].relationType.name", equalTo("isRelatedTo"));
+
+        // Update dataset with NEW relations via PUT api/datasets/:persistentId/versions/:draft
+        String externalUrl2 = "https://example.org/dataset/2";
+        
+        // Reuse the existing data and replace relations
+        JsonObject updatedVersionData = Json.createObjectBuilder(datasetData.getJsonObject("datasetVersion"))
+                .add("relations", Json.createArrayBuilder()
+                        .add(Json.createObjectBuilder()
+                                .add("externalIdentifier", externalUrl2)
+                                .add("identifierScheme", "URL")
+                                .add("relationTypeName", "isSupplementTo")))
+                .build();
+
+        UtilIT.updateDatasetMetadataViaNative(pid, updatedVersionData, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode());
+
+        // Read again and verify relations are updated
+        UtilIT.getDatasetVersion(pid, ":draft", apiTokenSuperuser, false, false, false, false)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("data.relations", hasSize(1))
+                .body("data.relations[0].externalIdentifier", equalTo(externalUrl2))
+                .body("data.relations[0].relationType.name", equalTo("isSupplementTo"));
     }
 }

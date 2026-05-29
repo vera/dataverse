@@ -797,6 +797,15 @@ public class UtilIT {
                 .put("/api/datasets/:persistentId/versions/" + DS_VERSION_DRAFT + "?persistentId=" + persistentId);
         return response;
     }
+
+    static Response updateDatasetMetadataViaNative(String persistentId, JsonObject json, String apiToken) {
+        Response response = given()
+                .header(API_TOKEN_HTTP_HEADER, apiToken)
+                .body(json.toString())
+                .contentType("application/json")
+                .put("/api/datasets/:persistentId/versions/" + DS_VERSION_DRAFT + "?persistentId=" + persistentId);
+        return response;
+    }
     
     // https://github.com/IQSS/dataverse/issues/3777
     static Response addDatasetMetadataViaNative(String persistentId, String pathToJsonFile, String apiToken) {
