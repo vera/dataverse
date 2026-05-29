@@ -11,6 +11,7 @@ import edu.harvard.iq.dataverse.authorization.groups.impl.ipaddress.IpGroup;
 import edu.harvard.iq.dataverse.authorization.groups.impl.ipaddress.ip.IpAddress;
 import edu.harvard.iq.dataverse.authorization.groups.impl.ipaddress.ip.IpAddressRange;
 import edu.harvard.iq.dataverse.authorization.groups.impl.maildomain.MailDomainGroup;
+import edu.harvard.iq.dataverse.dataset.DatasetRelationServiceBean;
 import edu.harvard.iq.dataverse.dataset.DatasetType;
 import edu.harvard.iq.dataverse.dataset.DatasetTypeServiceBean;
 import edu.harvard.iq.dataverse.datasetutility.OptionalFileParams;
@@ -50,6 +51,7 @@ public class JsonParser {
     SettingsServiceBean settingsService;
     LicenseServiceBean licenseService;
     DatasetTypeServiceBean datasetTypeService;
+    DatasetRelationServiceBean datasetRelationService;
     HarvestingClient harvestingClient = null;
     boolean allowHarvestingMissingCVV = false;
 
@@ -65,16 +67,17 @@ public class JsonParser {
         this.settingsService = settingsService;
     }
 
-    public JsonParser(DatasetFieldServiceBean datasetFieldSvc, MetadataBlockServiceBean blockService, SettingsServiceBean settingsService, LicenseServiceBean licenseService, DatasetTypeServiceBean datasetTypeService) {
-        this(datasetFieldSvc, blockService, settingsService, licenseService, datasetTypeService, null);
+    public JsonParser(DatasetFieldServiceBean datasetFieldSvc, MetadataBlockServiceBean blockService, SettingsServiceBean settingsService, LicenseServiceBean licenseService, DatasetTypeServiceBean datasetTypeService, DatasetRelationServiceBean datasetRelationService) {
+        this(datasetFieldSvc, blockService, settingsService, licenseService, datasetTypeService, datasetRelationService, null);
     }
 
-    public JsonParser(DatasetFieldServiceBean datasetFieldSvc, MetadataBlockServiceBean blockService, SettingsServiceBean settingsService, LicenseServiceBean licenseService, DatasetTypeServiceBean datasetTypeService, HarvestingClient harvestingClient) {
+    public JsonParser(DatasetFieldServiceBean datasetFieldSvc, MetadataBlockServiceBean blockService, SettingsServiceBean settingsService, LicenseServiceBean licenseService, DatasetTypeServiceBean datasetTypeService, DatasetRelationServiceBean datasetRelationService, HarvestingClient harvestingClient) {
         this.datasetFieldSvc = datasetFieldSvc;
         this.blockService = blockService;
         this.settingsService = settingsService;
         this.licenseService = licenseService;
         this.datasetTypeService = datasetTypeService;
+        this.datasetRelationService = datasetRelationService;
         this.harvestingClient = harvestingClient;
         this.allowHarvestingMissingCVV = harvestingClient != null && harvestingClient.getAllowHarvestingMissingCVV();
     }
@@ -217,7 +220,7 @@ public class JsonParser {
         }
     }
 
-    public DatasetRelationDTO parseDatasetRelationDTO(JsonObject jsonObject) throws JsonParseException {
+    public DatasetRelationDTO parseDatasetRelationDTO(JsonObject jsonObject) {
         DatasetRelationDTO datasetRelationDTO = new DatasetRelationDTO();
 
         setDTOPropertyIfPresent(jsonObject, "datasetPid", datasetRelationDTO::setDatasetPid);
@@ -557,6 +560,12 @@ public class JsonParser {
             if (filesJson != null) {
                 dsv.setFileMetadatas(parseFiles(filesJson, dsv));
             }
+
+            JsonArray relationsJson = obj.getJsonArray("relations");
+            if (relationsJson != null) {
+                dsv.setRelations(relationsJson.getValuesAs(JsonObject.class).stream().map(r -> datasetRelationService.fromDTO(parseDatasetRelationDTO(r), dsv)).toList());
+            }
+
             return dsv;
         } catch (ParseException ex) {
             throw new JsonParseException(BundleUtil.getStringFromBundle("jsonparser.error.parsing.date", Arrays.asList(ex.getMessage())) , ex);

@@ -487,6 +487,7 @@ public class Datasets extends AbstractApiBean {
                                @PathParam("id") String datasetId,
                                @PathParam("versionId") String versionId,
                                @QueryParam("excludeFiles") Boolean excludeFiles,
+                               @QueryParam("excludeRelations") Boolean excludeRelations,
                                @QueryParam("excludeMetadataBlocks") Boolean excludeMetadataBlocks,
                                @QueryParam("includeDeaccessioned") boolean includeDeaccessioned,
                                @QueryParam("returnOwners") boolean returnOwners,
@@ -496,6 +497,7 @@ public class Datasets extends AbstractApiBean {
         return response( req -> {
             boolean includeMetadataBlocks = excludeMetadataBlocks == null ? true : !excludeMetadataBlocks;
             boolean includeFiles = excludeFiles == null ? true : !excludeFiles;
+            boolean includeRelations = excludeRelations == null ? true : !excludeRelations;
             boolean ignoreSettingExcludeEmailFromExport = ignoreSettingToExcludeEmailFromExport != null ? ignoreSettingToExcludeEmailFromExport : false;
 
             //If excludeFiles is null the default is to provide the files and because of this we need to check permissions.
@@ -524,7 +526,7 @@ public class Datasets extends AbstractApiBean {
                 ignoreSettingExcludeEmailFromExport = false;
             }
 
-            JsonObjectBuilder jsonBuilder = json(requestedDatasetVersion, null, includeFiles,
+            JsonObjectBuilder jsonBuilder = json(requestedDatasetVersion, null, includeFiles, includeRelations,
                     returnOwners, includeMetadataBlocks, ignoreSettingExcludeEmailFromExport);
             return ok(jsonBuilder);
 
@@ -833,7 +835,9 @@ public class Datasets extends AbstractApiBean {
             DataverseRequest req = createDataverseRequest(getRequestUser(crc));
             Dataset ds = findDatasetOrDie(id);
             JsonObject json = JsonUtil.getJsonObject(jsonBody);
-            DatasetVersion incomingVersion = jsonParser().parseDatasetVersion(json);
+            DatasetVersion incomingVersion = new DatasetVersion();
+            incomingVersion.setDataset(ds);
+            incomingVersion = jsonParser().parseDatasetVersion(json, incomingVersion);
 
             // clear possibly stale fields from the incoming dataset version.
             // creation and modification dates are updated by the commands.
@@ -857,6 +861,15 @@ public class Datasets extends AbstractApiBean {
                 editVersion.setDatasetFields(incomingVersion.getDatasetFields());
                 editVersion.setTermsOfUseAndAccess(incomingVersion.getTermsOfUseAndAccess());
                 editVersion.getTermsOfUseAndAccess().setDatasetVersion(editVersion);
+
+                List<DatasetRelation> newRelations = incomingVersion.getRelations();
+                if (newRelations != null) {
+                    for (DatasetRelation rel : newRelations) {
+                        rel.setDefinitionPoint(editVersion);
+                    }
+                    editVersion.setRelations(newRelations);
+                }
+
                 boolean hasValidTerms = TermsOfUseAndAccessValidator.isTOUAValid(editVersion.getTermsOfUseAndAccess(), null);
                 if (!hasValidTerms) {
                     return error(Status.CONFLICT, BundleUtil.getStringFromBundle("dataset.message.toua.invalid"));
@@ -4052,9 +4065,6 @@ public class Datasets extends AbstractApiBean {
         } catch (JsonParsingException jpe) {
             logger.log(Level.SEVERE, "Json: {0}", body);
             throw jpe;
-        } catch (JsonParseException ex) {
-            logger.log(Level.SEVERE, "Error parsing DatasetRelationDTOs from json: " + ex.getMessage(), ex);
-            throw ex;
         }
     }
 

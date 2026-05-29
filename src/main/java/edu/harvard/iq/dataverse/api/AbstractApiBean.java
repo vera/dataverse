@@ -13,6 +13,7 @@ import edu.harvard.iq.dataverse.authorization.users.AuthenticatedUser;
 import edu.harvard.iq.dataverse.authorization.users.User;
 import edu.harvard.iq.dataverse.confirmemail.ConfirmEmailServiceBean;
 import edu.harvard.iq.dataverse.datacapturemodule.DataCaptureModuleServiceBean;
+import edu.harvard.iq.dataverse.dataset.DatasetRelationServiceBean;
 import edu.harvard.iq.dataverse.dataset.DatasetRelationTypeServiceBean;
 import edu.harvard.iq.dataverse.dataset.DatasetTypeServiceBean;
 import edu.harvard.iq.dataverse.dataverse.featured.DataverseFeaturedItem;
@@ -176,6 +177,9 @@ public abstract class AbstractApiBean {
     protected DatasetTypeServiceBean datasetTypeSvc;
 
     @EJB
+    protected DatasetRelationServiceBean datasetRelationSvc;
+
+    @EJB
     protected DatasetRelationTypeServiceBean datasetRelationTypeSvc;
 
     @EJB
@@ -267,7 +271,7 @@ public abstract class AbstractApiBean {
     private final LazyRef<JsonParser> jsonParserRef = new LazyRef<>(new Callable<JsonParser>() {
         @Override
         public JsonParser call() throws Exception {
-            return new JsonParser(datasetFieldSvc, metadataBlockSvc,settingsSvc, licenseSvc, datasetTypeSvc);
+            return new JsonParser(datasetFieldSvc, metadataBlockSvc,settingsSvc, licenseSvc, datasetTypeSvc, datasetRelationSvc);
         }
     });
 

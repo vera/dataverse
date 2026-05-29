@@ -6,6 +6,7 @@
 package edu.harvard.iq.dataverse.dataset;
 
 import edu.harvard.iq.dataverse.Dataset;
+import edu.harvard.iq.dataverse.DatasetServiceBean;
 import edu.harvard.iq.dataverse.DatasetVersion;
 
 import java.util.List;
@@ -13,6 +14,7 @@ import java.util.Set;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+import edu.harvard.iq.dataverse.api.dto.DatasetRelationDTO;
 import jakarta.ejb.EJB;
 import jakarta.ejb.Stateless;
 import jakarta.ejb.TransactionAttribute;
@@ -37,6 +39,12 @@ public class DatasetRelationServiceBean {
 
     @EJB
     private DatasetRelationServiceBean self;
+
+    @EJB
+    private DatasetRelationTypeServiceBean relationTypeService;
+
+    @EJB
+    private DatasetServiceBean datasetService;
 
     @Inject
     private DatasetRelationAlgorithm algorithm;
@@ -109,6 +117,25 @@ public class DatasetRelationServiceBean {
         em.flush();
 
         return newRelations;
+    }
+
+    public DatasetRelation fromDTO(DatasetRelationDTO dto, DatasetVersion version) {
+        Dataset d = dto.getDatasetPid() != null ? datasetService.findByGlobalId(dto.getDatasetPid()) : version.getDataset();
+        DatasetRelationType type = relationTypeService.findByName(dto.getRelationTypeName());
+
+        if (dto.getRelatedDatasetPid() != null) {
+            Dataset relatedDataset = datasetService.findByGlobalId(dto.getRelatedDatasetPid());
+            if (relatedDataset == null) {
+                logger.severe("Failed to find related dataset with PID " + dto.getRelatedDatasetPid());
+                return null;
+            }
+            return new InternalDatasetRelation(d, relatedDataset, type, version);
+        } else if (dto.getExternalIdentifier() != null) {
+            return new ExternalDatasetRelation(d, dto.getExternalIdentifier(), dto.getIdentifierScheme(), dto.getDatasetType(), type, version);
+        } else {
+            logger.severe("Relation DTO must have either relatedDatasetPid or externalIdentifier");
+            return null;
+        }
     }
 
 }

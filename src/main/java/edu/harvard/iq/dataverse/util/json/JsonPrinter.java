@@ -582,17 +582,17 @@ public class JsonPrinter {
     }
 
     public static JsonObjectBuilder json(DatasetVersion dsv, boolean includeFiles) {
-        return json(dsv, null, includeFiles, false, true, false);
+        return json(dsv, null, includeFiles, true, false, true, false);
     }
     public static JsonObjectBuilder json(DatasetVersion dsv, boolean includeFiles, boolean includeMetadataBlocks) {
-        return json(dsv, null, includeFiles, false, includeMetadataBlocks, false);
+        return json(dsv, null, includeFiles, true, false, includeMetadataBlocks, false);
     }
     public static JsonObjectBuilder json(DatasetVersion dsv, List<String> anonymizedFieldTypeNamesList,
                                          boolean includeFiles, boolean returnOwners) {
-        return  json(dsv, anonymizedFieldTypeNamesList, includeFiles, returnOwners, true, false);
+        return  json(dsv, anonymizedFieldTypeNamesList, includeFiles, true, returnOwners, true, false);
     }
     public static JsonObjectBuilder json(DatasetVersion dsv, List<String> anonymizedFieldTypeNamesList,
-        boolean includeFiles, boolean returnOwners, boolean includeMetadataBlocks, boolean ignoreSettingExcludeEmailFromExport) {
+        boolean includeFiles, boolean includeRelations, boolean returnOwners, boolean includeMetadataBlocks, boolean ignoreSettingExcludeEmailFromExport) {
         Dataset dataset = dsv.getDataset();
         JsonObjectBuilder bld = jsonObjectBuilder()
                 .add("id", dsv.getId()).add("datasetId", dataset.getId())
@@ -652,6 +652,9 @@ public class JsonPrinter {
         }
         if (includeFiles) {
             bld.add("files", jsonFileMetadatas(dsv.getFileMetadatas()));
+        }
+        if (includeRelations) {
+            bld.add("relations", json(dsv.getRelations(), dsv.getDataset(), false));
         }
 
         return bld;

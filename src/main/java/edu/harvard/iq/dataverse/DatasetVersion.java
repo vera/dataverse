@@ -205,7 +205,7 @@ public class DatasetVersion implements Serializable {
     @Transient
     private JsonObject archivalCopyLocationJson;
     
-    @OneToMany(mappedBy = "definitionPoint", cascade = {CascadeType.REMOVE, CascadeType.MERGE, CascadeType.PERSIST})
+    @OneToMany(mappedBy = "definitionPoint", cascade = {CascadeType.REMOVE, CascadeType.MERGE, CascadeType.PERSIST}, orphanRemoval = true)
     private List<DatasetRelation> relations;
 
     public List<DatasetRelation> getRelations() {

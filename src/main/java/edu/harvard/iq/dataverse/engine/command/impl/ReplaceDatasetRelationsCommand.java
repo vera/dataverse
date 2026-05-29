@@ -17,6 +17,7 @@ import edu.harvard.iq.dataverse.engine.command.*;
 import edu.harvard.iq.dataverse.engine.command.exception.CommandException;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.logging.Logger;
 
 /**
@@ -42,24 +43,10 @@ public class ReplaceDatasetRelationsCommand extends AbstractCommand<List<Dataset
     @Override
     public List<DatasetRelation> execute(CommandContext ctxt) throws CommandException {
         try {
-            List<DatasetRelation> relations = relationDTOs.stream().flatMap(relationDTO -> {
-                Dataset d = relationDTO.getDatasetPid() != null ? ctxt.datasets().findByGlobalId(relationDTO.getDatasetPid()) : this.version.getDataset();
-                DatasetRelationType type = ctxt.datasetRelationTypes().findByName(relationDTO.getRelationTypeName());
-
-                if (relationDTO.getRelatedDatasetPid() != null) {
-                    Dataset relatedDataset = ctxt.datasets().findByGlobalId(relationDTO.getRelatedDatasetPid());
-                    if (relatedDataset == null) {
-                        logger.severe("Failed to find related dataset with PID " + relationDTO.getRelatedDatasetPid());
-                        return java.util.stream.Stream.empty();
-                    }
-                    return java.util.stream.Stream.of(new InternalDatasetRelation(d, relatedDataset, type, version));
-                } else if (relationDTO.getExternalIdentifier() != null) {
-                    return java.util.stream.Stream.of(new ExternalDatasetRelation(d, relationDTO.getExternalIdentifier(), relationDTO.getIdentifierScheme(), relationDTO.getDatasetType(), type, version));
-                } else {
-                    logger.severe("Relation DTO must have either relatedDatasetPid or externalIdentifier");
-                    return java.util.stream.Stream.empty();
-                }
-            }).toList();
+            List<DatasetRelation> relations = relationDTOs.stream()
+                    .map(dto -> ctxt.datasetRelations().fromDTO(dto, version))
+                    .filter(Objects::nonNull)
+                    .toList();
             List<DatasetRelation> addedRelations = ctxt.datasetRelations().replaceAllDatasetRelationsFor(version, relations);
             // Reindex dataset to update relatedDatasetCount
             ctxt.index().asyncIndexDataset(version.getDataset(), true);
