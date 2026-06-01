@@ -1069,12 +1069,19 @@ public class JsonPrinter {
         return builder;
     }
 
-    public static JsonObjectBuilder json(DatasetRelationType drt) {
+    public static JsonObjectBuilder json(DatasetRelationType drt, boolean includeInverse) {
         JsonObjectBuilder result = new NullSafeJsonBuilder();
         result.add("name", drt.getName())
                 .add("displayName", drt.getDisplayName())
                 .add("description", drt.getDescription());
+        if (includeInverse && drt.getInverse() != null) {
+            result.add("inverse", json(drt.getInverse(), false));
+        }
         return result;
+    }
+
+    public static JsonObjectBuilder json(DatasetRelationType drt) {
+        return json(drt, true);
     }
 
     public static JsonObjectBuilder json(DatasetRelation rel, boolean invertRelation, boolean includeMetadataBlocks) {
