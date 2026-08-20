@@ -38,7 +38,19 @@ import jakarta.persistence.*;
 @DiscriminatorColumn(name = "relation_source", discriminatorType = DiscriminatorType.STRING)
 @Table(indexes = {
         @Index(name="index_datasetrelation_dataset", columnList="dataset_id"),
-        @Index(name="index_datasetrelation_relateddataset", columnList="relateddataset_id")
+        @Index(name="index_datasetrelation_relateddataset", columnList="relateddataset_id"),
+        @Index(name="index_datasetrelation_definitionpoint", columnList="definitionpoint_id"),
+        @Index(name="index_datasetrelation_relateddataset_definitionpoint", columnList="relateddataset_id, definitionpoint_id")
+        },
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "datasetrelation_internal_unique",
+                        columnNames = {"dataset_id", "relateddataset_id", "relationtype_id", "definitionpoint_id"}
+                ),
+                @UniqueConstraint(
+                        name = "datasetrelation_external_unique",
+                        columnNames = {"dataset_id", "externalidentifier", "relationtype_id", "definitionpoint_id"}
+                )
         }
 )
 @NamedQueries({
