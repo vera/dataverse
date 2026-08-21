@@ -39,9 +39,6 @@ public class DatasetRelationServiceBean {
     private EntityManager em;
 
     @EJB
-    private DatasetRelationServiceBean self;
-
-    @EJB
     private DatasetRelationTypeServiceBean relationTypeService;
 
     @EJB
@@ -90,17 +87,11 @@ public class DatasetRelationServiceBean {
 
     public DatasetRelation addDatasetRelation(DatasetRelation relation) {
         em.persist(relation);
+        em.flush();
         return relation;
     }
 
     public List<DatasetRelation> replaceAllDatasetRelationsFor(DatasetVersion v, List<DatasetRelation> newRelations) {
-        // Execute the update (in one atomic operation using a transaction)
-        // Note: We need to call via self-reference so the EJB container can create a transaction as intended.
-        return self.replaceAll(v, newRelations);
-    }
-
-    @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
-    public List<DatasetRelation> replaceAll(DatasetVersion v, List<DatasetRelation> newRelations) {
         List<DatasetRelation> existingRelations = em.createNamedQuery("DatasetRelation.getRelationsDefinedAtDatasetVersionId", DatasetRelation.class)
                 .setParameter("versionId", v.getId())
                 .getResultList();
@@ -131,7 +122,10 @@ public class DatasetRelationServiceBean {
 
         em.flush();
 
-        return newRelations;
+        // Re-fetch to ensure IDs are populated
+        return em.createNamedQuery("DatasetRelation.getRelationsDefinedAtDatasetVersionId", DatasetRelation.class)
+                .setParameter("versionId", v.getId())
+                .getResultList();
     }
 
     public DatasetRelation fromDTO(DatasetRelationDTO dto, DatasetVersion version) {

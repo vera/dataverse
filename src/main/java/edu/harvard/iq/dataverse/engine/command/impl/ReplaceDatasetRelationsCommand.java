@@ -43,11 +43,22 @@ public class ReplaceDatasetRelationsCommand extends AbstractCommand<List<Dataset
     @Override
     public List<DatasetRelation> execute(CommandContext ctxt) throws CommandException {
         try {
+            DatasetVersion effectiveVersion;
+
+            // If the version is not a draft, we need to create/get an edit version (draft)
+            if (!version.isDraft()) {
+                effectiveVersion = version.getDataset().getOrCreateEditVersion();
+                ctxt.engine().submit(new UpdateDatasetVersionCommand(version.getDataset(), getRequest()));
+            } else {
+                effectiveVersion = version;
+            }
+
             List<DatasetRelation> relations = relationDTOs.stream()
-                    .map(dto -> ctxt.datasetRelations().fromDTO(dto, version))
+                    .map(dto -> ctxt.datasetRelations().fromDTO(dto, effectiveVersion))
                     .filter(Objects::nonNull)
                     .toList();
-            List<DatasetRelation> addedRelations = ctxt.datasetRelations().replaceAllDatasetRelationsFor(version, relations);
+            List<DatasetRelation> addedRelations = ctxt.datasetRelations().replaceAllDatasetRelationsFor(effectiveVersion, relations);
+
             // Reindex dataset to update relatedDatasetCount
             ctxt.index().asyncIndexDataset(version.getDataset(), true);
             return addedRelations;

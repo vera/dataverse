@@ -4026,12 +4026,7 @@ public class Datasets extends AbstractApiBean {
                         return error(Response.Status.FORBIDDEN, BundleUtil.getStringFromBundle("datasets.api.datasetRelation.error.editForbidden"));
                     }
                 } else {
-                    boolean updateDraft = dataset.getLatestVersion().isDraft();
-                    version = dataset.getOrCreateEditVersion();
-                    if (!updateDraft) {
-                        dataset = execCommand(new UpdateDatasetVersionCommand(dataset, req));
-                        version = dataset.getLatestVersion();
-                    }
+                    version = dataset.getLatestVersion();
                 }
 
                 List<DatasetRelationDTO> newDatasetRelationsDTO;
