@@ -5609,11 +5609,36 @@ public class UtilIT {
                 .delete("/api/datasets/:persistentId/relations/" + relationId + "?persistentId=" + persistentId);
     }
 
+    public static Response listDatasetRelationTypes(String apiToken) {
+        String path = "/api/datasets/relationTypes";
+        if (apiToken != null && !apiToken.isEmpty()) {
+            return given().header(API_TOKEN_HTTP_HEADER, apiToken).get(path);
+        } else {
+            return given().get(path);
+        }
+    }
+
+    public static Response getDatasetRelationType(String nameOrId, String apiToken) {
+        String path = "/api/datasets/relationTypes/" + nameOrId;
+        if (apiToken != null && !apiToken.isEmpty()) {
+            return given().header(API_TOKEN_HTTP_HEADER, apiToken).get(path);
+        } else {
+            return given().get(path);
+        }
+    }
+
     public static Response addDatasetRelationType(String jsonIn, String apiToken) {
         return given()
                 .header(API_TOKEN_HTTP_HEADER, apiToken)
+//                .contentType(ContentType.JSON)
                 .body(jsonIn)
                 .post("/api/datasets/relationTypes");
+    }
+
+    public static Response deleteDatasetRelationType(String nameOrId, String apiToken) {
+        return given()
+                .header(API_TOKEN_HTTP_HEADER, apiToken)
+                .delete("/api/datasets/relationTypes/" + nameOrId);
     }
 
 }

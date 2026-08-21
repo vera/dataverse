@@ -95,7 +95,7 @@ public class DatasetRelationType implements Serializable {
 
     public void setInverse(DatasetRelationType inverse) {
         this.inverse = inverse;
-        if (inverse.getInverse() != this) {
+        if (inverse != null && inverse.getInverse() != this) {
             inverse.setInverse(this);
         }
     }

@@ -4269,8 +4269,8 @@ public class Datasets extends AbstractApiBean {
 
         try {
             JsonObject datasetRelationTypeObj = JsonUtil.getJsonObject(jsonIn);
-            String name = datasetRelationTypeObj.getString("name");
-            String displayName = datasetRelationTypeObj.getString("displayName");
+            String name = datasetRelationTypeObj.getString("name", null);
+            String displayName = datasetRelationTypeObj.getString("displayName", null);
             String description = datasetRelationTypeObj.getString("description", null);
             DatasetRelationType relationType = new DatasetRelationType(name, displayName, description);
 
