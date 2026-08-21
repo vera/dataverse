@@ -54,6 +54,10 @@ import jakarta.persistence.*;
         }
 )
 @NamedQueries({
+        @NamedQuery(name = "DatasetRelation.getRelationById",
+                query="SELECT rel FROM DatasetRelation rel WHERE rel.id=:id"),
+        @NamedQuery(name = "DatasetRelation.deleteRelationById",
+                query="DELETE FROM DatasetRelation rel WHERE rel.id=:id"),
         @NamedQuery(name = "DatasetRelation.removeRelationsByDatasetVersionId",
                 query = "DELETE FROM DatasetRelation rel WHERE rel.definitionPoint.id=:versionId"),
         @NamedQuery(name = "DatasetRelation.getRelationsDefinedAtDatasetVersionId",

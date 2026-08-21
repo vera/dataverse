@@ -22,6 +22,7 @@ import jakarta.ejb.TransactionAttributeType;
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.NoResultException;
 import jakarta.persistence.PersistenceContext;
 
 /**
@@ -55,6 +56,22 @@ public class DatasetRelationServiceBean {
                 .executeUpdate();
     }
 
+    public DatasetRelation getDatasetRelationById(Long id) {
+        try {
+            return em.createNamedQuery("DatasetRelation.getRelationById", DatasetRelation.class)
+                    .setParameter("id", id)
+                    .getSingleResult();
+        } catch (NoResultException e) {
+            return null;
+        }
+    }
+
+    public void deleteDatasetRelationById(Long id) {
+        em.createNamedQuery("DatasetRelation.deleteRelationById")
+          .setParameter("id", id)
+          .executeUpdate();
+    }
+
     public List<DatasetRelation> getDatasetRelationsFor(Dataset d, DatasetVersion v, List<String> relationTypeNames, List<String> datasetTypeNames, List<String> relationSources, Integer limit, Integer offset) {
         return algorithm.getRelations(d, v, relationTypeNames, datasetTypeNames, relationSources, limit, offset);
     }
@@ -71,11 +88,9 @@ public class DatasetRelationServiceBean {
         return algorithm.getTotalDatasetRelationCountFor(d, v, relationTypeNames, datasetTypeNames, relationSources);
     }
 
-    public List<DatasetRelation> addDatasetRelations(List<DatasetRelation> relations) {
-        for (DatasetRelation relation : relations) {
-            em.persist(relation);
-        }
-        return relations;
+    public DatasetRelation addDatasetRelation(DatasetRelation relation) {
+        em.persist(relation);
+        return relation;
     }
 
     public List<DatasetRelation> replaceAllDatasetRelationsFor(DatasetVersion v, List<DatasetRelation> newRelations) {

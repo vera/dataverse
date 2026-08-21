@@ -68,12 +68,12 @@ public class DatasetRelationTypeServiceBean {
         return relationType;
     }
 
-    public int deleteById(long id) throws AbstractApiBean.WrappedResponse {
+    public int deleteById(long id) throws IllegalStateException, PersistenceException {
         try {
             return em.createNamedQuery("DatasetRelationType.deleteById").setParameter("id", id).executeUpdate();
         } catch (PersistenceException p) {
             if (p.getMessage().contains("violates foreign key constraint")) {
-                throw new AbstractApiBean.WrappedResponse(new IllegalStateException("Dataset relation type with id " + id + " is referenced and cannot be deleted.", p), null);
+                throw new IllegalStateException("Dataset relation type with id " + id + " is referenced and cannot be deleted.", p);
             } else {
                 throw p;
             }

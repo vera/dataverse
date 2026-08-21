@@ -4023,7 +4023,7 @@ public class Datasets extends AbstractApiBean {
                         // Superuser can edit published version directly if specified
                         version = findDatasetVersionOrDie(req, versionNumber, dataset, false, false);
                     } else {
-                        return error(Response.Status.FORBIDDEN, "You are not permitted to replace the dataset relations of a published version of a dataset.");
+                        return error(Response.Status.FORBIDDEN, BundleUtil.getStringFromBundle("datasets.api.datasetRelation.error.editForbidden"));
                     }
                 } else {
                     boolean updateDraft = dataset.getLatestVersion().isDraft();
@@ -4038,9 +4038,9 @@ public class Datasets extends AbstractApiBean {
                 try {
                     newDatasetRelationsDTO = parseAndValidateReplaceDatasetRelationsRequestBody(body);
                 } catch (JsonParsingException jpe) {
-                    return error(Status.BAD_REQUEST, MessageFormat.format(BundleUtil.getStringFromBundle("dataverse.create.error.jsonparse"), jpe.getMessage()));
+                    return error(Status.BAD_REQUEST, MessageFormat.format(BundleUtil.getStringFromBundle("datasets.api.datasetRelation.error.jsonparse"), jpe.getMessage()));
                 } catch (JsonParseException ex) {
-                    return error(Status.BAD_REQUEST, MessageFormat.format(BundleUtil.getStringFromBundle("dataverse.create.error.jsonparsetodatasetrelation"), ex.getMessage()));
+                    return error(Status.BAD_REQUEST, MessageFormat.format(BundleUtil.getStringFromBundle("datasets.api.datasetRelation.error.jsonparsetodatasetrelation"), ex.getMessage()));
                 }
 
                 List<DatasetRelation> res = execCommand(new ReplaceDatasetRelationsCommand(version, newDatasetRelationsDTO, req));
@@ -4068,6 +4068,111 @@ public class Datasets extends AbstractApiBean {
         }
     }
 
+    @POST
+    @AuthRequired
+    @Path("{identifier}/relations")
+    public Response createSingleDatasetRelation(
+            @Context ContainerRequestContext crc,
+            String body,
+            @PathParam("identifier") String id,
+            @QueryParam("version") String versionNumber
+    ) {
+        return response(req -> {
+            try {
+                DatasetRelationDTO newDatasetRelationDTO;
+                try {
+                    newDatasetRelationDTO = parseAndValidateAddDatasetRelationRequestBody(body);
+                } catch (JsonParsingException jpe) {
+                    return error(Status.BAD_REQUEST, MessageFormat.format(BundleUtil.getStringFromBundle("datasets.api.datasetRelation.error.jsonparse"), jpe.getMessage()));
+                } catch (JsonParseException ex) {
+                    return error(Status.BAD_REQUEST, MessageFormat.format(BundleUtil.getStringFromBundle("datasets.api.datasetRelation.error.jsonparsetodatasetrelation"), ex.getMessage()));
+                }
+
+                Dataset dataset = findDatasetOrDie(id);
+                DatasetVersion version;
+
+                if (versionNumber != null) {
+                    if (getRequestUser(crc).isSuperuser()) {
+                        // Superuser can edit published version directly if specified
+                        version = findDatasetVersionOrDie(req, versionNumber, dataset, false, false);
+                    } else {
+                        return error(Response.Status.FORBIDDEN, BundleUtil.getStringFromBundle("datasets.api.datasetRelation.error.editForbidden"));
+                    }
+                } else {
+                    boolean updateDraft = dataset.getLatestVersion().isDraft();
+                    version = dataset.getOrCreateEditVersion();
+                    if (!updateDraft) {
+                        dataset = execCommand(new UpdateDatasetVersionCommand(dataset, req));
+                        version = dataset.getLatestVersion();
+                    }
+                }
+
+                DatasetRelation rel = execCommand(new CreateDatasetRelationCommand(version, newDatasetRelationDTO, req));
+
+                Dataset finalDataset = dataset;
+                return ok(json(rel, finalDataset, false));
+            } catch (WrappedResponse wr) {
+                return wr.getResponse();
+            }
+
+        }, getRequestUser(crc));
+    }
+
+    private DatasetRelationDTO parseAndValidateAddDatasetRelationRequestBody(String body) throws JsonParsingException, JsonParseException {
+        try {
+            JsonObject relation = JsonUtil.getJsonObject(body);
+            return jsonParser().parseDatasetRelationDTO(relation);
+        } catch (JsonParsingException jpe) {
+            logger.log(Level.SEVERE, "Json: {0}", body);
+            throw jpe;
+        }
+    }
+
+    @GET
+    @AuthRequired
+    @Path("{identifier}/relations/{id}")
+    public Response getSingleRelation(
+            @Context ContainerRequestContext crc,
+            @PathParam("identifier") String datasetId,
+            @PathParam("id") String id,
+            @QueryParam("includeMetadataBlocks") boolean includeMetadataBlocks
+    ) {
+        return response(req -> {
+            User u = getRequestUser(crc);
+
+            Dataset dataset = findDatasetOrDie(datasetId);
+
+            DatasetRelation relation = findDatasetRelationOrDie(id, datasetId);
+
+            if (!relation.getDefinitionPoint().isReleased() && !permissionService.hasPermissionsFor(u, relation.getDefinitionPoint().getDataset(), EnumSet.of(Permission.ViewUnpublishedDataset))) {
+                return forbidden(BundleUtil.getStringFromBundle("datasets.api.datasetRelation.error.viewForbidden"));
+            }
+
+            return ok(json(relation, dataset, includeMetadataBlocks));
+        }, getRequestUser(crc));
+    }
+
+    @DELETE
+    @AuthRequired
+    @Path("{identifier}/relations/{id}")
+    public Response deleteSingleRelation(
+            @Context ContainerRequestContext crc,
+            @PathParam("identifier") String datasetId,
+            @PathParam("id") String id
+    ) {
+        return response(req -> {
+            try {
+                DatasetRelation relation = findDatasetRelationOrDie(id, datasetId);
+
+                execCommand(new DeleteDatasetRelationCommand(req, relation));
+
+                return ok(BundleUtil.getStringFromBundle("datasets.api.datasetRelation.delete.success"));
+            } catch (WrappedResponse wr) {
+                return wr.getResponse();
+            }
+        }, getRequestUser(crc));
+    }
+
     @GET
     @AuthRequired
     @Path("{identifier}/relations")
@@ -4091,7 +4196,9 @@ public class Datasets extends AbstractApiBean {
                 } else {
                     // By default, get latest accessible version
                     version = execCommand(new GetLatestAccessibleDatasetVersionCommand(req, dataset, false, false));
-                    failIfNull(version, "Latest accessible version not found for dataset " + dataset.getGlobalId().asString());
+                    if (version == null) {
+                        return notFound(MessageFormat.format(BundleUtil.getStringFromBundle("datasets.api.datasetRelation.error.datasetVersionNotFound"), dataset.getGlobalId().asString()));
+                    }
                 }
 
                 Integer effectiveLimit = limit != null ? limit : 10;
@@ -4125,7 +4232,9 @@ public class Datasets extends AbstractApiBean {
                 } else {
                     // By default, get latest accessible version
                     version = execCommand(new GetLatestAccessibleDatasetVersionCommand(req, dataset, false, false));
-                    failIfNull(version, "Latest accessible version not found for dataset " + dataset.getGlobalId().asString());
+                    if (version == null) {
+                        return notFound(MessageFormat.format(BundleUtil.getStringFromBundle("datasets.api.datasetRelation.error.datasetVersionNotFound"), dataset.getGlobalId().asString()));
+                    }
                 }
 
                 List<Object[]> relationCounts = datasetRelationService.getDatasetRelationCountsFor(dataset, version, groupBy);
@@ -4157,10 +4266,10 @@ public class Datasets extends AbstractApiBean {
         try {
             authenticatedUser = getRequestAuthenticatedUserOrDie(crc);
             if (!authenticatedUser.isSuperuser()) {
-                return error(Response.Status.FORBIDDEN, "must be superuser");
+                return error(Response.Status.FORBIDDEN, BundleUtil.getStringFromBundle("datasets.api.datasetRelationType.error.create.superuserOnly"));
             }
         } catch (WrappedResponse e) {
-            return error(Response.Status.UNAUTHORIZED, "api key required");
+            return error(Response.Status.UNAUTHORIZED, BundleUtil.getStringFromBundle("datasets.api.datasetRelationType.error.create.auth"));
         }
 
         try {
@@ -4183,7 +4292,7 @@ public class Datasets extends AbstractApiBean {
             }
             datasetRelationTypeSvc.save(relationType);
 
-            return ok("Relation type(s) created");
+            return ok(BundleUtil.getStringFromBundle("datasets.api.datasetRelationType.create.success"));
         } catch (WrappedResponse ex) {
             return error(BAD_REQUEST, ex.getMessage());
         }
@@ -4197,37 +4306,22 @@ public class Datasets extends AbstractApiBean {
         try {
             user = getRequestAuthenticatedUserOrDie(crc);
         } catch (WrappedResponse ex) {
-            return error(Response.Status.BAD_REQUEST, "Authentication is required.");
+            return error(Response.Status.BAD_REQUEST, BundleUtil.getStringFromBundle("datasets.api.datasetRelationType.error.delete.auth"));
         }
         if (!user.isSuperuser()) {
-            return error(Response.Status.FORBIDDEN, "Superusers only.");
-        }
-
-        if (doomed == null || doomed.isEmpty()) {
-            throw new IllegalArgumentException("ID is required!");
-        }
-
-        long idToDelete;
-        try {
-            idToDelete = Long.parseLong(doomed);
-        } catch (NumberFormatException e) {
-            return error(BAD_REQUEST,"ID must be a number");
-        }
-
-        DatasetRelationType drtToDelete = datasetRelationTypeSvc.findById(idToDelete);
-        if (drtToDelete == null) {
-            return error(BAD_REQUEST, "Could not find dataset relation type with id " + idToDelete);
+            return error(Response.Status.FORBIDDEN, BundleUtil.getStringFromBundle("datasets.api.datasetRelationType.error.delete.superuserOnly"));
         }
 
         try {
-            int numDeleted = datasetRelationTypeSvc.deleteById(idToDelete);
+            DatasetRelationType drtToDelete = findDatasetRelationTypeOrDie(doomed);
+            int numDeleted = datasetRelationTypeSvc.deleteById(drtToDelete.getId());
             if (numDeleted == 1) {
-                return ok("deleted");
+                return ok(BundleUtil.getStringFromBundle("datasets.api.datasetRelationType.delete.success"));
             } else {
-                return error(BAD_REQUEST, "Something went wrong. Number of dataset types deleted: " + numDeleted);
+                return error(BAD_REQUEST, MessageFormat.format(BundleUtil.getStringFromBundle("datasets.api.datasetRelationType.error.delete"), numDeleted));
             }
         } catch (WrappedResponse ex) {
-            return error(BAD_REQUEST, ex.getMessage());
+            return ex.getResponse();
         }
     }
 
@@ -4244,21 +4338,10 @@ public class Datasets extends AbstractApiBean {
     @GET
     @Path("relationTypes/{idOrName}")
     public Response getRelationType(@PathParam("idOrName") String idOrName) {
-        DatasetRelationType drt = null;
-        if (StringUtils.isNumeric(idOrName)) {
-            try {
-                long id = Long.parseLong(idOrName);
-                drt = datasetRelationTypeSvc.findById(id);
-            } catch (NumberFormatException ex) {
-                return error(NOT_FOUND, "Could not find a dataset type with id " + idOrName);
-            }
-        } else {
-            drt = datasetRelationTypeSvc.findByName(idOrName);
-        }
-        if (drt != null) {
-            return ok(json(drt));
-        } else {
-            return error(NOT_FOUND, "Could not find a dataset relation type with name/id " + idOrName);
+        try {
+            return ok(json(findDatasetRelationTypeOrDie(idOrName)));
+        } catch (WrappedResponse ex) {
+            return ex.getResponse();
         }
     }
 
