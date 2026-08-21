@@ -63,6 +63,7 @@ import jakarta.ejb.EJBException;
 import jakarta.inject.Inject;
 import jakarta.json.*;
 import jakarta.json.stream.JsonParsingException;
+import jakarta.persistence.PersistenceException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.ws.rs.*;
@@ -4257,67 +4258,53 @@ public class Datasets extends AbstractApiBean {
     @AuthRequired
     @Path("relationTypes")
     public Response addRelationType(@Context ContainerRequestContext crc, String jsonIn) {
-        User authenticatedUser;
-        try {
-            authenticatedUser = getRequestAuthenticatedUserOrDie(crc);
-            if (!authenticatedUser.isSuperuser()) {
-                return error(Response.Status.FORBIDDEN, BundleUtil.getStringFromBundle("datasets.api.datasetRelationType.error.create.superuserOnly"));
-            }
-        } catch (WrappedResponse e) {
-            return error(Response.Status.UNAUTHORIZED, BundleUtil.getStringFromBundle("datasets.api.datasetRelationType.error.create.auth"));
-        }
-
-        try {
+        return response(req -> {
             JsonObject datasetRelationTypeObj = JsonUtil.getJsonObject(jsonIn);
             String name = datasetRelationTypeObj.getString("name", null);
             String displayName = datasetRelationTypeObj.getString("displayName", null);
             String description = datasetRelationTypeObj.getString("description", null);
             DatasetRelationType relationType = new DatasetRelationType(name, displayName, description);
 
-            String inverseName = datasetRelationTypeObj.getString("inverseName", null);
-            if (inverseName != null && !inverseName.isEmpty()) {
-                if (!inverseName.equals(name)) {
-                    String inverseDisplayName = datasetRelationTypeObj.getString("inverseDisplayName", null);
-                    String inverseDescription = datasetRelationTypeObj.getString("inverseDescription",  null);
-                    new DatasetRelationType(inverseName, inverseDisplayName, inverseDescription, relationType);
-                } else {
-                    // Some relation types may be the inverse of themselves, e.g. "is identical to"
-                    relationType.setInverse(relationType);
+            if (datasetRelationTypeObj.containsKey("inverse") && datasetRelationTypeObj.get("inverse").getValueType() == JsonValue.ValueType.OBJECT) {
+                JsonObject inverseObj = datasetRelationTypeObj.getJsonObject("inverse");
+                String inverseName = inverseObj.getString("name", null);
+                if (inverseName != null && !inverseName.isEmpty()) {
+                    if (!inverseName.equals(name)) {
+                        String inverseDisplayName = inverseObj.getString("displayName", null);
+                        String inverseDescription = inverseObj.getString("description", null);
+                        new DatasetRelationType(inverseName, inverseDisplayName, inverseDescription, relationType);
+                    } else {
+                        // Some relation types may be the inverse of themselves, e.g. "is identical to"
+                        relationType.setInverse(relationType);
+                    }
                 }
             }
-            datasetRelationTypeSvc.save(relationType);
 
-            return ok(BundleUtil.getStringFromBundle("datasets.api.datasetRelationType.create.success"));
-        } catch (WrappedResponse ex) {
-            return error(BAD_REQUEST, ex.getMessage());
-        }
+            try {
+                execCommand(new CreateDatasetRelationTypeCommand(req, relationType));
+
+                return ok(BundleUtil.getStringFromBundle("datasets.api.datasetRelationType.create.success"));
+            } catch (WrappedResponse ex) {
+                return ex.getResponse();
+            }
+        }, getRequestUser(crc));
     }
 
     @DELETE
     @AuthRequired
     @Path("relationTypes/{idOrName}")
     public Response deleteRelationType(@Context ContainerRequestContext crc, @PathParam("idOrName") String doomed) {
-        AuthenticatedUser user;
-        try {
-            user = getRequestAuthenticatedUserOrDie(crc);
-        } catch (WrappedResponse ex) {
-            return error(Response.Status.BAD_REQUEST, BundleUtil.getStringFromBundle("datasets.api.datasetRelationType.error.delete.auth"));
-        }
-        if (!user.isSuperuser()) {
-            return error(Response.Status.FORBIDDEN, BundleUtil.getStringFromBundle("datasets.api.datasetRelationType.error.delete.superuserOnly"));
-        }
+        return response(req -> {
+            try {
+                DatasetRelationType drtToDelete = findDatasetRelationTypeOrDie(doomed);
 
-        try {
-            DatasetRelationType drtToDelete = findDatasetRelationTypeOrDie(doomed);
-            int numDeleted = datasetRelationTypeSvc.deleteById(drtToDelete.getId());
-            if (numDeleted == 1) {
+                execCommand(new DeleteDatasetRelationTypeCommand(req, drtToDelete));
+
                 return ok(BundleUtil.getStringFromBundle("datasets.api.datasetRelationType.delete.success"));
-            } else {
-                return error(BAD_REQUEST, MessageFormat.format(BundleUtil.getStringFromBundle("datasets.api.datasetRelationType.error.delete"), numDeleted));
+            } catch (WrappedResponse ex) {
+                return ex.getResponse();
             }
-        } catch (WrappedResponse ex) {
-            return ex.getResponse();
-        }
+        }, getRequestUser(crc));
     }
 
     @GET

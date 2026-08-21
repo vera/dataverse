@@ -62,7 +62,7 @@ public class DatasetRelationTypesIT {
                 .add("name", name2)
                 .add("displayName", displayName2)
                 .add("description", description2)
-                .add("inverseName", name2);
+                .add("inverse", Json.createObjectBuilder().add("name", name2));
 
         UtilIT.addDatasetRelationType(builder2.build().toString(), apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode());
@@ -89,9 +89,9 @@ public class DatasetRelationTypesIT {
                 .add("name", name3)
                 .add("displayName", displayName3)
                 .add("description", description3)
-                .add("inverseName", inverseName3)
-                .add("inverseDisplayName", inverseDisplayName3)
-                .add("inverseDescription", inverseDescription3);
+                .add("inverse", Json.createObjectBuilder().add("name", inverseName3)
+                                                                 .add("displayName", inverseDisplayName3)
+                                                                 .add("description", inverseDescription3));
 
         UtilIT.addDatasetRelationType(builder3.build().toString(), apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode());
@@ -220,7 +220,7 @@ public class DatasetRelationTypesIT {
         // Try to delete the relation type while it's in use
         // Expected behavior: should fail because of existing relations
         UtilIT.deleteDatasetRelationType(typeName, apiTokenSuperuser)
-                .then().assertThat().statusCode(CONFLICT.getStatusCode());
+                .then().assertThat().statusCode(BAD_REQUEST.getStatusCode());
 
         // Cleanup: remove relation first
         // Need the relation ID

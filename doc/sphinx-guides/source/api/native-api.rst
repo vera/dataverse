@@ -4793,11 +4793,11 @@ Here's a description of each field:
 - ``displayName`` (required): Human-readable name.
 - ``description``: A description.
 
-The following fields may be additionally given to add an inverse relationship type:
+The following fields may optionally also be given to add an inverse relationship type:
 
-- ``inverseName`` (required): Machine-readable name of the inverse relation type. Can be identical to ``name``` if the relation type is the inverse of itself.
-- ``inverseDisplayName`` (required): Human-readable name of the inverse relation type.
-- ``inverseDescription``: A description of the inverse relation type.
+- ``inverse.name`` (required): Machine-readable name of the inverse relation type. Can be identical to ``name``` if the relation type is the inverse of itself.
+- ``inverse.displayName`` (required): Human-readable name of the inverse relation type.
+- ``inverse.description``: A description of the inverse relation type.
 
 Download the :download:`relationTypeAllFields.json <../../../../scripts/api/data/relationTypes/relationTypeAllFields.json>` file show above, edit it to suit your needs, and use it in the following command.
 

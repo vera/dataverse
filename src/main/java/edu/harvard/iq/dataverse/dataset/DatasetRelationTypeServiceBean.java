@@ -1,12 +1,19 @@
 package edu.harvard.iq.dataverse.dataset;
 
-import edu.harvard.iq.dataverse.api.AbstractApiBean;
+import edu.harvard.iq.dataverse.api.AbstractApiBean.WrappedResponse;
+import edu.harvard.iq.dataverse.api.ApiConstants;
+import edu.harvard.iq.dataverse.engine.command.exception.InvalidCommandArgumentsException;
+import edu.harvard.iq.dataverse.util.BundleUtil;
+import edu.harvard.iq.dataverse.util.json.NullSafeJsonBuilder;
 import jakarta.ejb.Stateless;
 import jakarta.inject.Named;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.PersistenceException;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import org.eclipse.persistence.exceptions.DatabaseException;
 
 import java.util.List;
 import java.util.logging.Level;
@@ -51,16 +58,15 @@ public class DatasetRelationTypeServiceBean {
         }
     }
 
-    public DatasetRelationType save(DatasetRelationType relationType) throws AbstractApiBean.WrappedResponse {
-        if (relationType.getId() != null) {
-            throw new AbstractApiBean.WrappedResponse(new IllegalArgumentException("There shouldn't be an ID already set"), null);
-        }
+    public DatasetRelationType save(DatasetRelationType relationType) throws IllegalArgumentException {
         try {
             em.persist(relationType);
             em.flush();
         } catch (PersistenceException p) {
             if (p.getMessage().contains("duplicate key")) {
-                throw new AbstractApiBean.WrappedResponse(new IllegalStateException("A relation type with the same name or inverse is already present.", p), null);
+                throw new IllegalArgumentException(BundleUtil.getStringFromBundle("datasets.api.datasetRelationType.error.create.duplicate"), p);
+            } else if (p.getMessage().contains("violates not-null constraint")){
+                throw new IllegalArgumentException(BundleUtil.getStringFromBundle("datasets.api.datasetRelationType.error.create.notNull"), p);
             } else {
                 throw p;
             }
@@ -68,11 +74,7 @@ public class DatasetRelationTypeServiceBean {
         return relationType;
     }
 
-    public int deleteById(long id) throws IllegalStateException, PersistenceException {
-        DatasetRelationType doomed = findById(id);
-        if (doomed == null) {
-            return 0;
-        }
+    public void delete(DatasetRelationType doomed) throws IllegalArgumentException {
         try {
             DatasetRelationType inverse = doomed.getInverse();
             if (inverse != null) {
@@ -83,10 +85,9 @@ public class DatasetRelationTypeServiceBean {
             }
             em.remove(em.merge(doomed));
             em.flush();
-            return 1;
         } catch (PersistenceException p) {
             if (p.getMessage().contains("violates foreign key constraint")) {
-                throw new IllegalStateException("Dataset relation type with id " + id + " is referenced and cannot be deleted.", p);
+                throw new IllegalArgumentException(BundleUtil.getStringFromBundle("datasets.api.datasetRelationType.error.delete.referenced"), p);
             } else {
                 throw p;
             }
