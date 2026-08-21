@@ -481,7 +481,7 @@ public class JsonPrinterTest {
         Dataset dataset = createDataset(42);
         dataset.setDatasetType(foobar);
         
-        var jsob = JsonPrinter.json(dataset.getLatestVersion(), false, false).build();
+        var jsob = JsonPrinter.json(dataset.getLatestVersion(), false, false, false).build();
         String result = jsob.getString("datasetType");
         
         assertNotNull(result);

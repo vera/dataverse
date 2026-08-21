@@ -587,6 +587,9 @@ public class JsonPrinter {
     public static JsonObjectBuilder json(DatasetVersion dsv, boolean includeFiles, boolean includeMetadataBlocks) {
         return json(dsv, null, includeFiles, true, false, includeMetadataBlocks, false);
     }
+    public static JsonObjectBuilder json(DatasetVersion dsv, boolean includeFiles, boolean includeMetadataBlocks, boolean includeRelations) {
+        return json(dsv, null, includeFiles, includeRelations, false, includeMetadataBlocks, false);
+    }
     public static JsonObjectBuilder json(DatasetVersion dsv, List<String> anonymizedFieldTypeNamesList,
                                          boolean includeFiles, boolean returnOwners) {
         return  json(dsv, anonymizedFieldTypeNamesList, includeFiles, true, returnOwners, true, false);
