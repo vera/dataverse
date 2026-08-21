@@ -1090,7 +1090,8 @@ public class JsonPrinter {
     public static JsonObjectBuilder json(DatasetRelation rel, boolean invertRelation, boolean includeMetadataBlocks) {
         JsonObjectBuilder result = new NullSafeJsonBuilder();
 
-        result.add("definitionPointPid", rel.getDefinitionPoint().getDataset().getGlobalId().toString());
+        result.add("id", rel.getId())
+              .add("definitionPointPid", rel.getDefinitionPoint().getDataset().getGlobalId().toString());
 
         if (rel instanceof InternalDatasetRelation) {
             InternalDatasetRelation irel = (InternalDatasetRelation) rel;
@@ -1116,7 +1117,7 @@ public class JsonPrinter {
             ExternalDatasetRelation erel = (ExternalDatasetRelation) rel;
             result.add("datasetPid", erel.getDataset().getGlobalId().toString())
                   .add("externalIdentifier", erel.getExternalIdentifier())
-                    .add("identifierScheme", erel.getIdentifierScheme());
+                  .add("identifierScheme", erel.getIdentifierScheme());
 
             if (erel.getDatasetType() != null) {
                   result.add("relatedDatasetType",

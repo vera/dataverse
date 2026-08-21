@@ -5586,6 +5586,29 @@ public class UtilIT {
                 .get(path);
     }
 
+    public static Response addDatasetRelation(String persistentId, String jsonBody, String apiToken) {
+        return given()
+                .header(API_TOKEN_HTTP_HEADER, apiToken)
+                .contentType(ContentType.JSON)
+                .body(jsonBody)
+                .post("/api/datasets/:persistentId/relations?persistentId=" + persistentId);
+    }
+
+    public static Response getDatasetRelation(String persistentId, long relationId, String apiToken) {
+        String path = "/api/datasets/:persistentId/relations/" + relationId + "?persistentId=" + persistentId;
+        if (apiToken != null && !apiToken.isEmpty()) {
+            return given().header(API_TOKEN_HTTP_HEADER, apiToken).get(path);
+        } else {
+            return given().get(path);
+        }
+    }
+
+    public static Response deleteDatasetRelation(String persistentId, long relationId, String apiToken) {
+        return given()
+                .header(API_TOKEN_HTTP_HEADER, apiToken)
+                .delete("/api/datasets/:persistentId/relations/" + relationId + "?persistentId=" + persistentId);
+    }
+
     public static Response addDatasetRelationType(String jsonIn, String apiToken) {
         return given()
                 .header(API_TOKEN_HTTP_HEADER, apiToken)
