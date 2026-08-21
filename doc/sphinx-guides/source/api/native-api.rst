@@ -4731,6 +4731,110 @@ The fully expanded example above (without environment variables) looks like this
 
   curl -H "X-Dataverse-key:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" -X PUT "https://demo.dataverse.org/api/datasets/3/license" -H "Content-type:application/json" --upload-file license.json
 
+Dataset Relation Types
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. note:: See :ref:`curl-examples-and-environment-variables` if you are unfamiliar with the use of ``export`` below.
+
+.. _api-list-dataset-relation-types:
+
+List Dataset Relation Types
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Show which dataset relation types are available.
+
+.. code-block:: bash
+
+  export SERVER_URL=https://demo.dataverse.org
+
+  curl "$SERVER_URL/api/datasets/relationTypes"
+
+The fully expanded example above (without environment variables) looks like this:
+
+.. code-block:: bash
+
+  curl "https://demo.dataverse.org/api/datasets/relationTypes"
+
+.. _api-list-dataset-relation-type:
+
+Get Dataset Relation Type
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Show a dataset relation type by passing either its database id (e.g. "2") or its name (e.g. "isRelatedTo").
+
+.. code-block:: bash
+
+  export SERVER_URL=https://demo.dataverse.org
+  export TYPE=isRelatedTo
+
+  curl $SERVER_URL/api/datasets/relationTypes/$TYPE"
+
+The fully expanded example above (without environment variables) looks like this:
+
+.. code-block:: bash
+
+  curl "https://demo.dataverse.org/api/datasets/relationTypes/isRelatedTo"
+
+.. _api-add-dataset-relation-type:
+
+Add Dataset Relation Type
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Only superusers can add dataset relation types.
+
+Here's an example of all available fields when creating a dataset type:
+
+.. literalinclude:: ../../../../scripts/api/data/relationTypes/relationTypeAllFields.json
+   :language: json
+
+Here's a description of each field:
+
+- ``name`` (required): Machine-readable name.
+- ``displayName`` (required): Human-readable name.
+- ``description``: A description.
+
+The following fields may be additionally given to add an inverse relationship type:
+
+- ``inverseName`` (required): Machine-readable name of the inverse relation type. Can be identical to ``name``` if the relation type is the inverse of itself.
+- ``inverseDisplayName`` (required): Human-readable name of the inverse relation type.
+- ``inverseDescription``: A description of the inverse relation type.
+
+Download the :download:`relationTypeAllFields.json <../../../../scripts/api/data/relationTypes/relationTypeAllFields.json>` file show above, edit it to suit your needs, and use it in the following command.
+
+.. code-block:: bash
+
+  export API_TOKEN=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+  export SERVER_URL=https://demo.dataverse.org
+
+  curl -H "X-Dataverse-key:$API_TOKEN" -H "Content-Type: application/json" "$SERVER_URL/api/datasets/relationTypes" -X POST --upload-file relationTypeAllFields.json
+
+The fully expanded example above (without environment variables) looks like this:
+
+.. code-block:: bash
+
+  curl -H "X-Dataverse-key:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" -H "Content-Type: application/json" "https://demo.dataverse.org/api/datasets/relationTypes" -X POST --upload-file relationTypeAllFields.json
+
+.. _api-delete-dataset-type:
+
+Delete Dataset Relation Type
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Superuser only. Note that if a dataset relation of this type exists, you will be unable to delete the type until you first use the API to delete that relation.
+
+.. code-block:: bash
+
+  export API_TOKEN=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+  export SERVER_URL=https://demo.dataverse.org
+  export TYPE_ID=3
+
+  curl -H "X-Dataverse-key:$API_TOKEN" -X DELETE "$SERVER_URL/api/datasets/relationTypes/$TYPE_ID"
+
+The fully expanded example above (without environment variables) looks like this:
+
+.. code-block:: bash
+
+  curl -H "X-Dataverse-key:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" -X DELETE "https://demo.dataverse.org/api/datasets/relationTypes/3"
+
 Files
 -----
 

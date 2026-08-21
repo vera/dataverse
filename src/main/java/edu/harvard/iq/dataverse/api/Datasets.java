@@ -4295,8 +4295,8 @@ public class Datasets extends AbstractApiBean {
 
     @DELETE
     @AuthRequired
-    @Path("relationTypes/{id}")
-    public Response deleteRelationType(@Context ContainerRequestContext crc, @PathParam("id") String doomed) {
+    @Path("relationTypes/{idOrName}")
+    public Response deleteRelationType(@Context ContainerRequestContext crc, @PathParam("idOrName") String doomed) {
         AuthenticatedUser user;
         try {
             user = getRequestAuthenticatedUserOrDie(crc);
