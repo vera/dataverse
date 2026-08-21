@@ -227,8 +227,13 @@ public class JsonParser {
         setDTOPropertyIfPresent(jsonObject, "relatedDatasetPid", datasetRelationDTO::setRelatedDatasetPid);
         setDTOPropertyIfPresent(jsonObject, "externalIdentifier", datasetRelationDTO::setExternalIdentifier);
         setDTOPropertyIfPresent(jsonObject, "identifierScheme", datasetRelationDTO::setIdentifierScheme);
-        setDTOPropertyIfPresent(jsonObject, "datasetType", datasetRelationDTO::setDatasetType);
-        setDTOPropertyIfPresent(jsonObject, "relationTypeName", datasetRelationDTO::setRelationTypeName);
+
+        if (jsonObject.containsKey("relationType") && jsonObject.get("relationType").getValueType() == ValueType.OBJECT) {
+            setDTOPropertyIfPresent(jsonObject.getJsonObject("relationType"), "name", datasetRelationDTO::setRelationTypeName);
+        }
+        if (jsonObject.containsKey("relatedDatasetType") && jsonObject.get("relatedDatasetType").getValueType() == ValueType.OBJECT) {
+            setDTOPropertyIfPresent(jsonObject.getJsonObject("relatedDatasetType"), "displayName", datasetRelationDTO::setDatasetType);
+        }
 
         return datasetRelationDTO;
     }

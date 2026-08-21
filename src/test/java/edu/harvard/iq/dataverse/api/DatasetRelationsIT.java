@@ -74,7 +74,7 @@ public class DatasetRelationsIT {
         JsonArray relations = Json.createArrayBuilder()
                 .add(Json.createObjectBuilder()
                         .add("relatedDatasetPid", pidB)
-                        .add("relationTypeName", "isCitedBy"))
+                        .add("relationType", Json.createObjectBuilder().add("name", "isCitedBy")))
                 .build();
         UtilIT.replaceDatasetRelations(pidA, relations.toString(), apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode());
@@ -86,7 +86,7 @@ public class DatasetRelationsIT {
         JsonArray relationsInverse = Json.createArrayBuilder()
                 .add(Json.createObjectBuilder()
                         .add("relatedDatasetPid", pidA)
-                        .add("relationTypeName", "cites"))
+                        .add("relationType", Json.createObjectBuilder().add("name", "cites")))
                 .build();
         UtilIT.replaceDatasetRelations(pidB, relationsInverse.toString(), apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode());
@@ -100,7 +100,7 @@ public class DatasetRelationsIT {
         JsonObject relationNew = Json.createObjectBuilder()
                         .add("externalIdentifier", externalUrl)
                         .add("identifierScheme", "URL")
-                        .add("relationTypeName", "isRelatedTo")
+                        .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo"))
                         .build();
         UtilIT.addDatasetRelation(pidA, relationNew.toString(), apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode());
@@ -143,7 +143,7 @@ public class DatasetRelationsIT {
         JsonArray relations = Json.createArrayBuilder()
                 .add(Json.createObjectBuilder()
                         .add("relatedDatasetPid", pidA)
-                        .add("relationTypeName", "isRelatedTo"))
+                        .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo")))
                 .build();
 
         UtilIT.replaceDatasetRelations(pidB, relations.toString(), apiTokenSuperuser)
@@ -255,7 +255,7 @@ public class DatasetRelationsIT {
                 .add(Json.createObjectBuilder()
                         .add("externalIdentifier", externalUrl)
                         .add("identifierScheme", "URL")
-                        .add("relationTypeName", "isRelatedTo"))
+                        .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo")))
                 .build();
 
         UtilIT.replaceDatasetRelations(pidA, relations.toString(), apiTokenSuperuser)
@@ -276,8 +276,8 @@ public class DatasetRelationsIT {
                 .add(Json.createObjectBuilder()
                         .add("externalIdentifier", externalUrlWithDocType)
                         .add("identifierScheme", "URL")
-                        .add("datasetType", "Document")
-                        .add("relationTypeName", "isRelatedTo"))
+                        .add("relatedDatasetType", Json.createObjectBuilder().add("displayName", "Document"))
+                        .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo")))
                 .build();
 
         UtilIT.replaceDatasetRelations(pidA, relationsWithDocType.toString(), apiTokenSuperuser)
@@ -298,11 +298,11 @@ public class DatasetRelationsIT {
         JsonArray mixedRelations = Json.createArrayBuilder()
                 .add(Json.createObjectBuilder()
                         .add("relatedDatasetPid", pidB)
-                        .add("relationTypeName", "isRelatedTo"))
+                        .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo")))
                 .add(Json.createObjectBuilder()
                         .add("externalIdentifier", "doi:10.1234/5678")
                         .add("identifierScheme", "DOI")
-                        .add("relationTypeName", "isRelatedTo"))
+                        .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo")))
                 .build();
 
         UtilIT.replaceDatasetRelations(pidA, mixedRelations.toString(), apiTokenSuperuser)
@@ -341,7 +341,7 @@ public class DatasetRelationsIT {
         JsonArray relationsV1 = Json.createArrayBuilder()
                 .add(Json.createObjectBuilder()
                         .add("relatedDatasetPid", pidB)
-                        .add("relationTypeName", "isRelatedTo"))
+                        .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo")))
                 .build();
         UtilIT.replaceDatasetRelations(pidA, relationsV1.toString(), apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
         UtilIT.publishDatasetViaNativeApi(pidA, "major", apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
@@ -352,10 +352,10 @@ public class DatasetRelationsIT {
         JsonArray relationsV2 = Json.createArrayBuilder()
                 .add(Json.createObjectBuilder()
                         .add("relatedDatasetPid", pidB)
-                        .add("relationTypeName", "isRelatedTo"))
+                        .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo")))
                 .add(Json.createObjectBuilder()
                         .add("relatedDatasetPid", pidC)
-                        .add("relationTypeName", "isSupplementTo"))
+                        .add("relationType", Json.createObjectBuilder().add("name", "isSupplementTo")))
                 .build();
         // This will create a draft for v2.0
         UtilIT.replaceDatasetRelations(pidA, relationsV2.toString(), apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
@@ -451,14 +451,14 @@ public class DatasetRelationsIT {
         JsonArray relations = Json.createArrayBuilder()
                 .add(Json.createObjectBuilder()
                         .add("relatedDatasetPid", pidB)
-                        .add("relationTypeName", "isRelatedTo"))
+                        .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo")))
                 .add(Json.createObjectBuilder()
                         .add("relatedDatasetPid", pidC)
-                        .add("relationTypeName", "isRelatedTo"))
+                        .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo")))
                 .add(Json.createObjectBuilder()
                         .add("externalIdentifier", "doi:10.1234/external")
                         .add("identifierScheme", "DOI")
-                        .add("relationTypeName", "isRelatedTo")
+                        .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo"))
                         .add("relationSource", "external"))
                 .build();
         UtilIT.replaceDatasetRelations(pidA, relations.toString(), apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
@@ -529,13 +529,13 @@ public class DatasetRelationsIT {
         // 3. isSupplementTo (count: 2)
 
         JsonArray relations = Json.createArrayBuilder()
-                .add(Json.createObjectBuilder().add("relatedDatasetPid", pids[0]).add("relationTypeName", "isCitedBy"))
-                .add(Json.createObjectBuilder().add("relatedDatasetPid", pids[1]).add("relationTypeName", "isCitedBy"))
-                .add(Json.createObjectBuilder().add("relatedDatasetPid", pids[2]).add("relationTypeName", "isCitedBy"))
-                .add(Json.createObjectBuilder().add("relatedDatasetPid", pids[3]).add("relationTypeName", "isRelatedTo"))
-                .add(Json.createObjectBuilder().add("relatedDatasetPid", pids[4]).add("relationTypeName", "isRelatedTo"))
-                .add(Json.createObjectBuilder().add("relatedDatasetPid", pids[5]).add("relationTypeName", "isSupplementTo"))
-                .add(Json.createObjectBuilder().add("relatedDatasetPid", pids[6]).add("relationTypeName", "isSupplementTo"))
+                .add(Json.createObjectBuilder().add("relatedDatasetPid", pids[0]).add("relationType", Json.createObjectBuilder().add("name", "isCitedBy")))
+                .add(Json.createObjectBuilder().add("relatedDatasetPid", pids[1]).add("relationType", Json.createObjectBuilder().add("name", "isCitedBy")))
+                .add(Json.createObjectBuilder().add("relatedDatasetPid", pids[2]).add("relationType", Json.createObjectBuilder().add("name", "isCitedBy")))
+                .add(Json.createObjectBuilder().add("relatedDatasetPid", pids[3]).add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo")))
+                .add(Json.createObjectBuilder().add("relatedDatasetPid", pids[4]).add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo")))
+                .add(Json.createObjectBuilder().add("relatedDatasetPid", pids[5]).add("relationType", Json.createObjectBuilder().add("name", "isSupplementTo")))
+                .add(Json.createObjectBuilder().add("relatedDatasetPid", pids[6]).add("relationType", Json.createObjectBuilder().add("name", "isSupplementTo")))
                 .build();
 
         UtilIT.replaceDatasetRelations(pidA, relations.toString(), apiTokenSuperuser)
@@ -577,7 +577,7 @@ public class DatasetRelationsIT {
         JsonArray relationsB = Json.createArrayBuilder()
                 .add(Json.createObjectBuilder()
                         .add("relatedDatasetPid", pidA)
-                        .add("relationTypeName", "isRelatedTo"))
+                        .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo")))
                 .build();
         UtilIT.replaceDatasetRelations(pidB, relationsB.toString(), apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode());
@@ -587,7 +587,7 @@ public class DatasetRelationsIT {
         JsonArray relationsA = Json.createArrayBuilder()
                 .add(Json.createObjectBuilder()
                         .add("relatedDatasetPid", pidC)
-                        .add("relationTypeName", "isRelatedTo"))
+                        .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo")))
                 .build();
         UtilIT.replaceDatasetRelations(pidA, relationsA.toString(), apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode());
@@ -627,11 +627,11 @@ public class DatasetRelationsIT {
         JsonArray relations = Json.createArrayBuilder()
                 .add(Json.createObjectBuilder()
                         .add("relatedDatasetPid", pidB)
-                        .add("relationTypeName", "isRelatedTo"))
+                        .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo")))
                 .add(Json.createObjectBuilder()
                         .add("externalIdentifier", "https://example.org/1")
                         .add("identifierScheme", "URL")
-                        .add("relationTypeName", "isRelatedTo"))
+                        .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo")))
                 .build();
         UtilIT.replaceDatasetRelations(pidA, relations.toString(), apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
 
@@ -717,7 +717,7 @@ public class DatasetRelationsIT {
                                 .add(Json.createObjectBuilder()
                                         .add("externalIdentifier", externalUrl1)
                                         .add("identifierScheme", "URL")
-                                        .add("relationTypeName", "isRelatedTo"))))
+                                        .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo")))))
                 .build();
 
         Response createDataset = UtilIT.createDataset(dataverseAlias, datasetData.toString(), apiTokenSuperuser);
@@ -740,7 +740,7 @@ public class DatasetRelationsIT {
                         .add(Json.createObjectBuilder()
                                 .add("externalIdentifier", externalUrl2)
                                 .add("identifierScheme", "URL")
-                                .add("relationTypeName", "isSupplementTo")))
+                                .add("relationType", Json.createObjectBuilder().add("name", "isSupplementTo"))))
                 .build();
 
         UtilIT.updateDatasetMetadataViaNative(pid, updatedVersionData, apiTokenSuperuser)
@@ -768,7 +768,7 @@ public class DatasetRelationsIT {
         // POST /api/datasets/{identifier}/relations
         String relationJson = Json.createObjectBuilder()
                 .add("relatedDatasetPid", pidB)
-                .add("relationTypeName", "isSupplementTo")
+                .add("relationType", Json.createObjectBuilder().add("name", "isSupplementTo"))
                 .build().toString();
 
         Response postResponse = UtilIT.addDatasetRelation(pidA, relationJson, apiTokenSuperuser);
@@ -819,7 +819,7 @@ public class DatasetRelationsIT {
         // First create a relation
         String relationJson = Json.createObjectBuilder()
                 .add("relatedDatasetPid", pidB)
-                .add("relationTypeName", "isSupplementTo")
+                .add("relationType", Json.createObjectBuilder().add("name", "isSupplementTo"))
                 .build().toString();
 
         long relationId = UtilIT.addDatasetRelation(pidA, relationJson, apiTokenSuperuser)
@@ -861,7 +861,7 @@ public class DatasetRelationsIT {
         // Without edit rights on the dataset, post and delete should fail
         String relationJson = Json.createObjectBuilder()
                 .add("relatedDatasetPid", pidB)
-                .add("relationTypeName", "isSupplementTo")
+                .add("relationType", Json.createObjectBuilder().add("name", "isSupplementTo"))
                 .build().toString();
 
         UtilIT.addDatasetRelation(pidA, relationJson, apiTokenUser)
@@ -905,7 +905,7 @@ public class DatasetRelationsIT {
         // POST A isSupplementTo B
         String relationJson = Json.createObjectBuilder()
                 .add("relatedDatasetPid", pidB)
-                .add("relationTypeName", "isSupplementTo")
+                .add("relationType", Json.createObjectBuilder().add("name", "isSupplementTo"))
                 .build().toString();
 
         int relationId = UtilIT.addDatasetRelation(pidA, relationJson, apiTokenSuperuser)
