@@ -1,0 +1,12 @@
+package edu.harvard.iq.dataverse.dataset;
+
+import jakarta.ejb.ApplicationException;
+
+/** A validation failure while changing a relation type. */
+@ApplicationException(rollback = false)
+public class DatasetRelationTypeException extends RuntimeException {
+
+    public DatasetRelationTypeException(String message) {
+        super(message);
+    }
+}

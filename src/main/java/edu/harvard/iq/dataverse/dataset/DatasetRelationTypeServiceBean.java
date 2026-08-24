@@ -58,40 +58,66 @@ public class DatasetRelationTypeServiceBean {
         }
     }
 
-    public DatasetRelationType save(DatasetRelationType relationType) throws IllegalArgumentException {
-        try {
-            em.persist(relationType);
-            em.flush();
-        } catch (PersistenceException p) {
-            if (p.getMessage().contains("duplicate key")) {
-                throw new IllegalArgumentException(BundleUtil.getStringFromBundle("datasets.api.datasetRelationType.error.create.duplicate"), p);
-            } else if (p.getMessage().contains("violates not-null constraint")){
-                throw new IllegalArgumentException(BundleUtil.getStringFromBundle("datasets.api.datasetRelationType.error.create.notNull"), p);
-            } else {
-                throw p;
-            }
-        }
+    public DatasetRelationType save(DatasetRelationType relationType) throws DatasetRelationTypeException {
+        validate(relationType);
+        em.persist(relationType);
+        em.flush();
         return relationType;
     }
 
-    public void delete(DatasetRelationType doomed) throws IllegalArgumentException {
-        try {
-            DatasetRelationType inverse = doomed.getInverse();
-            if (inverse != null) {
-                inverse.setInverse(null);
-                doomed.setInverse(null);
-                em.merge(inverse);
-                em.merge(doomed);
+    public void delete(DatasetRelationType doomed) throws DatasetRelationTypeException {
+        DatasetRelationType inverse = doomed.getInverse();
+
+        if (isInUse(doomed) || (inverse != null && isInUse(inverse))) {
+            throw new DatasetRelationTypeException(BundleUtil.getStringFromBundle("datasets.api.datasetRelationType.error.delete.referenced"));
+        }
+
+        if (inverse != null) {
+            inverse.setInverse(null);
+            doomed.setInverse(null);
+            em.merge(inverse);
+            em.merge(doomed);
+        }
+        em.remove(em.merge(doomed));
+        em.flush();
+    }
+
+    private void validate(DatasetRelationType relationType) {
+        if (isBlank(relationType.getName()) || isBlank(relationType.getDisplayName())) {
+            throw new DatasetRelationTypeException(BundleUtil.getStringFromBundle("datasets.api.datasetRelationType.error.create.notNull"));
+        }
+        if (exists(relationType.getName(), relationType.getDisplayName())) {
+            throw new DatasetRelationTypeException(BundleUtil.getStringFromBundle("datasets.api.datasetRelationType.error.create.duplicate"));
+        }
+        DatasetRelationType inverse = relationType.getInverse();
+        if (inverse != null && inverse != relationType) {
+            if (isBlank(inverse.getName()) || isBlank(inverse.getDisplayName())) {
+                throw new DatasetRelationTypeException(BundleUtil.getStringFromBundle("datasets.api.datasetRelationType.error.create.notNull"));
             }
-            em.remove(em.merge(doomed));
-            em.flush();
-        } catch (PersistenceException p) {
-            if (p.getMessage().contains("violates foreign key constraint")) {
-                throw new IllegalArgumentException(BundleUtil.getStringFromBundle("datasets.api.datasetRelationType.error.delete.referenced"), p);
-            } else {
-                throw p;
+            if (exists(inverse.getName(), inverse.getDisplayName())) {
+                throw new DatasetRelationTypeException(BundleUtil.getStringFromBundle("datasets.api.datasetRelationType.error.create.duplicate"));
             }
         }
+    }
+
+    private boolean exists(String name, String displayName) {
+        return em.createQuery("SELECT COUNT(drt) FROM DatasetRelationType drt "
+                        + "WHERE drt.name = :name OR drt.displayName = :displayName", Long.class)
+                .setParameter("name", name)
+                .setParameter("displayName", displayName)
+                .getSingleResult() > 0;
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
+
+    private boolean isInUse(DatasetRelationType drt) {
+        return em.createQuery(
+                        "SELECT COUNT(relation) FROM DatasetRelation relation WHERE relation.relationType = :relationType",
+                        Long.class)
+                .setParameter("relationType", drt)
+                .getSingleResult() > 0;
     }
 
 }

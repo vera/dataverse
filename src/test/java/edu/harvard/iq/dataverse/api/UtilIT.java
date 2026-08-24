@@ -5630,7 +5630,7 @@ public class UtilIT {
     public static Response addDatasetRelationType(String jsonIn, String apiToken) {
         return given()
                 .header(API_TOKEN_HTTP_HEADER, apiToken)
-//                .contentType(ContentType.JSON)
+                .contentType(ContentType.JSON)
                 .body(jsonIn)
                 .post("/api/datasets/relationTypes");
     }

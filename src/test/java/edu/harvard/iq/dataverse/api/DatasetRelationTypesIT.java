@@ -172,13 +172,14 @@ public class DatasetRelationTypesIT {
         JsonObjectBuilder builder = Json.createObjectBuilder()
                 .add("name", name)
                 .add("displayName", "Perm Test" + UtilIT.getRandomString(6));
+        String jsonIn = builder.build().toString();
 
         // Create as normal user fails
-        UtilIT.addDatasetRelationType(builder.build().toString(), apiTokenNormalUser)
+        UtilIT.addDatasetRelationType(jsonIn, apiTokenNormalUser)
                 .then().assertThat().statusCode(FORBIDDEN.getStatusCode());
 
         // Create as superuser succeeds
-        UtilIT.addDatasetRelationType(builder.build().toString(), apiTokenSuperuser)
+        UtilIT.addDatasetRelationType(jsonIn, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode());
 
         // Delete as normal user fails
@@ -187,7 +188,7 @@ public class DatasetRelationTypesIT {
 
         // Delete as superuser succeeds
         UtilIT.deleteDatasetRelationType(name, apiTokenSuperuser)
-                .then().assertThat().statusCode(NO_CONTENT.getStatusCode());
+                .then().assertThat().statusCode(OK.getStatusCode());
     }
 
     @Test
@@ -228,8 +229,8 @@ public class DatasetRelationTypesIT {
         int relationId = listResponse.jsonPath().getInt("data[0].id");
         UtilIT.deleteDatasetRelation(pidA, relationId, apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
         
-        // Now delete the relation type should work
+        // Now deleting the relation type should work
         UtilIT.deleteDatasetRelationType(typeName, apiTokenSuperuser)
-                .then().assertThat().statusCode(NO_CONTENT.getStatusCode());
+                .then().assertThat().statusCode(OK.getStatusCode());
     }
 }

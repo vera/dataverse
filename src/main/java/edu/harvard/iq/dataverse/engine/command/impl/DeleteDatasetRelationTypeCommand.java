@@ -3,6 +3,7 @@ package edu.harvard.iq.dataverse.engine.command.impl;
 import edu.harvard.iq.dataverse.DvObject;
 import edu.harvard.iq.dataverse.dataset.DatasetRelation;
 import edu.harvard.iq.dataverse.dataset.DatasetRelationType;
+import edu.harvard.iq.dataverse.dataset.DatasetRelationTypeException;
 import edu.harvard.iq.dataverse.engine.command.*;
 import edu.harvard.iq.dataverse.engine.command.exception.CommandException;
 import edu.harvard.iq.dataverse.engine.command.exception.IllegalCommandException;
@@ -39,13 +40,10 @@ public class DeleteDatasetRelationTypeCommand extends AbstractVoidCommand {
 
         try {
             ctxt.datasetRelationTypes().delete(relationType);
+        } catch (DatasetRelationTypeException ex) {
+            throw new InvalidCommandArgumentsException(ex.getMessage(), this);
         } catch (EJBException ex) {
-            Exception cause = ex.getCausedByException();
-            if (cause instanceof IllegalArgumentException) {
-                throw new InvalidCommandArgumentsException(ex.getMessage(), this);
-            } else {
-                throw new CommandException(BundleUtil.getStringFromBundle("datasets.api.datasetRelationType.error.delete"), this);
-            }
+            throw new CommandException(BundleUtil.getStringFromBundle("datasets.api.datasetRelationType.error.delete"), ex, this);
         }
     }
 }
