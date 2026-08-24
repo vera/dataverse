@@ -2048,6 +2048,8 @@ The optional ``excludeFiles`` parameter specifies whether the files should be li
 
 The optional ``excludeMetadataBlocks`` parameter specifies whether the metadata blocks should be listed in the output (defaults to ``false``).
 
+The optional ``excludeRelations`` parameter specifies whether the dataset's relations should be listed in the output (defaults to ``false``).
+
 
 By default, deaccessioned dataset versions are not included in the search when applying the :latest or :latest-published identifiers. Additionally, when filtering by a specific version tag, you will get a "not found" error if the version is deaccessioned and you do not enable the ``includeDeaccessioned`` option described below.
 
@@ -2582,6 +2584,8 @@ Note that you don't need to edit the top-level fields such as ``versionNumber``,
     vi dataset-update-metadata.json
 
 Now that you've made edits to the metadata in your JSON file, you can send it to a Dataverse installation as described above.
+
+The request also reads an optional ``relations`` array. When present, it replaces the relations defined on the draft; when omitted, existing relations are preserved. Relation objects use the format described under `Dataset relations`_.
 
 .. _edit-dataset-metadata-api:
 
@@ -4731,6 +4735,159 @@ The fully expanded example above (without environment variables) looks like this
 
   curl -H "X-Dataverse-key:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" -X PUT "https://demo.dataverse.org/api/datasets/3/license" -H "Content-type:application/json" --upload-file license.json
 
+Dataset Relations
+~~~~~~~~~~~~~~~~~
+
+Dataset relations describe how a dataset is related to another Dataverse dataset (an internal relation) or to an external resource.
+
+A relation is represented as JSON. Internal relations use ``relatedDatasetPid`` while external relations use ``externalIdentifier`` and ``identifierScheme``. Both use the name of a configured relation type (see `Dataset Relation Types`_):
+
+.. code-block:: json
+
+  {
+    "relatedDatasetPid": "doi:10.5072/FK2/BBBBBB",
+    "relationType": { "name": "isRelatedTo" }
+  }
+
+An external relation can also include ``relatedDatasetType`` with a ``displayName``:
+
+.. code-block:: json
+
+  {
+    "externalIdentifier": "https://example.org/resource/1",
+    "identifierScheme": "URL",
+    "relatedDatasetType": { "displayName": "Document" },
+    "relationType": { "name": "isRelatedTo" }
+  }
+
+.. note:: See :ref:`curl-examples-and-environment-variables` if you are unfamiliar with the use of ``export`` below.
+
+Add a Dataset Relation
+^^^^^^^^^^^^^^^^^^^^^^
+
+Add a dataset relation. By default this operation affects the latest version, creating a draft when necessary. A superuser can supply the optional ``version`` query parameter to modify a specified published version.
+
+.. code-block:: bash
+
+  export API_TOKEN=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+  export PERSISTENT_IDENTIFIER=doi:10.5072/FK2/AAAAAA
+  export SERVER_URL=https://demo.dataverse.org
+
+  curl -H "X-Dataverse-key: $API_TOKEN" -H "Content-Type: application/json" \
+    -X POST "$SERVER_URL/api/datasets/:persistentId/relations?persistentId=$PERSISTENT_IDENTIFIER" \
+    -d '{"relatedDatasetPid":"doi:10.5072/FK2/BBBBBB","relationType":{"name":"isRelatedTo"}}'
+
+The fully expanded example above (without environment variables) looks like this:
+
+.. code-block:: bash
+
+  curl -H "X-Dataverse-key: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" -H "Content-Type: application/json" \
+    -X POST "https://demo.dataverse.org/api/datasets/:persistentId/relations?persistentId=doi:10.5072/FK2/AAAAAA" \
+    -d '{"relatedDatasetPid":"doi:10.5072/FK2/BBBBBB","relationType":{"name":"isRelatedTo"}}'
+
+Replace Dataset Relations
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Bulk replace all relations defined on the selected version with the sent JSON array (including an empty array to remove all relations). By default this operation affects the latest version, creating a draft when necessary. A superuser can supply the optional ``version`` query parameter to modify a specified published version.
+
+.. code-block:: bash
+
+  export API_TOKEN=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+  export PERSISTENT_IDENTIFIER=doi:10.5072/FK2/AAAAAA
+  export SERVER_URL=https://demo.dataverse.org
+
+  curl -H "X-Dataverse-key: $API_TOKEN" -H "Content-Type: application/json" \
+    -X PUT "$SERVER_URL/api/datasets/:persistentId/relations?persistentId=$PERSISTENT_IDENTIFIER" \
+    --data-binary @relations.json
+
+The fully expanded example above (without environment variables) looks like this:
+
+.. code-block:: bash
+
+  curl -H "X-Dataverse-key: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" -H "Content-Type: application/json" \
+    -X PUT "https://demo.dataverse.org/api/datasets/:persistentId/relations?persistentId=doi:10.5072/FK2/AAAAAA" \
+    --data-binary @relations.json
+
+List Dataset Relations
+^^^^^^^^^^^^^^^^^^^^^^
+
+List the relations for the latest accessible version (unless the optional ``version`` parameter is supplied). The response is paginated (``limit`` defaults to 10 and ``offset`` defaults to 0). Set ``type``, ``datasetType``, or ``source`` query parameters to filter on one or more relation type names, related dataset type names, or relation sources. Set ``includeMetadataBlocks=true`` to include metadata from related internal datasets.
+
+.. code-block:: bash
+
+  export API_TOKEN=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+  export PERSISTENT_IDENTIFIER=doi:10.5072/FK2/AAAAAA
+  export SERVER_URL=https://demo.dataverse.org
+
+  curl -H "X-Dataverse-key: $API_TOKEN" \
+    "$SERVER_URL/api/datasets/:persistentId/relations?persistentId=$PERSISTENT_IDENTIFIER&version=:draft&type=isRelatedTo&limit=10&offset=0"
+
+The fully expanded example above (without environment variables) looks like this:
+
+.. code-block:: bash
+
+  curl -H "X-Dataverse-key: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" \
+    "https://demo.dataverse.org/api/datasets/:persistentId/relations?persistentId=doi:10.5072/FK2/AAAAAA&version=:draft&type=isRelatedTo&limit=10&offset=0"
+
+Get a Dataset Relation
+^^^^^^^^^^^^^^^^^^^^^^
+
+Returns a relation by its database id. It accepts ``includeMetadataBlocks=true``.
+
+.. code-block:: bash
+
+  export PERSISTENT_IDENTIFIER=doi:10.5072/FK2/AAAAAA
+  export SERVER_URL=https://demo.dataverse.org
+  export RELATION_ID=42
+
+  curl "$SERVER_URL/api/datasets/:persistentId/relations/$RELATION_ID?persistentId=$PERSISTENT_IDENTIFIER"
+
+The fully expanded example above (without environment variables) looks like this:
+
+.. code-block:: bash
+
+  curl "https://demo.dataverse.org/api/datasets/:persistentId/relations/42?persistentId=doi:10.5072/FK2/AAAAAA"
+
+Delete a Dataset Relation
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Delete a dataset relation by its database id. Deleting a relation requires permission to edit the dataset on which the relation was originally defined.
+
+.. code-block:: bash
+
+  export API_TOKEN=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+  export PERSISTENT_IDENTIFIER=doi:10.5072/FK2/AAAAAA
+  export SERVER_URL=https://demo.dataverse.org
+  export RELATION_ID=42
+
+  curl -H "X-Dataverse-key: $API_TOKEN" -X DELETE \
+    "$SERVER_URL/api/datasets/:persistentId/relations/$RELATION_ID?persistentId=$PERSISTENT_IDENTIFIER"
+
+The fully expanded example above (without environment variables) looks like this:
+
+.. code-block:: bash
+
+  curl -H "X-Dataverse-key: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" -X DELETE \
+    "https://demo.dataverse.org/api/datasets/:persistentId/relations/42?persistentId=doi:10.5072/FK2/AAAAAA"
+
+Get Dataset Relation Counts
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Returns the relation counts for the latest accessible version or the version selected by the optional ``version`` parameter. Results are grouped by relation type by default; set ``groupBy=datasetType`` to group by related dataset type instead.
+
+.. code-block:: bash
+
+  export PERSISTENT_IDENTIFIER=doi:10.5072/FK2/AAAAAA
+  export SERVER_URL=https://demo.dataverse.org
+
+  curl "$SERVER_URL/api/datasets/:persistentId/relations/counts?persistentId=$PERSISTENT_IDENTIFIER&groupBy=relationType"
+
+The fully expanded example above (without environment variables) looks like this:
+
+.. code-block:: bash
+
+  curl "https://demo.dataverse.org/api/datasets/:persistentId/relations/counts?persistentId=doi:10.5072/FK2/AAAAAA&groupBy=relationType"
+
 Dataset Relation Types
 ~~~~~~~~~~~~~~~~~~~~~~
 
@@ -4814,7 +4971,7 @@ The fully expanded example above (without environment variables) looks like this
 
   curl -H "X-Dataverse-key:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" -H "Content-Type: application/json" "https://demo.dataverse.org/api/datasets/relationTypes" -X POST --upload-file relationTypeAllFields.json
 
-.. _api-delete-dataset-type:
+.. _api-delete-dataset-relation-type:
 
 Delete Dataset Relation Type
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
