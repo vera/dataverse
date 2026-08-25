@@ -127,6 +127,50 @@ public class DatasetRelationsIT {
     }
 
     @Test
+    public void testReplaceDatasetRelationsErrorPaths() {
+        String dataverseAlias = UtilIT.createRandomCollectionGetAlias(apiTokenSuperuser);
+        UtilIT.publishDataverseViaNativeApi(dataverseAlias, apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
+        String pidA = UtilIT.getDatasetPersistentIdFromResponse(UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser));
+        String pidB = UtilIT.getDatasetPersistentIdFromResponse(UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser));
+
+        JsonObject typedRelation = Json.createObjectBuilder()
+                .add("relatedDatasetPid", pidB)
+                .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo"))
+                .build();
+        UtilIT.replaceDatasetRelations(pidA, Json.createArrayBuilder().add(typedRelation).build().toString(), apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode());
+
+        JsonObject untypedRelation = Json.createObjectBuilder()
+                .add("relatedDatasetPid", pidB)
+                .build();
+        JsonArray typedThenUntyped = Json.createArrayBuilder()
+                .add(typedRelation)
+                .add(untypedRelation)
+                .build();
+        UtilIT.replaceDatasetRelations(pidA, typedThenUntyped.toString(), apiTokenSuperuser)
+                .then().assertThat().statusCode(BAD_REQUEST.getStatusCode());
+
+        JsonArray untypedThenTyped = Json.createArrayBuilder()
+                .add(untypedRelation)
+                .add(typedRelation)
+                .build();
+        UtilIT.replaceDatasetRelations(pidA, untypedThenTyped.toString(), apiTokenSuperuser)
+                .then().assertThat().statusCode(BAD_REQUEST.getStatusCode());
+
+        JsonArray invalidRelatedDataset = Json.createArrayBuilder()
+                .add(Json.createObjectBuilder().add("relatedDatasetPid", "doi:10.5072/FK2/DOESNOTEXIST"))
+                .build();
+        UtilIT.replaceDatasetRelations(pidA, invalidRelatedDataset.toString(), apiTokenSuperuser)
+                .then().assertThat().statusCode(BAD_REQUEST.getStatusCode());
+
+        UtilIT.listDatasetRelations(pidA, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("totalCount", equalTo(1))
+                .body("data[0].relatedDatasetPid", equalTo(pidB))
+                .body("data[0].relationType.name", equalTo("isRelatedTo"));
+    }
+
+    @Test
     public void testDatasetRelationsVersionIsolation() {
         // Create Dataset A, published v1.0
         String dataverseAlias = UtilIT.createRandomCollectionGetAlias(apiTokenSuperuser);
@@ -554,6 +598,10 @@ public class DatasetRelationsIT {
                 // 3rd: isSupplementTo (count 2)
                 .body("data[2].relationType.name", equalTo("isSupplementTo"))
                 .body("data[2].count", equalTo(2));
+
+        UtilIT.listDatasetRelations(pidA, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("totalCount", equalTo(7));
     }
 
     @Test
@@ -838,8 +886,27 @@ public class DatasetRelationsIT {
         // Should be 404
         UtilIT.deleteDatasetRelation(pidC, relationId, apiTokenSuperuser)
                 .then().assertThat().statusCode(NOT_FOUND.getStatusCode());
-        
-        // It should work with B as it IS a related dataset
+
+        // Try to add the already existing relation to B again
+        // Should count as a duplicate and therefore be 400
+        JsonObject dupRelation = Json.createObjectBuilder()
+                .add("relatedDatasetPid", pidB)
+                .add("relationType", Json.createObjectBuilder().add("name", "isSupplementTo"))
+                .build();
+
+        UtilIT.addDatasetRelation(pidA, dupRelation.toString(), apiTokenSuperuser)
+                .then().assertThat().statusCode(BAD_REQUEST.getStatusCode());
+
+        // Try to add the already existing relation to B again, but this time, without the relation type
+        // Should still count as a duplicate and therefore be 400
+        JsonObject dupRelationWithoutType = Json.createObjectBuilder()
+                .add("relatedDatasetPid", pidB)
+                .build();
+
+        UtilIT.addDatasetRelation(pidA, dupRelationWithoutType.toString(), apiTokenSuperuser)
+                .then().assertThat().statusCode(BAD_REQUEST.getStatusCode());
+
+        // Delete should work with B as it IS a related dataset
         UtilIT.getDatasetRelation(pidB, relationId, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode());
     }

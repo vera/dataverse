@@ -15,10 +15,11 @@ import edu.harvard.iq.dataverse.api.dto.DatasetRelationDTO;
 import edu.harvard.iq.dataverse.authorization.Permission;
 import edu.harvard.iq.dataverse.engine.command.*;
 import edu.harvard.iq.dataverse.engine.command.exception.CommandException;
+import edu.harvard.iq.dataverse.engine.command.exception.InvalidCommandArgumentsException;
+import edu.harvard.iq.dataverse.util.BundleUtil;
+import jakarta.ejb.EJBException;
 
 import java.util.List;
-import java.util.Objects;
-import java.util.logging.Logger;
 
 /**
  *
@@ -27,9 +28,6 @@ import java.util.logging.Logger;
  */
 @RequiredPermissions(Permission.EditDataset)
 public class ReplaceDatasetRelationsCommand extends AbstractCommand<List<DatasetRelation>> {
-
-    private static final Logger logger = Logger.getLogger(ReplaceDatasetRelationsCommand.class.getName());
-
     private final DatasetVersion version;
 
     private final List<DatasetRelationDTO> relationDTOs;
@@ -55,17 +53,20 @@ public class ReplaceDatasetRelationsCommand extends AbstractCommand<List<Dataset
 
             List<DatasetRelation> relations = relationDTOs.stream()
                     .map(dto -> ctxt.datasetRelations().fromDTO(dto, effectiveVersion))
-                    .filter(Objects::nonNull)
                     .toList();
+            if (relations.contains(null)) {
+                throw new InvalidCommandArgumentsException(BundleUtil.getStringFromBundle("datasets.api.datasetRelation.error.invalid"), this);
+            }
+            if (ctxt.datasetRelations().containsDuplicates(relations)) {
+                throw new InvalidCommandArgumentsException(BundleUtil.getStringFromBundle("datasets.api.datasetRelation.error.duplicate"), this);
+            }
             List<DatasetRelation> addedRelations = ctxt.datasetRelations().replaceAllDatasetRelationsFor(effectiveVersion, relations);
 
             // Reindex dataset to update relatedDatasetCount
             ctxt.index().asyncIndexDataset(version.getDataset(), true);
             return addedRelations;
-        }
-        catch (Exception ex) {
-            logger.severe("Failed to replace dataset relations: " + ex.getMessage());
-            throw new CommandException("Failed to replace dataset relations", this);
+        } catch (EJBException ex) {
+            throw new CommandException(BundleUtil.getStringFromBundle("datasets.api.datasetRelation.error.replace"), ex, this);
         }
     }
 

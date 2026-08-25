@@ -91,6 +91,74 @@ public class DatasetRelationServiceBean {
         return relation;
     }
 
+    /**
+     * A relation without a type is a duplicate of every relation between the
+     * same endpoints at the same definition point. Relations with different,
+     * non-null types remain distinct. This must be checked outside the
+     * database because its unique constraints treat NULL relation types as
+     * distinct values.
+     */
+    public boolean isDuplicate(DatasetRelation relation) {
+        String relationTypeClause = relation.getRelationType() == null
+                ? ""
+                : " AND (rel.relationType IS NULL OR rel.relationType.id = :relationTypeId)";
+        if (relation instanceof InternalDatasetRelation internalRelation) {
+            var query = em.createQuery("SELECT COUNT(rel) FROM InternalDatasetRelation rel "
+                    + "WHERE rel.dataset = :dataset AND rel.relatedDataset = :relatedDataset "
+                    + "AND rel.definitionPoint = :definitionPoint "
+                    + relationTypeClause, Long.class)
+                    .setParameter("dataset", relation.getDataset())
+                    .setParameter("relatedDataset", internalRelation.getRelatedDataset())
+                    .setParameter("definitionPoint", relation.getDefinitionPoint());
+            if (relation.getRelationType() != null) {
+                query.setParameter("relationTypeId", relation.getRelationType().getId());
+            }
+            return query.getSingleResult() > 0;
+        } else if (relation instanceof ExternalDatasetRelation externalRelation) {
+            var query = em.createQuery("SELECT COUNT(rel) FROM ExternalDatasetRelation rel "
+                    + "WHERE rel.dataset = :dataset AND rel.externalIdentifier = :externalIdentifier "
+                    + "AND rel.definitionPoint = :definitionPoint "
+                    + relationTypeClause, Long.class)
+                    .setParameter("dataset", relation.getDataset())
+                    .setParameter("externalIdentifier", externalRelation.getExternalIdentifier())
+                    .setParameter("definitionPoint", relation.getDefinitionPoint());
+            if (relation.getRelationType() != null) {
+                query.setParameter("relationTypeId", relation.getRelationType().getId());
+            }
+            return query.getSingleResult() > 0;
+        }
+        throw new IllegalArgumentException("Unknown dataset relation type");
+    }
+
+    public boolean containsDuplicates(List<DatasetRelation> relations) {
+        for (int i = 0; i < relations.size(); i++) {
+            for (int j = i + 1; j < relations.size(); j++) {
+                if (areDuplicates(relations.get(i), relations.get(j))) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean areDuplicates(DatasetRelation first, DatasetRelation second) {
+        if (!first.getDataset().equals(second.getDataset())
+                || !first.getDefinitionPoint().equals(second.getDefinitionPoint())
+                || (first.getRelationType() != null && second.getRelationType() != null
+                    && !first.getRelationType().equals(second.getRelationType()))) {
+            return false;
+        }
+        if (first instanceof InternalDatasetRelation firstInternal
+                && second instanceof InternalDatasetRelation secondInternal) {
+            return firstInternal.getRelatedDataset().equals(secondInternal.getRelatedDataset());
+        }
+        if (first instanceof ExternalDatasetRelation firstExternal
+                && second instanceof ExternalDatasetRelation secondExternal) {
+            return firstExternal.getExternalIdentifier().equals(secondExternal.getExternalIdentifier());
+        }
+        return false;
+    }
+
     public List<DatasetRelation> replaceAllDatasetRelationsFor(DatasetVersion v, List<DatasetRelation> newRelations) {
         List<DatasetRelation> existingRelations = em.createNamedQuery("DatasetRelation.getRelationsDefinedAtDatasetVersionId", DatasetRelation.class)
                 .setParameter("versionId", v.getId())
