@@ -223,7 +223,6 @@ public class JsonParser {
     public DatasetRelationDTO parseDatasetRelationDTO(JsonObject jsonObject) {
         DatasetRelationDTO datasetRelationDTO = new DatasetRelationDTO();
 
-        setDTOPropertyIfPresent(jsonObject, "datasetPid", datasetRelationDTO::setDatasetPid);
         setDTOPropertyIfPresent(jsonObject, "relatedDatasetPid", datasetRelationDTO::setRelatedDatasetPid);
         setDTOPropertyIfPresent(jsonObject, "externalIdentifier", datasetRelationDTO::setExternalIdentifier);
         setDTOPropertyIfPresent(jsonObject, "identifierScheme", datasetRelationDTO::setIdentifierScheme);

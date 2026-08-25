@@ -1,7 +1,6 @@
 package edu.harvard.iq.dataverse.api.dto;
 
 public class DatasetRelationDTO {
-    private String datasetPid;
     private String relationTypeName;
 
     // For internal dataset relations
@@ -11,14 +10,6 @@ public class DatasetRelationDTO {
     private String externalIdentifier;
     private String identifierScheme;
     private String datasetType;
-
-    public String getDatasetPid() {
-        return datasetPid;
-    }
-
-    public void setDatasetPid(String datasetPid) {
-        this.datasetPid = datasetPid;
-    }
 
     public String getRelatedDatasetPid() {
         return relatedDatasetPid;
