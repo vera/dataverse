@@ -38,7 +38,19 @@ tests/performance/relations/measure-list.sh \
   -k '<api-token>'
 ```
 
-The runner logs each warm-up and measured request, then prints min, median, p95, max, and mean durations. It uses a 10-second connection timeout and a 120-second request timeout, so a stalled request reports a failure instead of waiting indefinitely. Run it before and after each query or index change on the same environment. For query-level diagnosis, capture `EXPLAIN (ANALYZE, BUFFERS)` for both SQL statements in `SqlDirectDatasetRelationAlgorithm` as a separate step.
+The runner logs each warm-up and measured request, then prints min, median, p95, max, and mean durations. It uses a 10-second connection timeout and a 120-second request timeout, so a stalled request reports a failure instead of waiting indefinitely. Run it before and after each query or index change on the same environment.
+
+## Inspect query plans
+
+The API endpoint executes a list query and a total-count query. Capture the actual PostgreSQL plans for the same benchmark dataset with:
+
+```sh
+tests/performance/relations/explain.sh \
+  -d 'postgresql://dataverse:secret@localhost:5432/dataverse' \
+  -p 'doi:10.5072/FK2/EXAMPLE'
+```
+
+The script resolves the dataset and its latest released version, then runs both queries from `SqlDirectDatasetRelationAlgorithm` with `EXPLAIN (ANALYZE, BUFFERS)`. The output contains actual execution time, row estimates versus row counts, and buffer reads/hits.
 
 ## Clean up
 
