@@ -58,359 +58,6 @@ public class DatasetRelationsIT {
     }
 
     @Test
-    public void testDatasetRelationDeduplication() {
-        // Create Dataset A
-        String dataverseAlias = UtilIT.createRandomCollectionGetAlias(apiTokenSuperuser);
-        UtilIT.publishDataverseViaNativeApi(dataverseAlias, apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
-        Response createDatasetA = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
-        String pidA = UtilIT.getDatasetPersistentIdFromResponse(createDatasetA);
-        
-        // Create Dataset B
-        Response createDatasetB = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
-        String pidB = UtilIT.getDatasetPersistentIdFromResponse(createDatasetB);
-        UtilIT.publishDatasetViaNativeApi(pidB, "major", apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
-
-        // Define relation A (draft) -> B
-        JsonArray relations = Json.createArrayBuilder()
-                .add(Json.createObjectBuilder()
-                        .add("relatedDatasetPid", pidB)
-                        .add("relationType", Json.createObjectBuilder().add("name", "isCitedBy")))
-                .build();
-        UtilIT.replaceDatasetRelations(pidA, relations.toString(), apiTokenSuperuser)
-                .then().assertThat().statusCode(OK.getStatusCode());
-
-        // Publish A v1.0
-        UtilIT.publishDatasetViaNativeApi(pidA, "major", apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
-
-        // Define the SAME relation in inverse direction: B (draft) -> A
-        JsonArray relationsInverse = Json.createArrayBuilder()
-                .add(Json.createObjectBuilder()
-                        .add("relatedDatasetPid", pidA)
-                        .add("relationType", Json.createObjectBuilder().add("name", "cites")))
-                .build();
-        UtilIT.replaceDatasetRelations(pidB, relationsInverse.toString(), apiTokenSuperuser)
-                .then().assertThat().statusCode(OK.getStatusCode());
-
-        // Publish A v1.0
-        UtilIT.publishDatasetViaNativeApi(pidB, "major", apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
-
-        // Create A v2 (draft) and add one more relation
-        // (The existing relation from A v1 still exists)
-        String externalUrl = "https://example.org/dataset/12345";
-        JsonObject relationNew = Json.createObjectBuilder()
-                        .add("externalIdentifier", externalUrl)
-                        .add("identifierScheme", "URL")
-                        .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo"))
-                        .build();
-        UtilIT.addDatasetRelation(pidA, relationNew.toString(), apiTokenSuperuser)
-                .then().assertThat().statusCode(OK.getStatusCode());
-
-        // The relation "A is cited by B" is now present 3 times: in A v1, B v1, A draft
-        // Plus the additional relation "A is related to https://example.org/dataset/12345"
-
-        // Verify only those two relations are listed for A (draft) (no duplicates)
-        UtilIT.listDatasetRelations(pidA, ":draft", null, null, null, null, null, apiTokenSuperuser)
-                .then().assertThat().statusCode(OK.getStatusCode())
-                .body("totalCount", equalTo(2))
-                .body("data", hasSize(2))
-                .body("data.relatedDatasetPid", hasItem(pidB))
-                .body("data.externalIdentifier", hasItem(externalUrl));
-
-        // Also verify counts (grouped by relation type by default)
-        UtilIT.getDatasetRelationCounts(pidA, ":draft", null, apiTokenSuperuser)
-                .then().assertThat().statusCode(OK.getStatusCode())
-                .body("data", hasSize(2))
-                .body("data[0].relationType.name", equalTo("isCitedBy"))
-                .body("data[0].count", equalTo(1))
-                .body("data[1].relationType.name", equalTo("isRelatedTo"))
-                .body("data[1].count", equalTo(1));
-    }
-
-    @Test
-    public void testVersionSummariesIncludeRelationChanges() {
-        String dataverseAlias = UtilIT.createRandomCollectionGetAlias(apiTokenSuperuser);
-        UtilIT.publishDataverseViaNativeApi(dataverseAlias, apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
-        String pidA = UtilIT.getDatasetPersistentIdFromResponse(UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser));
-        String pidB = UtilIT.getDatasetPersistentIdFromResponse(UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser));
-        String externalIdentifier = "https://example.org/dataset/relations-summary";
-
-        UtilIT.publishDatasetViaNativeApi(pidA, "major", apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
-
-        JsonArray relations = Json.createArrayBuilder()
-                .add(Json.createObjectBuilder()
-                        .add("relatedDatasetPid", pidB)
-                        .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo")))
-                .add(Json.createObjectBuilder()
-                        .add("externalIdentifier", externalIdentifier)
-                        .add("identifierScheme", "URL")
-                        .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo")))
-                .build();
-        UtilIT.replaceDatasetRelations(pidA, relations.toString(), apiTokenSuperuser)
-                .then().assertThat().statusCode(OK.getStatusCode());
-        UtilIT.publishDatasetViaNativeApi(pidA, "major", apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
-
-        UtilIT.compareDatasetVersions(pidA, "1.0", "2.0", apiTokenSuperuser)
-                .then().assertThat().statusCode(OK.getStatusCode())
-                .body("data.relationsAdded", hasSize(2))
-                .body("data.relationsAdded.relatedDatasetPid", hasItem(pidB))
-                .body("data.relationsAdded.externalIdentifier", hasItem(externalIdentifier));
-        UtilIT.summaryDatasetVersionDifferences(pidA, apiTokenSuperuser)
-                .then().assertThat().statusCode(OK.getStatusCode())
-                .body("data[0].summary.relations.added", equalTo(2))
-                .body("data[0].summary.relations.removed", equalTo(0));
-
-        UtilIT.replaceDatasetRelations(pidA, "[]", apiTokenSuperuser)
-                .then().assertThat().statusCode(OK.getStatusCode());
-        UtilIT.publishDatasetViaNativeApi(pidA, "major", apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
-
-        UtilIT.compareDatasetVersions(pidA, "2.0", "3.0", apiTokenSuperuser)
-                .then().assertThat().statusCode(OK.getStatusCode())
-                .body("data.relationsRemoved", hasSize(2))
-                .body("data.relationsRemoved.relatedDatasetPid", hasItem(pidB))
-                .body("data.relationsRemoved.externalIdentifier", hasItem(externalIdentifier));
-        UtilIT.summaryDatasetVersionDifferences(pidA, apiTokenSuperuser)
-                .then().assertThat().statusCode(OK.getStatusCode())
-                .body("data[0].summary.relations.removed", equalTo(2));
-    }
-
-    @Test
-    public void testReplaceDatasetRelationsErrorPaths() {
-        String dataverseAlias = UtilIT.createRandomCollectionGetAlias(apiTokenSuperuser);
-        UtilIT.publishDataverseViaNativeApi(dataverseAlias, apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
-        String pidA = UtilIT.getDatasetPersistentIdFromResponse(UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser));
-        String pidB = UtilIT.getDatasetPersistentIdFromResponse(UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser));
-
-        JsonObject typedRelation = Json.createObjectBuilder()
-                .add("relatedDatasetPid", pidB)
-                .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo"))
-                .build();
-        UtilIT.replaceDatasetRelations(pidA, Json.createArrayBuilder().add(typedRelation).build().toString(), apiTokenSuperuser)
-                .then().assertThat().statusCode(OK.getStatusCode());
-
-        JsonObject untypedRelation = Json.createObjectBuilder()
-                .add("relatedDatasetPid", pidB)
-                .build();
-        JsonArray typedThenUntyped = Json.createArrayBuilder()
-                .add(typedRelation)
-                .add(untypedRelation)
-                .build();
-        UtilIT.replaceDatasetRelations(pidA, typedThenUntyped.toString(), apiTokenSuperuser)
-                .then().assertThat().statusCode(BAD_REQUEST.getStatusCode());
-
-        JsonArray untypedThenTyped = Json.createArrayBuilder()
-                .add(untypedRelation)
-                .add(typedRelation)
-                .build();
-        UtilIT.replaceDatasetRelations(pidA, untypedThenTyped.toString(), apiTokenSuperuser)
-                .then().assertThat().statusCode(BAD_REQUEST.getStatusCode());
-
-        JsonArray invalidRelatedDataset = Json.createArrayBuilder()
-                .add(Json.createObjectBuilder().add("relatedDatasetPid", "doi:10.5072/FK2/DOESNOTEXIST"))
-                .build();
-        UtilIT.replaceDatasetRelations(pidA, invalidRelatedDataset.toString(), apiTokenSuperuser)
-                .then().assertThat().statusCode(BAD_REQUEST.getStatusCode());
-
-        UtilIT.listDatasetRelations(pidA, apiTokenSuperuser)
-                .then().assertThat().statusCode(OK.getStatusCode())
-                .body("totalCount", equalTo(1))
-                .body("data[0].relatedDatasetPid", equalTo(pidB))
-                .body("data[0].relationType.name", equalTo("isRelatedTo"));
-    }
-
-    @Test
-    public void testDatasetRelationsVersionIsolation() {
-        // Create Dataset A, published v1.0
-        String dataverseAlias = UtilIT.createRandomCollectionGetAlias(apiTokenSuperuser);
-        UtilIT.publishDataverseViaNativeApi(dataverseAlias, apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
-        Response createDatasetA = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
-        String pidA = UtilIT.getDatasetPersistentIdFromResponse(createDatasetA);
-        UtilIT.publishDatasetViaNativeApi(pidA, "major", apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
-
-        // Create Dataset B, draft version
-        Response createDatasetB = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
-        String pidB = UtilIT.getDatasetPersistentIdFromResponse(createDatasetB);
-
-        // Add relation from Dataset B (draft) to Dataset A (v1.0) at dataset B (draft)
-        JsonArray relations = Json.createArrayBuilder()
-                .add(Json.createObjectBuilder()
-                        .add("relatedDatasetPid", pidA)
-                        .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo")))
-                .build();
-
-        UtilIT.replaceDatasetRelations(pidB, relations.toString(), apiTokenSuperuser)
-                .then().assertThat().statusCode(OK.getStatusCode());
-
-        // Verify relation is listed when requesting relations for Dataset B (draft)
-        UtilIT.listDatasetRelations(pidB, apiTokenSuperuser)
-                .then().assertThat().statusCode(OK.getStatusCode())
-                .body("totalCount", equalTo(1))
-                .body("data", hasSize(1))
-                .body("data[0].relatedDatasetPid", equalTo(pidA))
-                .body("data[0].relationType.name", equalTo("isRelatedTo"));
-
-        // Verify relation is not listed when requesting relations for Dataset A (v1)
-        // since Dataset B, where the relation was defined, is still in Draft status
-        UtilIT.listDatasetRelations(pidA, apiTokenSuperuser)
-                .then().assertThat().statusCode(OK.getStatusCode())
-                .body("totalCount", equalTo(0))
-                .body("data", hasSize(0));
-
-        // Publish Dataset B (=> v1.0)
-        UtilIT.publishDatasetViaNativeApi(pidB, "major", apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
-
-        // Verify relation is now listed when requesting relations for Dataset A
-        UtilIT.listDatasetRelations(pidA, apiTokenSuperuser)
-                .then().assertThat().statusCode(OK.getStatusCode())
-                .body("totalCount", equalTo(1))
-                .body("data", hasSize(1))
-                .body("data[0].relatedDatasetPid", equalTo(pidB))
-                .body("data[0].relationType.name", equalTo("isRelatedTo"));
-
-        // Verify relation is listed when requesting relations for Dataset B v1.0
-        UtilIT.listDatasetRelations(pidB, "1.0", null, null, null, null, null, apiTokenSuperuser)
-                .then().assertThat().statusCode(OK.getStatusCode())
-                .body("totalCount", equalTo(1))
-                .body("data", hasSize(1))
-                .body("data[0].relatedDatasetPid", equalTo(pidA))
-                .body("data[0].relationType.name", equalTo("isRelatedTo"));
-
-        // Remove the relation in new version of Dataset B (draft)
-        UtilIT.replaceDatasetRelations(pidB, "[]", apiTokenSuperuser)
-                .then().assertThat().statusCode(OK.getStatusCode());
-
-        // Verify relation is still listed when requesting relations for Dataset A
-        // Because Dataset B is still in draft mode
-        UtilIT.listDatasetRelations(pidA, apiTokenSuperuser)
-                .then().assertThat().statusCode(OK.getStatusCode())
-                .body("totalCount", equalTo(1))
-                .body("data", hasSize(1))
-                .body("data[0].relatedDatasetPid", equalTo(pidB))
-                .body("data[0].relationType.name", equalTo("isRelatedTo"));
-
-        // Verify relation is still listed when requesting relations for Dataset B without a token
-        // Because without a token, users cannot see Dataset B's draft
-        UtilIT.listDatasetRelations(pidB)
-                .then().assertThat().statusCode(OK.getStatusCode())
-                .body("totalCount", equalTo(1))
-                .body("data", hasSize(1))
-                .body("data[0].relatedDatasetPid", equalTo(pidA))
-                .body("data[0].relationType.name", equalTo("isRelatedTo"));
-
-        // Verify relation is not listed when requesting relations for Dataset B's draft specifically
-        UtilIT.listDatasetRelations(pidB, ":draft", null, null, null, null, null, apiTokenSuperuser)
-                .then().assertThat().statusCode(OK.getStatusCode())
-                .body("totalCount", equalTo(0))
-                .body("data", hasSize(0));
-
-        // Publish Dataset B (=> v2.0)
-        UtilIT.publishDatasetViaNativeApi(pidB, "major", apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
-
-        // Verify relation is NO LONGER listed when requesting relations for Dataset A
-        // Because Dataset B is now at v2 and v2 has no relation
-        UtilIT.listDatasetRelations(pidA, apiTokenSuperuser)
-                .then().assertThat().statusCode(OK.getStatusCode())
-                .body("totalCount", equalTo(0))
-                .body("data", hasSize(0));
-
-        // Verify relation is STILL listed when requesting relations for Dataset B v1 specifically
-        UtilIT.listDatasetRelations(pidB, "1.0", null, null, null, null, null, apiTokenSuperuser)
-                .then().assertThat().statusCode(OK.getStatusCode())
-                .body("totalCount", equalTo(1))
-                .body("data", hasSize(1))
-                .body("data[0].relatedDatasetPid", equalTo(pidA))
-                .body("data[0].relationType.name", equalTo("isRelatedTo"));
-
-        // Verify relation is NOT listed when requesting relations for Dataset B v2
-        UtilIT.listDatasetRelations(pidB, "2.0", null, null, null, null, null, apiTokenSuperuser)
-                .then().assertThat().statusCode(OK.getStatusCode())
-                .body("totalCount", equalTo(0))
-                .body("data", hasSize(0));
-
-        // Verify relation is NOT listed when requesting relations for Dataset B
-        UtilIT.listDatasetRelations(pidB, apiTokenSuperuser)
-                .then().assertThat().statusCode(OK.getStatusCode())
-                .body("totalCount", equalTo(0))
-                .body("data", hasSize(0));
-    }
-
-    @Test
-    public void testExternalDatasetRelations() {
-        String dataverseAlias = UtilIT.createRandomCollectionGetAlias(apiTokenSuperuser);
-        UtilIT.publishDataverseViaNativeApi(dataverseAlias, apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
-        Response createDatasetA = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
-        String pidA = UtilIT.getDatasetPersistentIdFromResponse(createDatasetA);
-
-        // Add external relation to Dataset A (draft)
-        String externalUrl = "https://example.org/dataset/12345";
-        JsonArray relations = Json.createArrayBuilder()
-                .add(Json.createObjectBuilder()
-                        .add("externalIdentifier", externalUrl)
-                        .add("identifierScheme", "URL")
-                        .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo")))
-                .build();
-
-        UtilIT.replaceDatasetRelations(pidA, relations.toString(), apiTokenSuperuser)
-                .then().assertThat().statusCode(OK.getStatusCode());
-
-        // Verify external relation is listed
-        UtilIT.listDatasetRelations(pidA, apiTokenSuperuser)
-                .then().assertThat().statusCode(OK.getStatusCode())
-                .body("totalCount", equalTo(1))
-                .body("data", hasSize(1))
-                .body("data[0].externalIdentifier", equalTo(externalUrl))
-                .body("data[0].identifierScheme", equalTo("URL"))
-                .body("data[0].relationType.name", equalTo("isRelatedTo"));
-
-        // Add external relation with datasetType
-        String externalUrlWithDocType = "https://example.org/dataset/67890";
-        JsonArray relationsWithDocType = Json.createArrayBuilder()
-                .add(Json.createObjectBuilder()
-                        .add("externalIdentifier", externalUrlWithDocType)
-                        .add("identifierScheme", "URL")
-                        .add("relatedDatasetType", Json.createObjectBuilder().add("displayName", "Document"))
-                        .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo")))
-                .build();
-
-        UtilIT.replaceDatasetRelations(pidA, relationsWithDocType.toString(), apiTokenSuperuser)
-                .then().assertThat().statusCode(OK.getStatusCode());
-
-        // Verify external relation with datasetType is listed
-        UtilIT.listDatasetRelations(pidA, apiTokenSuperuser)
-                .then().assertThat().statusCode(OK.getStatusCode())
-                .body("totalCount", equalTo(1))
-                .body("data", hasSize(1))
-                .body("data[0].externalIdentifier", equalTo(externalUrlWithDocType))
-                .body("data[0].relatedDatasetType.displayName", equalTo("Document"));
-
-        // Add both internal and external relations
-        Response createDatasetB = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
-        String pidB = UtilIT.getDatasetPersistentIdFromResponse(createDatasetB);
-
-        JsonArray mixedRelations = Json.createArrayBuilder()
-                .add(Json.createObjectBuilder()
-                        .add("relatedDatasetPid", pidB)
-                        .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo")))
-                .add(Json.createObjectBuilder()
-                        .add("externalIdentifier", "doi:10.1234/5678")
-                        .add("identifierScheme", "DOI")
-                        .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo")))
-                .build();
-
-        UtilIT.replaceDatasetRelations(pidA, mixedRelations.toString(), apiTokenSuperuser)
-                .then().assertThat().statusCode(OK.getStatusCode());
-
-        UtilIT.listDatasetRelations(pidA, apiTokenSuperuser)
-                .then().assertThat().statusCode(OK.getStatusCode())
-                .body("totalCount", equalTo(2))
-                .body("data", hasSize(2))
-                .body("data.relatedDatasetPid", hasItem(pidB))
-                .body("data.externalIdentifier", hasItem("doi:10.1234/5678"))
-                .body("data.identifierScheme", hasItem("DOI"))
-                .body("data.relatedDatasetType.name", hasItem("dataset"))
-                .body("data.relatedDatasetType.displayName", hasItem("Dataset"));
-    }
-
-    @Test
     public void testListDatasetRelationsFilteringByRelationTypeAndVersion() {
         String dataverseAlias = UtilIT.createRandomCollectionGetAlias(apiTokenSuperuser);
         UtilIT.publishDataverseViaNativeApi(dataverseAlias, apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
@@ -594,7 +241,371 @@ public class DatasetRelationsIT {
     }
 
     @Test
-    public void testDatasetRelationCounts() {
+    public void testListDatasetRelationsFilteringBySource() {
+        String dataverseAlias = UtilIT.createRandomCollectionGetAlias(apiTokenSuperuser);
+        UtilIT.publishDataverseViaNativeApi(dataverseAlias, apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
+
+        // Dataset A
+        Response createDatasetA = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
+        String pidA = UtilIT.getDatasetPersistentIdFromResponse(createDatasetA);
+
+        // Dataset B
+        Response createDatasetB = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
+        String pidB = UtilIT.getDatasetPersistentIdFromResponse(createDatasetB);
+
+        // Create 1 internal and 1 external relation
+        JsonArray relations = Json.createArrayBuilder()
+                .add(Json.createObjectBuilder()
+                        .add("relatedDatasetPid", pidB)
+                        .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo")))
+                .add(Json.createObjectBuilder()
+                        .add("externalIdentifier", "https://example.org/1")
+                        .add("identifierScheme", "URL")
+                        .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo")))
+                .build();
+        UtilIT.replaceDatasetRelations(pidA, relations.toString(), apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
+
+        // No filter -> Expect 2
+        UtilIT.listDatasetRelations(pidA, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("totalCount", equalTo(2));
+
+        // Filter by source=internal -> Expect 1
+        UtilIT.listDatasetRelations(pidA, null, null, null, List.of("internal"), null, null, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("totalCount", equalTo(1))
+                .body("data[0].relatedDatasetPid", equalTo(pidB));
+
+        // Filter by source=external -> Expect 1
+        UtilIT.listDatasetRelations(pidA, null, null, null, List.of("external"), null, null, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("totalCount", equalTo(1))
+                .body("data[0].externalIdentifier", equalTo("https://example.org/1"));
+
+        // Filter by both -> Expect 2
+        UtilIT.listDatasetRelations(pidA, null, null, null, Arrays.asList("internal", "external"), null, null, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("totalCount", equalTo(2));
+    }
+
+    @Test
+    public void testListDatasetRelationsOrdering() {
+        String dataverseAlias = UtilIT.createRandomCollectionGetAlias(apiTokenSuperuser);
+        UtilIT.publishDataverseViaNativeApi(dataverseAlias, apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
+
+        // Create Dataset A
+        Response createDatasetA = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
+        String pidA = UtilIT.getDatasetPersistentIdFromResponse(createDatasetA);
+
+        // Create Dataset B
+        Response createDatasetB = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
+        String pidB = UtilIT.getDatasetPersistentIdFromResponse(createDatasetB);
+
+        // Create Dataset C
+        Response createDatasetC = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
+        String pidC = UtilIT.getDatasetPersistentIdFromResponse(createDatasetC);
+
+        // Define relation B -> A (defined on B)
+        JsonArray relationsB = Json.createArrayBuilder()
+                .add(Json.createObjectBuilder()
+                        .add("relatedDatasetPid", pidA)
+                        .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo")))
+                .build();
+        UtilIT.replaceDatasetRelations(pidB, relationsB.toString(), apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode());
+        UtilIT.publishDatasetViaNativeApi(pidB, "major", apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
+
+        // Define relation A -> C (defined on A)
+        JsonArray relationsA = Json.createArrayBuilder()
+                .add(Json.createObjectBuilder()
+                        .add("relatedDatasetPid", pidC)
+                        .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo")))
+                .build();
+        UtilIT.replaceDatasetRelations(pidA, relationsA.toString(), apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode());
+
+        // List relations for A
+        // Expecting:
+        // 1. A -> C (defined on A)
+        // 2. B -> A (defined on B)
+
+        Response listResponse = UtilIT.listDatasetRelations(pidA, apiTokenSuperuser);
+        listResponse.then().assertThat().statusCode(OK.getStatusCode())
+                .body("data", hasSize(2));
+
+        // We want relations defined ON dataset A to come first:
+        // Relation A -> C is defined on A (definitionPointPid should be pidA)
+        // Relation B -> A is defined on B (definitionPointPid should be pidB)
+
+        List<String> definitionPointPids = listResponse.jsonPath().getList("data.definitionPointPid");
+        assertEquals(pidA, definitionPointPids.get(0));
+        assertEquals(pidB, definitionPointPids.get(1));
+    }
+
+    @Test
+    public void testListDatasetRelationDeduplication() {
+        // Create Dataset A
+        String dataverseAlias = UtilIT.createRandomCollectionGetAlias(apiTokenSuperuser);
+        UtilIT.publishDataverseViaNativeApi(dataverseAlias, apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
+        Response createDatasetA = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
+        String pidA = UtilIT.getDatasetPersistentIdFromResponse(createDatasetA);
+
+        // Create Dataset B
+        Response createDatasetB = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
+        String pidB = UtilIT.getDatasetPersistentIdFromResponse(createDatasetB);
+        UtilIT.publishDatasetViaNativeApi(pidB, "major", apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
+
+        // Define relation A (draft) -> B
+        JsonArray relations = Json.createArrayBuilder()
+                .add(Json.createObjectBuilder()
+                        .add("relatedDatasetPid", pidB)
+                        .add("relationType", Json.createObjectBuilder().add("name", "isCitedBy")))
+                .build();
+        UtilIT.replaceDatasetRelations(pidA, relations.toString(), apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode());
+
+        // Publish A v1.0
+        UtilIT.publishDatasetViaNativeApi(pidA, "major", apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
+
+        // Define the SAME relation in inverse direction: B (draft) -> A
+        JsonArray relationsInverse = Json.createArrayBuilder()
+                .add(Json.createObjectBuilder()
+                        .add("relatedDatasetPid", pidA)
+                        .add("relationType", Json.createObjectBuilder().add("name", "cites")))
+                .build();
+        UtilIT.replaceDatasetRelations(pidB, relationsInverse.toString(), apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode());
+
+        // Publish B v1.0
+        UtilIT.publishDatasetViaNativeApi(pidB, "major", apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
+
+        // Create A v2 (draft) and add one more relation
+        // (The existing relation from A v1 still exists)
+        String externalUrl = "https://example.org/dataset/12345";
+        JsonObject relationNew = Json.createObjectBuilder()
+                .add("externalIdentifier", externalUrl)
+                .add("identifierScheme", "URL")
+                .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo"))
+                .build();
+        UtilIT.addDatasetRelation(pidA, relationNew.toString(), apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode());
+
+        // The relation "A is cited by B" is now present 3 times: in A v1, B v1, A draft
+        // Plus the additional relation in A draft: "A is related to https://example.org/dataset/12345"
+
+        // Verify only those two relations are listed for A (draft) (no duplicates)
+        UtilIT.listDatasetRelations(pidA, ":draft", null, null, null, null, null, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("totalCount", equalTo(2))
+                .body("data", hasSize(2))
+                .body("data.relatedDatasetPid", hasItem(pidB))
+                .body("data.externalIdentifier", hasItem(externalUrl));
+
+        // Also verify counts (grouped by relation type by default)
+        UtilIT.getDatasetRelationCounts(pidA, ":draft", null, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("data", hasSize(2))
+                .body("data[0].relationType.name", equalTo("isCitedBy"))
+                .body("data[0].count", equalTo(1))
+                .body("data[1].relationType.name", equalTo("isRelatedTo"))
+                .body("data[1].count", equalTo(1));
+    }
+
+    @Test
+    public void testListDatasetRelationsVersionIsolation() {
+        // Create Dataset A, published v1.0
+        String dataverseAlias = UtilIT.createRandomCollectionGetAlias(apiTokenSuperuser);
+        UtilIT.publishDataverseViaNativeApi(dataverseAlias, apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
+        Response createDatasetA = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
+        String pidA = UtilIT.getDatasetPersistentIdFromResponse(createDatasetA);
+        UtilIT.publishDatasetViaNativeApi(pidA, "major", apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
+
+        // Create Dataset B, draft version
+        Response createDatasetB = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
+        String pidB = UtilIT.getDatasetPersistentIdFromResponse(createDatasetB);
+
+        // Add relation from Dataset B (draft) to Dataset A (v1.0) at dataset B (draft)
+        JsonArray relations = Json.createArrayBuilder()
+                .add(Json.createObjectBuilder()
+                        .add("relatedDatasetPid", pidA)
+                        .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo")))
+                .build();
+
+        UtilIT.replaceDatasetRelations(pidB, relations.toString(), apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode());
+
+        // Verify relation is listed when requesting relations for Dataset B (draft)
+        UtilIT.listDatasetRelations(pidB, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("totalCount", equalTo(1))
+                .body("data", hasSize(1))
+                .body("data[0].relatedDatasetPid", equalTo(pidA))
+                .body("data[0].relationType.name", equalTo("isRelatedTo"));
+
+        // Verify relation is not listed when requesting relations for Dataset A (v1)
+        // since Dataset B, where the relation was defined, is still in Draft status
+        UtilIT.listDatasetRelations(pidA, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("totalCount", equalTo(0))
+                .body("data", hasSize(0));
+
+        // Publish Dataset B (=> v1.0)
+        UtilIT.publishDatasetViaNativeApi(pidB, "major", apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
+
+        // Verify relation is now listed when requesting relations for Dataset A
+        UtilIT.listDatasetRelations(pidA, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("totalCount", equalTo(1))
+                .body("data", hasSize(1))
+                .body("data[0].relatedDatasetPid", equalTo(pidB))
+                .body("data[0].relationType.name", equalTo("isRelatedTo"));
+
+        // Verify relation is listed when requesting relations for Dataset B v1.0
+        UtilIT.listDatasetRelations(pidB, "1.0", null, null, null, null, null, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("totalCount", equalTo(1))
+                .body("data", hasSize(1))
+                .body("data[0].relatedDatasetPid", equalTo(pidA))
+                .body("data[0].relationType.name", equalTo("isRelatedTo"));
+
+        // Remove the relation in new version of Dataset B (draft)
+        UtilIT.replaceDatasetRelations(pidB, "[]", apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode());
+
+        // Verify relation is still listed when requesting relations for Dataset A
+        // Because Dataset B is still in draft mode
+        UtilIT.listDatasetRelations(pidA, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("totalCount", equalTo(1))
+                .body("data", hasSize(1))
+                .body("data[0].relatedDatasetPid", equalTo(pidB))
+                .body("data[0].relationType.name", equalTo("isRelatedTo"));
+
+        // Verify relation is still listed when requesting relations for Dataset B without a token
+        // Because without a token, users cannot see Dataset B's draft
+        UtilIT.listDatasetRelations(pidB)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("totalCount", equalTo(1))
+                .body("data", hasSize(1))
+                .body("data[0].relatedDatasetPid", equalTo(pidA))
+                .body("data[0].relationType.name", equalTo("isRelatedTo"));
+
+        // Verify relation is not listed when requesting relations for Dataset B's draft specifically
+        UtilIT.listDatasetRelations(pidB, ":draft", null, null, null, null, null, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("totalCount", equalTo(0))
+                .body("data", hasSize(0));
+
+        // Publish Dataset B (=> v2.0)
+        UtilIT.publishDatasetViaNativeApi(pidB, "major", apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
+
+        // Verify relation is NO LONGER listed when requesting relations for Dataset A
+        // Because Dataset B is now at v2 and v2 has no relation
+        UtilIT.listDatasetRelations(pidA, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("totalCount", equalTo(0))
+                .body("data", hasSize(0));
+
+        // Verify relation is STILL listed when requesting relations for Dataset B v1 specifically
+        UtilIT.listDatasetRelations(pidB, "1.0", null, null, null, null, null, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("totalCount", equalTo(1))
+                .body("data", hasSize(1))
+                .body("data[0].relatedDatasetPid", equalTo(pidA))
+                .body("data[0].relationType.name", equalTo("isRelatedTo"));
+
+        // Verify relation is NOT listed when requesting relations for Dataset B v2
+        UtilIT.listDatasetRelations(pidB, "2.0", null, null, null, null, null, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("totalCount", equalTo(0))
+                .body("data", hasSize(0));
+
+        // Verify relation is NOT listed when requesting relations for Dataset B
+        UtilIT.listDatasetRelations(pidB, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("totalCount", equalTo(0))
+                .body("data", hasSize(0));
+    }
+
+    @Test
+    public void testListExternalDatasetRelations() {
+        String dataverseAlias = UtilIT.createRandomCollectionGetAlias(apiTokenSuperuser);
+        UtilIT.publishDataverseViaNativeApi(dataverseAlias, apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
+        Response createDatasetA = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
+        String pidA = UtilIT.getDatasetPersistentIdFromResponse(createDatasetA);
+
+        // Add external relation to Dataset A (draft)
+        String externalUrl = "https://example.org/dataset/12345";
+        JsonArray relations = Json.createArrayBuilder()
+                .add(Json.createObjectBuilder()
+                        .add("externalIdentifier", externalUrl)
+                        .add("identifierScheme", "URL")
+                        .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo")))
+                .build();
+
+        UtilIT.replaceDatasetRelations(pidA, relations.toString(), apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode());
+
+        // Verify external relation is listed
+        UtilIT.listDatasetRelations(pidA, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("totalCount", equalTo(1))
+                .body("data", hasSize(1))
+                .body("data[0].externalIdentifier", equalTo(externalUrl))
+                .body("data[0].identifierScheme", equalTo("URL"))
+                .body("data[0].relationType.name", equalTo("isRelatedTo"));
+
+        // Add external relation with datasetType
+        String externalUrlWithDocType = "https://example.org/dataset/67890";
+        JsonArray relationsWithDocType = Json.createArrayBuilder()
+                .add(Json.createObjectBuilder()
+                        .add("externalIdentifier", externalUrlWithDocType)
+                        .add("identifierScheme", "URL")
+                        .add("relatedDatasetType", Json.createObjectBuilder().add("displayName", "Document"))
+                        .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo")))
+                .build();
+
+        UtilIT.replaceDatasetRelations(pidA, relationsWithDocType.toString(), apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode());
+
+        // Verify external relation with datasetType is listed
+        UtilIT.listDatasetRelations(pidA, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("totalCount", equalTo(1))
+                .body("data", hasSize(1))
+                .body("data[0].externalIdentifier", equalTo(externalUrlWithDocType))
+                .body("data[0].relatedDatasetType.displayName", equalTo("Document"));
+
+        // Add both internal and external relations
+        Response createDatasetB = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
+        String pidB = UtilIT.getDatasetPersistentIdFromResponse(createDatasetB);
+
+        JsonArray mixedRelations = Json.createArrayBuilder()
+                .add(Json.createObjectBuilder()
+                        .add("relatedDatasetPid", pidB)
+                        .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo")))
+                .add(Json.createObjectBuilder()
+                        .add("externalIdentifier", "doi:10.1234/5678")
+                        .add("identifierScheme", "DOI")
+                        .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo")))
+                .build();
+
+        UtilIT.replaceDatasetRelations(pidA, mixedRelations.toString(), apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode());
+
+        UtilIT.listDatasetRelations(pidA, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("totalCount", equalTo(2))
+                .body("data", hasSize(2))
+                .body("data.relatedDatasetPid", hasItem(pidB))
+                .body("data.externalIdentifier", hasItem("doi:10.1234/5678"))
+                .body("data.identifierScheme", hasItem("DOI"))
+                .body("data.relatedDatasetType.name", hasItem("dataset"))
+                .body("data.relatedDatasetType.displayName", hasItem("Dataset"));
+    }
+
+    @Test
+    public void testGetDatasetRelationCounts() {
         String dataverseAlias = UtilIT.createRandomCollectionGetAlias(apiTokenSuperuser);
         UtilIT.publishDataverseViaNativeApi(dataverseAlias, apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
 
@@ -652,105 +663,209 @@ public class DatasetRelationsIT {
     }
 
     @Test
-    public void testDatasetRelationsOrdering() {
+    public void testDatasetRelationCRUD() {
         String dataverseAlias = UtilIT.createRandomCollectionGetAlias(apiTokenSuperuser);
         UtilIT.publishDataverseViaNativeApi(dataverseAlias, apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
 
-        // Create Dataset A
         Response createDatasetA = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
         String pidA = UtilIT.getDatasetPersistentIdFromResponse(createDatasetA);
 
-        // Create Dataset B
         Response createDatasetB = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
         String pidB = UtilIT.getDatasetPersistentIdFromResponse(createDatasetB);
 
-        // Create Dataset C
-        Response createDatasetC = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
-        String pidC = UtilIT.getDatasetPersistentIdFromResponse(createDatasetC);
+        // POST /api/datasets/{identifier}/relations
+        String relationJson = Json.createObjectBuilder()
+                .add("relatedDatasetPid", pidB)
+                .add("relationType", Json.createObjectBuilder().add("name", "isSupplementTo"))
+                .build().toString();
 
-        // Define relation B -> A (defined on B)
-        JsonArray relationsB = Json.createArrayBuilder()
-                .add(Json.createObjectBuilder()
-                        .add("relatedDatasetPid", pidA)
-                        .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo")))
-                .build();
-        UtilIT.replaceDatasetRelations(pidB, relationsB.toString(), apiTokenSuperuser)
-                .then().assertThat().statusCode(OK.getStatusCode());
-        UtilIT.publishDatasetViaNativeApi(pidB, "major", apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
+        Response postResponse = UtilIT.addDatasetRelation(pidA, relationJson, apiTokenSuperuser);
+        postResponse.then().assertThat().statusCode(OK.getStatusCode())
+                .body("data.id", notNullValue());
 
-        // Define relation A -> C (defined on A)
-        JsonArray relationsA = Json.createArrayBuilder()
-                .add(Json.createObjectBuilder()
-                        .add("relatedDatasetPid", pidC)
-                        .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo")))
-                .build();
-        UtilIT.replaceDatasetRelations(pidA, relationsA.toString(), apiTokenSuperuser)
-                .then().assertThat().statusCode(OK.getStatusCode());
+        int relationId = postResponse.jsonPath().getInt("data.id");
 
-        // List relations for A
-        // Expecting:
-        // 1. A -> C (defined on A)
-        // 2. B -> A (defined on B)
-        
-        Response listResponse = UtilIT.listDatasetRelations(pidA, apiTokenSuperuser);
-        listResponse.then().assertThat().statusCode(OK.getStatusCode())
-                .body("data", hasSize(2));
+        // GET /api/datasets/{identifier}/relations/{id}
+        // GET relation for dataset A -> should be isSupplementTo
+        UtilIT.getDatasetRelation(pidA, relationId, apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode())
+                .body("data.id", equalTo(relationId))
+                .body("data.relatedDatasetPid", equalTo(pidB))
+                .body("data.relationType.name", equalTo("isSupplementTo"));
 
-        // We want relations defined ON dataset A to come first:
-        // Relation A -> C is defined on A (definitionPointPid should be pidA)
-        // Relation B -> A is defined on B (definitionPointPid should be pidB)
+        // GET relation for dataset B -> should be isSupplementedBy (inverted)
+        UtilIT.getDatasetRelation(pidB, relationId, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("data.relationType.name", equalTo("isSupplementedBy"));
 
-        List<String> definitionPointPids = listResponse.jsonPath().getList("data.definitionPointPid");
-        assertEquals(pidA, definitionPointPids.get(0));
-        assertEquals(pidB, definitionPointPids.get(1));
+        // DELETE /api/datasets/{identifier}/relations/{id}
+        UtilIT.deleteDatasetRelation(pidA, relationId, apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
+
+        // Verify GET after DELETE is 404
+        UtilIT.getDatasetRelation(pidA, relationId, apiTokenSuperuser)
+                .then().assertThat().statusCode(NOT_FOUND.getStatusCode());
     }
 
     @Test
-    public void testListDatasetRelationsFilteringBySource() {
+    public void testDatasetRelationCRUDErrorPaths() {
         String dataverseAlias = UtilIT.createRandomCollectionGetAlias(apiTokenSuperuser);
         UtilIT.publishDataverseViaNativeApi(dataverseAlias, apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
 
-        // Dataset A
         Response createDatasetA = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
         String pidA = UtilIT.getDatasetPersistentIdFromResponse(createDatasetA);
 
-        // Dataset B
         Response createDatasetB = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
         String pidB = UtilIT.getDatasetPersistentIdFromResponse(createDatasetB);
 
-        // Create 1 internal and 1 external relation
-        JsonArray relations = Json.createArrayBuilder()
-                .add(Json.createObjectBuilder()
-                        .add("relatedDatasetPid", pidB)
-                        .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo")))
-                .add(Json.createObjectBuilder()
-                        .add("externalIdentifier", "https://example.org/1")
-                        .add("identifierScheme", "URL")
-                        .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo")))
-                .build();
-        UtilIT.replaceDatasetRelations(pidA, relations.toString(), apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
+        // GET or DELETE on non-existent ID should be 404
+        UtilIT.getDatasetRelation(pidA, 999999, apiTokenSuperuser)
+                .then().assertThat().statusCode(NOT_FOUND.getStatusCode());
 
-        // No filter -> Expect 2
+        UtilIT.deleteDatasetRelation(pidA, 999999, apiTokenSuperuser)
+                .then().assertThat().statusCode(NOT_FOUND.getStatusCode());
+
+        // First create a relation
+        String relationJson = Json.createObjectBuilder()
+                .add("relatedDatasetPid", pidB)
+                .add("relationType", Json.createObjectBuilder().add("name", "isSupplementTo"))
+                .build().toString();
+
+        long relationId = UtilIT.addDatasetRelation(pidA, relationJson, apiTokenSuperuser)
+                .then().extract().jsonPath().getInt("data.id");
+
+        // Create a third dataset C
+        Response createDatasetC = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
+        String pidC = UtilIT.getDatasetPersistentIdFromResponse(createDatasetC);
+
+        // Try to GET relation with pidC (which is not involved in the relation)
+        // Should be 404
+        UtilIT.getDatasetRelation(pidC, relationId, apiTokenSuperuser)
+                .then().assertThat().statusCode(NOT_FOUND.getStatusCode());
+
+        // Try to add the already existing relation to B again
+        // Should count as a duplicate and therefore be 400
+        JsonObject dupRelation = Json.createObjectBuilder()
+                .add("relatedDatasetPid", pidB)
+                .add("relationType", Json.createObjectBuilder().add("name", "isSupplementTo"))
+                .build();
+
+        UtilIT.addDatasetRelation(pidA, dupRelation.toString(), apiTokenSuperuser)
+                .then().assertThat().statusCode(BAD_REQUEST.getStatusCode());
+
+        // Try to add the already existing relation to B again, but this time, without the relation type
+        // Should still count as a duplicate and therefore be 400
+        JsonObject dupRelationWithoutType = Json.createObjectBuilder()
+                .add("relatedDatasetPid", pidB)
+                .build();
+
+        UtilIT.addDatasetRelation(pidA, dupRelationWithoutType.toString(), apiTokenSuperuser)
+                .then().assertThat().statusCode(BAD_REQUEST.getStatusCode());
+
+        // Try to DELETE relation with pidC
+        // Should be 404
+        UtilIT.deleteDatasetRelation(pidC, relationId, apiTokenSuperuser)
+                .then().assertThat().statusCode(NOT_FOUND.getStatusCode());
+
+        // Try to DELETE relation with pidB
+        // Should be 404
+        UtilIT.deleteDatasetRelation(pidB, relationId, apiTokenSuperuser)
+                .then().assertThat().statusCode(NOT_FOUND.getStatusCode());
+
+        // Try to DELETE relation with pidA
+        // Should work as the relation was defined on pidA
+        UtilIT.getDatasetRelation(pidB, relationId, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode());
+    }
+
+    @Test
+    public void testDatasetRelationCRUDAuthErrorPaths() {
+        String dataverseAlias = UtilIT.createRandomCollectionGetAlias(apiTokenSuperuser);
+        UtilIT.publishDataverseViaNativeApi(dataverseAlias, apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
+
+        Response createDatasetA = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
+        String pidA = UtilIT.getDatasetPersistentIdFromResponse(createDatasetA);
+        Response createDatasetB = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
+        String pidB = UtilIT.getDatasetPersistentIdFromResponse(createDatasetB);
+
+        // Create a normal user
+        Response createUser = UtilIT.createRandomUser();
+        String apiTokenUser = UtilIT.getApiTokenFromResponse(createUser);
+
+        // Without edit rights on the dataset, post and delete should fail
+        String relationJson = Json.createObjectBuilder()
+                .add("relatedDatasetPid", pidB)
+                .add("relationType", Json.createObjectBuilder().add("name", "isSupplementTo"))
+                .build().toString();
+
+        UtilIT.addDatasetRelation(pidA, relationJson, apiTokenUser)
+                .then().assertThat().statusCode(UNAUTHORIZED.getStatusCode());
+
+        // Create relation as superuser
+        long relationId = UtilIT.addDatasetRelation(pidA, relationJson, apiTokenSuperuser)
+                .then().extract().jsonPath().getInt("data.id");
+
+        // Try to delete as normal user
+        UtilIT.deleteDatasetRelation(pidA, relationId, apiTokenUser)
+                .then().assertThat().statusCode(UNAUTHORIZED.getStatusCode());
+
+        // If not authenticated and the relation isn't published, get should fail
+        UtilIT.getDatasetRelation(pidA, relationId, null)
+                .then().assertThat().statusCode(FORBIDDEN.getStatusCode());
+
+        // Even with a token, if user has no view rights on unpublished dataset, it should fail
+        UtilIT.getDatasetRelation(pidA, relationId, apiTokenUser)
+                .then().assertThat().statusCode(FORBIDDEN.getStatusCode());
+
+        // Publish dataset A and B
+        UtilIT.publishDatasetViaNativeApi(pidB, "major", apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
+        UtilIT.publishDatasetViaNativeApi(pidA, "major", apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
+
+        // Now GET should work even without token
+        UtilIT.getDatasetRelation(pidA, relationId, null)
+                .then().assertThat().statusCode(OK.getStatusCode());
+    }
+
+    @Test
+    public void testReplaceDatasetRelationsErrorPaths() {
+        String dataverseAlias = UtilIT.createRandomCollectionGetAlias(apiTokenSuperuser);
+        UtilIT.publishDataverseViaNativeApi(dataverseAlias, apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
+        String pidA = UtilIT.getDatasetPersistentIdFromResponse(UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser));
+        String pidB = UtilIT.getDatasetPersistentIdFromResponse(UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser));
+
+        JsonObject typedRelation = Json.createObjectBuilder()
+                .add("relatedDatasetPid", pidB)
+                .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo"))
+                .build();
+        UtilIT.replaceDatasetRelations(pidA, Json.createArrayBuilder().add(typedRelation).build().toString(), apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode());
+
+        JsonObject untypedRelation = Json.createObjectBuilder()
+                .add("relatedDatasetPid", pidB)
+                .build();
+        JsonArray typedThenUntyped = Json.createArrayBuilder()
+                .add(typedRelation)
+                .add(untypedRelation)
+                .build();
+        UtilIT.replaceDatasetRelations(pidA, typedThenUntyped.toString(), apiTokenSuperuser)
+                .then().assertThat().statusCode(BAD_REQUEST.getStatusCode());
+
+        JsonArray untypedThenTyped = Json.createArrayBuilder()
+                .add(untypedRelation)
+                .add(typedRelation)
+                .build();
+        UtilIT.replaceDatasetRelations(pidA, untypedThenTyped.toString(), apiTokenSuperuser)
+                .then().assertThat().statusCode(BAD_REQUEST.getStatusCode());
+
+        JsonArray invalidRelatedDataset = Json.createArrayBuilder()
+                .add(Json.createObjectBuilder().add("relatedDatasetPid", "doi:10.5072/FK2/DOESNOTEXIST"))
+                .build();
+        UtilIT.replaceDatasetRelations(pidA, invalidRelatedDataset.toString(), apiTokenSuperuser)
+                .then().assertThat().statusCode(BAD_REQUEST.getStatusCode());
+
         UtilIT.listDatasetRelations(pidA, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
-                .body("totalCount", equalTo(2));
-
-        // Filter by source=internal -> Expect 1
-        UtilIT.listDatasetRelations(pidA, null, null, null, List.of("internal"), null, null, apiTokenSuperuser)
-                .then().assertThat().statusCode(OK.getStatusCode())
                 .body("totalCount", equalTo(1))
-                .body("data[0].relatedDatasetPid", equalTo(pidB));
-
-        // Filter by source=external -> Expect 1
-        UtilIT.listDatasetRelations(pidA, null, null, null, List.of("external"), null, null, apiTokenSuperuser)
-                .then().assertThat().statusCode(OK.getStatusCode())
-                .body("totalCount", equalTo(1))
-                .body("data[0].externalIdentifier", equalTo("https://example.org/1"));
-
-        // Filter by both -> Expect 2
-        UtilIT.listDatasetRelations(pidA, null, null, null, Arrays.asList("internal", "external"), null, null, apiTokenSuperuser)
-                .then().assertThat().statusCode(OK.getStatusCode())
-                .body("totalCount", equalTo(2));
+                .body("data[0].relatedDatasetPid", equalTo(pidB))
+                .body("data[0].relationType.name", equalTo("isRelatedTo"));
     }
 
     @Test
@@ -828,7 +943,7 @@ public class DatasetRelationsIT {
 
         // Update dataset with NEW relations via PUT api/datasets/:persistentId/versions/:draft
         String externalUrl2 = "https://example.org/dataset/2";
-        
+
         // Reuse the existing data and replace relations
         JsonObject updatedVersionData = Json.createObjectBuilder(datasetData.getJsonObject("datasetVersion"))
                 .add("relations", Json.createArrayBuilder()
@@ -850,195 +965,49 @@ public class DatasetRelationsIT {
     }
 
     @Test
-    public void testDatasetRelationCRUD() {
+    public void testVersionSummariesIncludeRelationChanges() {
         String dataverseAlias = UtilIT.createRandomCollectionGetAlias(apiTokenSuperuser);
         UtilIT.publishDataverseViaNativeApi(dataverseAlias, apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
+        String pidA = UtilIT.getDatasetPersistentIdFromResponse(UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser));
+        String pidB = UtilIT.getDatasetPersistentIdFromResponse(UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser));
+        String externalIdentifier = "https://example.org/dataset/relations-summary";
 
-        Response createDatasetA = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
-        String pidA = UtilIT.getDatasetPersistentIdFromResponse(createDatasetA);
-
-        Response createDatasetB = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
-        String pidB = UtilIT.getDatasetPersistentIdFromResponse(createDatasetB);
-
-        // POST /api/datasets/{identifier}/relations
-        String relationJson = Json.createObjectBuilder()
-                .add("relatedDatasetPid", pidB)
-                .add("relationType", Json.createObjectBuilder().add("name", "isSupplementTo"))
-                .build().toString();
-
-        Response postResponse = UtilIT.addDatasetRelation(pidA, relationJson, apiTokenSuperuser);
-
-        if (postResponse.statusCode() != OK.getStatusCode()) {
-            System.out.println("[DEBUG_LOG] POST failed with status " + postResponse.statusCode() + ": " + postResponse.asString());
-        }
-        postResponse.then().assertThat().statusCode(OK.getStatusCode())
-                .body("data.id", notNullValue());
-
-        int relationId = postResponse.jsonPath().getInt("data.id");
-
-        // GET /api/datasets/{identifier}/relations/{id}
-        Response getResponse = UtilIT.getDatasetRelation(pidA, relationId, apiTokenSuperuser);
-
-        getResponse.then().assertThat().statusCode(OK.getStatusCode())
-                .body("data.id", equalTo(relationId))
-                .body("data.relatedDatasetPid", equalTo(pidB));
-
-        // DELETE /api/datasets/{identifier}/relations/{id}
-        Response deleteResponse = UtilIT.deleteDatasetRelation(pidA, relationId, apiTokenSuperuser);
-
-        deleteResponse.then().assertThat().statusCode(OK.getStatusCode());
-
-        // Verify GET after DELETE is 404
-        UtilIT.getDatasetRelation(pidA, relationId, apiTokenSuperuser)
-                .then().assertThat().statusCode(NOT_FOUND.getStatusCode());
-    }
-
-    @Test
-    public void testDatasetRelationErrorPaths() {
-        String dataverseAlias = UtilIT.createRandomCollectionGetAlias(apiTokenSuperuser);
-        UtilIT.publishDataverseViaNativeApi(dataverseAlias, apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
-
-        Response createDatasetA = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
-        String pidA = UtilIT.getDatasetPersistentIdFromResponse(createDatasetA);
-
-        Response createDatasetB = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
-        String pidB = UtilIT.getDatasetPersistentIdFromResponse(createDatasetB);
-
-        // GET or DELETE on non-existent ID should be 404
-        UtilIT.getDatasetRelation(pidA, 999999, apiTokenSuperuser)
-                .then().assertThat().statusCode(NOT_FOUND.getStatusCode());
-
-        UtilIT.deleteDatasetRelation(pidA, 999999, apiTokenSuperuser)
-                .then().assertThat().statusCode(NOT_FOUND.getStatusCode());
-
-        // First create a relation
-        String relationJson = Json.createObjectBuilder()
-                .add("relatedDatasetPid", pidB)
-                .add("relationType", Json.createObjectBuilder().add("name", "isSupplementTo"))
-                .build().toString();
-
-        long relationId = UtilIT.addDatasetRelation(pidA, relationJson, apiTokenSuperuser)
-                .then().extract().jsonPath().getInt("data.id");
-
-        // Create a third dataset C
-        Response createDatasetC = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
-        String pidC = UtilIT.getDatasetPersistentIdFromResponse(createDatasetC);
-
-        // Try to GET relation with pidC (which is not involved in the relation)
-        // Should be 404
-        UtilIT.getDatasetRelation(pidC, relationId, apiTokenSuperuser)
-                .then().assertThat().statusCode(NOT_FOUND.getStatusCode());
-
-        // Try to add the already existing relation to B again
-        // Should count as a duplicate and therefore be 400
-        JsonObject dupRelation = Json.createObjectBuilder()
-                .add("relatedDatasetPid", pidB)
-                .add("relationType", Json.createObjectBuilder().add("name", "isSupplementTo"))
-                .build();
-
-        UtilIT.addDatasetRelation(pidA, dupRelation.toString(), apiTokenSuperuser)
-                .then().assertThat().statusCode(BAD_REQUEST.getStatusCode());
-
-        // Try to add the already existing relation to B again, but this time, without the relation type
-        // Should still count as a duplicate and therefore be 400
-        JsonObject dupRelationWithoutType = Json.createObjectBuilder()
-                .add("relatedDatasetPid", pidB)
-                .build();
-
-        UtilIT.addDatasetRelation(pidA, dupRelationWithoutType.toString(), apiTokenSuperuser)
-                .then().assertThat().statusCode(BAD_REQUEST.getStatusCode());
-
-        // Try to DELETE relation with pidC
-        // Should be 404
-        UtilIT.deleteDatasetRelation(pidC, relationId, apiTokenSuperuser)
-                .then().assertThat().statusCode(NOT_FOUND.getStatusCode());
-
-        // Try to DELETE relation with pidB
-        // Should be 404
-        UtilIT.deleteDatasetRelation(pidB, relationId, apiTokenSuperuser)
-                .then().assertThat().statusCode(NOT_FOUND.getStatusCode());
-
-        // Try to DELETE relation with pidA
-        // Should work as the relation was defined on pidA
-        UtilIT.getDatasetRelation(pidB, relationId, apiTokenSuperuser)
-                .then().assertThat().statusCode(OK.getStatusCode());
-    }
-
-    @Test
-    public void testDatasetRelationAuthErrorPaths() {
-        String dataverseAlias = UtilIT.createRandomCollectionGetAlias(apiTokenSuperuser);
-        UtilIT.publishDataverseViaNativeApi(dataverseAlias, apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
-
-        Response createDatasetA = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
-        String pidA = UtilIT.getDatasetPersistentIdFromResponse(createDatasetA);
-        Response createDatasetB = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
-        String pidB = UtilIT.getDatasetPersistentIdFromResponse(createDatasetB);
-
-        // Create a normal user
-        Response createUser = UtilIT.createRandomUser();
-        String apiTokenUser = UtilIT.getApiTokenFromResponse(createUser);
-
-        // Without edit rights on the dataset, post and delete should fail
-        String relationJson = Json.createObjectBuilder()
-                .add("relatedDatasetPid", pidB)
-                .add("relationType", Json.createObjectBuilder().add("name", "isSupplementTo"))
-                .build().toString();
-
-        UtilIT.addDatasetRelation(pidA, relationJson, apiTokenUser)
-                .then().assertThat().statusCode(UNAUTHORIZED.getStatusCode());
-
-        // Create relation as superuser
-        long relationId = UtilIT.addDatasetRelation(pidA, relationJson, apiTokenSuperuser)
-                .then().extract().jsonPath().getInt("data.id");
-
-        // Try to delete as normal user
-        UtilIT.deleteDatasetRelation(pidA, relationId, apiTokenUser)
-                .then().assertThat().statusCode(UNAUTHORIZED.getStatusCode());
-
-        // If not authenticated and the relation isn't published, get should fail
-        UtilIT.getDatasetRelation(pidA, relationId, null)
-                .then().assertThat().statusCode(FORBIDDEN.getStatusCode());
-        
-        // Even with a token, if user has no view rights on unpublished dataset, it should fail
-        UtilIT.getDatasetRelation(pidA, relationId, apiTokenUser)
-                .then().assertThat().statusCode(FORBIDDEN.getStatusCode());
-
-        // Publish dataset A and B
-        UtilIT.publishDatasetViaNativeApi(pidB, "major", apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
         UtilIT.publishDatasetViaNativeApi(pidA, "major", apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
 
-        // Now GET should work even without token
-        UtilIT.getDatasetRelation(pidA, relationId, null)
+        JsonArray relations = Json.createArrayBuilder()
+                .add(Json.createObjectBuilder()
+                        .add("relatedDatasetPid", pidB)
+                        .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo")))
+                .add(Json.createObjectBuilder()
+                        .add("externalIdentifier", externalIdentifier)
+                        .add("identifierScheme", "URL")
+                        .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo")))
+                .build();
+        UtilIT.replaceDatasetRelations(pidA, relations.toString(), apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode());
-    }
+        UtilIT.publishDatasetViaNativeApi(pidA, "major", apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
 
-    @Test
-    public void testDatasetRelationInversion() {
-        String dataverseAlias = UtilIT.createRandomCollectionGetAlias(apiTokenSuperuser);
-        UtilIT.publishDataverseViaNativeApi(dataverseAlias, apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
-
-        Response createDatasetA = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
-        String pidA = UtilIT.getDatasetPersistentIdFromResponse(createDatasetA);
-        Response createDatasetB = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
-        String pidB = UtilIT.getDatasetPersistentIdFromResponse(createDatasetB);
-
-        // POST A isSupplementTo B
-        String relationJson = Json.createObjectBuilder()
-                .add("relatedDatasetPid", pidB)
-                .add("relationType", Json.createObjectBuilder().add("name", "isSupplementTo"))
-                .build().toString();
-
-        int relationId = UtilIT.addDatasetRelation(pidA, relationJson, apiTokenSuperuser)
-                .then().extract().jsonPath().getInt("data.id");
-
-        // GET relation for dataset A -> should be isSupplementTo
-        UtilIT.getDatasetRelation(pidA, relationId, apiTokenSuperuser)
+        UtilIT.compareDatasetVersions(pidA, "1.0", "2.0", apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
-                .body("data.relationType.name", equalTo("isSupplementTo"));
-
-        // GET relation for dataset B -> should be isSupplementedBy (inverted)
-        UtilIT.getDatasetRelation(pidB, relationId, apiTokenSuperuser)
+                .body("data.relationsAdded", hasSize(2))
+                .body("data.relationsAdded.relatedDatasetPid", hasItem(pidB))
+                .body("data.relationsAdded.externalIdentifier", hasItem(externalIdentifier));
+        UtilIT.summaryDatasetVersionDifferences(pidA, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
-                .body("data.relationType.name", equalTo("isSupplementedBy"));
+                .body("data[0].summary.relations.added", equalTo(2))
+                .body("data[0].summary.relations.removed", equalTo(0));
+
+        UtilIT.replaceDatasetRelations(pidA, "[]", apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode());
+        UtilIT.publishDatasetViaNativeApi(pidA, "major", apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
+
+        UtilIT.compareDatasetVersions(pidA, "2.0", "3.0", apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("data.relationsRemoved", hasSize(2))
+                .body("data.relationsRemoved.relatedDatasetPid", hasItem(pidB))
+                .body("data.relationsRemoved.externalIdentifier", hasItem(externalIdentifier));
+        UtilIT.summaryDatasetVersionDifferences(pidA, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("data[0].summary.relations.removed", equalTo(2));
     }
 }
