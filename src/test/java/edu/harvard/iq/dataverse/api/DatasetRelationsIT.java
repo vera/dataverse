@@ -882,11 +882,6 @@ public class DatasetRelationsIT {
         UtilIT.getDatasetRelation(pidC, relationId, apiTokenSuperuser)
                 .then().assertThat().statusCode(NOT_FOUND.getStatusCode());
 
-        // Try to DELETE relation with pidC
-        // Should be 404
-        UtilIT.deleteDatasetRelation(pidC, relationId, apiTokenSuperuser)
-                .then().assertThat().statusCode(NOT_FOUND.getStatusCode());
-
         // Try to add the already existing relation to B again
         // Should count as a duplicate and therefore be 400
         JsonObject dupRelation = Json.createObjectBuilder()
@@ -906,7 +901,18 @@ public class DatasetRelationsIT {
         UtilIT.addDatasetRelation(pidA, dupRelationWithoutType.toString(), apiTokenSuperuser)
                 .then().assertThat().statusCode(BAD_REQUEST.getStatusCode());
 
-        // Delete should work with B as it IS a related dataset
+        // Try to DELETE relation with pidC
+        // Should be 404
+        UtilIT.deleteDatasetRelation(pidC, relationId, apiTokenSuperuser)
+                .then().assertThat().statusCode(NOT_FOUND.getStatusCode());
+
+        // Try to DELETE relation with pidB
+        // Should be 404
+        UtilIT.deleteDatasetRelation(pidB, relationId, apiTokenSuperuser)
+                .then().assertThat().statusCode(NOT_FOUND.getStatusCode());
+
+        // Try to DELETE relation with pidA
+        // Should work as the relation was defined on pidA
         UtilIT.getDatasetRelation(pidB, relationId, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode());
     }

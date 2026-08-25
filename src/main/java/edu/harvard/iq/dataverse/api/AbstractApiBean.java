@@ -497,7 +497,7 @@ public abstract class AbstractApiBean {
         return dsv;
     }
 
-    protected DatasetRelation findDatasetRelationOrDie(String relationId, String datasetId) throws WrappedResponse {
+    protected DatasetRelation findDatasetRelationOrDie(String relationId, String datasetId, boolean strict) throws WrappedResponse {
         Dataset dataset = findDatasetOrDie(datasetId);
 
         long relationIdAsLong;
@@ -515,9 +515,14 @@ public abstract class AbstractApiBean {
                     notFound(BundleUtil.getStringFromBundle("find.datasetrelation.error.datasetrelation.not.found.id", Collections.singletonList(relationId))));
         }
 
+        // Generally, the relation must involve the given dataset
         boolean relationMatchesDataset = relation.getDataset().equals(dataset);
         if (relation instanceof InternalDatasetRelation internalRelation) {
             relationMatchesDataset = relationMatchesDataset || internalRelation.getRelatedDataset().equals(dataset);
+        }
+        // If we are strict matching (used during relation deletion), the relation must also be defined on the given dataset
+        if (strict) {
+            relationMatchesDataset = relationMatchesDataset && relation.getDefinitionPoint().getDataset().equals(dataset);
         }
 
         if (!relationMatchesDataset) {

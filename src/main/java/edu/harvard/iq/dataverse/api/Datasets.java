@@ -4138,7 +4138,7 @@ public class Datasets extends AbstractApiBean {
 
             Dataset dataset = findDatasetOrDie(datasetId);
 
-            DatasetRelation relation = findDatasetRelationOrDie(id, datasetId);
+            DatasetRelation relation = findDatasetRelationOrDie(id, datasetId, false);
 
             if (!relation.getDefinitionPoint().isReleased() && !permissionService.hasPermissionsFor(u, relation.getDefinitionPoint().getDataset(), EnumSet.of(Permission.ViewUnpublishedDataset))) {
                 return forbidden(BundleUtil.getStringFromBundle("datasets.api.datasetRelation.error.viewForbidden"));
@@ -4158,7 +4158,7 @@ public class Datasets extends AbstractApiBean {
     ) {
         return response(req -> {
             try {
-                DatasetRelation relation = findDatasetRelationOrDie(id, datasetId);
+                DatasetRelation relation = findDatasetRelationOrDie(id, datasetId, true);
 
                 execCommand(new DeleteDatasetRelationCommand(req, relation));
 
