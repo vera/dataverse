@@ -1126,8 +1126,10 @@ public class JsonPrinter {
         }
 
         if (rel.getRelationType() != null) {
-            DatasetRelationType relType = (rel instanceof InternalDatasetRelation && invertRelation) ? rel.getRelationType().getInverse() : rel.getRelationType();
-            result.add("relationType", json(relType));
+            DatasetRelationType relType = invertRelation ? rel.getRelationType().getInverse() : rel.getRelationType();
+            if (relType != null) {
+                result.add("relationType", json(relType));
+            }
         }
 
         return result;

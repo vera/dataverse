@@ -43,11 +43,14 @@ candidate_relations AS (
     FROM datasetrelation dr
     JOIN latest_released_versions lrv ON dr.definitionpoint_id = lrv.id
     WHERE lrv.dataset_id != :target_dataset_id
-      AND (dr.dataset_id = :target_dataset_id OR dr.relateddataset_id = :target_dataset_id)
+      AND dr.relateddataset_id = :target_dataset_id
 ),
 normalized_candidate_relations AS (
     SELECT cr.id, cr.definition_point_priority,
-           CASE WHEN dr.dataset_id = :target_dataset_id THEN dr.relationtype_id ELSE rt.inverse_id END AS normalized_relation_type_id,
+           CASE
+               WHEN dr.dataset_id = :target_dataset_id THEN dr.relationtype_id
+               ELSE rt.inverse_id
+           END AS normalized_relation_type_id,
            CASE WHEN dr.relation_source = 'internal'
                 THEN CASE WHEN dr.dataset_id = :target_dataset_id THEN CAST(dr.relateddataset_id AS VARCHAR) ELSE CAST(dr.dataset_id AS VARCHAR) END
                 ELSE dr.externalidentifier
@@ -84,7 +87,7 @@ candidate_relations AS (
     FROM datasetrelation dr
     JOIN latest_released_versions lrv ON dr.definitionpoint_id = lrv.id
     WHERE lrv.dataset_id != :target_dataset_id
-      AND (dr.dataset_id = :target_dataset_id OR dr.relateddataset_id = :target_dataset_id)
+      AND dr.relateddataset_id = :target_dataset_id
 )
 SELECT COUNT(DISTINCT
     CASE

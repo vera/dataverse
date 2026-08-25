@@ -55,6 +55,12 @@ public class DatasetRelationsIT {
                 .add("inverseDisplayName", "Cites")
                 .build().toString();
         UtilIT.addDatasetRelationType(relationTypeJson3, apiTokenSuperuser);
+
+        String relationTypeWithoutInverseJson = Json.createObjectBuilder()
+                .add("name", "isDerivedFromWithoutInverse")
+                .add("displayName", "Is derived from without inverse")
+                .build().toString();
+        UtilIT.addDatasetRelationType(relationTypeWithoutInverseJson, apiTokenSuperuser);
     }
 
     @Test
@@ -602,6 +608,52 @@ public class DatasetRelationsIT {
                 .body("data.identifierScheme", hasItem("DOI"))
                 .body("data.relatedDatasetType.name", hasItem("dataset"))
                 .body("data.relatedDatasetType.displayName", hasItem("Dataset"));
+    }
+
+    @Test
+    public void testInternalRelationsWithoutInverseType() {
+        String dataverseAlias = UtilIT.createRandomCollectionGetAlias(apiTokenSuperuser);
+        UtilIT.publishDataverseViaNativeApi(dataverseAlias, apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
+
+        String pidA = UtilIT.getDatasetPersistentIdFromResponse(UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser));
+        String pidB = UtilIT.getDatasetPersistentIdFromResponse(UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser));
+
+        // Create relation A -> B using a relation type that has no inverse
+        JsonObject relation = Json.createObjectBuilder()
+                .add("relatedDatasetPid", pidB)
+                .add("relationType", Json.createObjectBuilder().add("name", "isDerivedFromWithoutInverse"))
+                .build();
+        Response createRelation = UtilIT.addDatasetRelation(pidA, relation.toString(), apiTokenSuperuser);
+        createRelation.then().assertThat().statusCode(OK.getStatusCode());
+
+        int relationId = createRelation.jsonPath().getInt("data.id");
+
+        // Retrieving the relation for dataset A lists the relation type
+        UtilIT.getDatasetRelation(pidA, relationId, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("data.datasetPid", equalTo(pidA))
+                .body("data.relatedDatasetPid", equalTo(pidB))
+                .body("data.relationType.name", equalTo("isDerivedFromWithoutInverse"));
+
+        // Retrieving the relation for dataset B lists no relation type (because the type has no inverse)
+        UtilIT.getDatasetRelation(pidB, relationId, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("data.datasetPid", equalTo(pidB))
+                .body("data.relatedDatasetPid", equalTo(pidA))
+                .body("data.relationType.name", equalTo(null));
+
+        UtilIT.publishDatasetViaNativeApi(pidA, "major", apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
+
+        UtilIT.listDatasetRelations(pidB, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("totalCount", equalTo(1))
+                .body("data[0].datasetPid", equalTo(pidB))
+                .body("data[0].relatedDatasetPid", equalTo(pidA))
+                .body("data[0].relationType.name", equalTo(null));
+
+        UtilIT.listDatasetRelations(pidB, null, List.of("isDerivedFromWithoutInverse"), null, null, null, null, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("totalCount", equalTo(0));
     }
 
     @Test

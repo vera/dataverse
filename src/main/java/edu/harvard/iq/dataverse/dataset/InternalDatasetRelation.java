@@ -16,22 +16,16 @@ public class InternalDatasetRelation extends DatasetRelation {
     private Dataset relatedDataset;
 
     public InternalDatasetRelation(Dataset datasetA, Dataset datasetB, DatasetRelationType relationType, DatasetVersion definitionPoint) {
-        if (datasetA == null || datasetB == null) throw new IllegalArgumentException("Cannot create a relation for a null dataset");
-
-        // We enforce canonical order to ensure uniqueness of relations
-        if (datasetA.getId() < datasetB.getId()) {
-            setDataset(datasetA);
-            relatedDataset = datasetB;
-            if (relationType != null) {
-                setRelationType(relationType);
-            }
-        } else {
-            setDataset(datasetB);
-            relatedDataset = datasetA;
-            if (relationType != null) {
-                setRelationType(relationType.getInverse());
-            }
+        if (datasetA == null || datasetB == null || definitionPoint == null) {
+            throw new IllegalArgumentException("Cannot create a relation for a null dataset or definition point");
         }
+        if (!datasetA.equals(definitionPoint.getDataset())) {
+            throw new IllegalArgumentException("The definition point must belong to the relation source dataset");
+        }
+
+        setDataset(datasetA);
+        setRelatedDataset(datasetB);
+        setRelationType(relationType);
         setDefinitionPoint(definitionPoint);
     }
 

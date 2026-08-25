@@ -39,13 +39,17 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
             "     FROM datasetrelation dr " +
             "     JOIN latest_released_versions lrv ON dr.definitionpoint_id = lrv.id " +
             "     WHERE lrv.dataset_id != ? " +
-            "       AND (dr.dataset_id = ? OR dr.relateddataset_id = ?) " +
+            "       AND dr.relateddataset_id = ? " +
             " ) ";
 
-    private static final String WITH_CANONICAL_RELATIONS =
+    // Normalize and deduplicate relation types from the requested dataset's perspective.
+    private static final String WITH_DEDUPLICATED_RELATIONS =
             " , normalized_candidate_relations AS ( " +
             "     SELECT cr.id, cr.definition_point_priority, " +
-            "         CASE WHEN dr.dataset_id = ? THEN dr.relationtype_id ELSE rt.inverse_id END AS normalized_relation_type_id, " +
+            "         CASE " +
+            "             WHEN dr.dataset_id = ? THEN dr.relationtype_id " +
+            "             ELSE rt.inverse_id " +
+            "         END AS normalized_relation_type_id, " +
             "         CASE WHEN dr.relation_source = 'internal' " +
             "             THEN CASE WHEN dr.dataset_id = ? THEN CAST(dr.relateddataset_id AS VARCHAR) ELSE CAST(dr.dataset_id AS VARCHAR) END " +
             "             ELSE dr.externalidentifier " +
@@ -54,7 +58,7 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
             "     JOIN datasetrelation dr ON cr.id = dr.id " +
             "     LEFT JOIN datasetrelationtype rt ON dr.relationtype_id = rt.id " +
             " ), " +
-            " canonical_relations AS ( " +
+            " deduplicated_relations AS ( " +
             "     SELECT DISTINCT ON (normalized_relation_type_id, normalized_related_dataset) " +
             "         id, definition_point_priority " +
             "     FROM normalized_candidate_relations " +
@@ -74,8 +78,8 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
 
     private static final String GET_RELATIONS_QUERY_BASE =
             " SELECT dr.* " +
-            " FROM canonical_relations cr " +
-            " JOIN datasetrelation dr ON cr.id = dr.id ";
+            " FROM deduplicated_relations ddr " +
+            " JOIN datasetrelation dr ON ddr.id = dr.id ";
 
     private static final String JOIN_RELATION_TYPES = 
             // Get information about dataset relation types
@@ -101,7 +105,7 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
             " (dr.relation_source IN (?)) ";
 
     private static final String ORDER_BY_REQUESTED_DATASET_FIRST =
-            " ORDER BY cr.definition_point_priority ASC, dr.id ASC ";
+            " ORDER BY ddr.definition_point_priority ASC, dr.id ASC ";
 
     @SuppressWarnings("unchecked")
     @Override
@@ -110,7 +114,7 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
 
         sql.append(WITH_LATEST_RELEASED_VERSIONS)
                 .append(WITH_CANDIDATE_RELATIONS)
-                .append(WITH_CANONICAL_RELATIONS)
+                .append(WITH_DEDUPLICATED_RELATIONS)
                 .append(GET_RELATIONS_QUERY_BASE);
 
         if (relationTypeNames != null && !relationTypeNames.isEmpty()) {
@@ -147,9 +151,8 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
         query.setParameter(i++, v.getId());
         query.setParameter(i++, d.getId());
         query.setParameter(i++, d.getId());
-        query.setParameter(i++, d.getId());
 
-        // WITH_CANONICAL_RELATIONS
+        // WITH_DEDUPLICATED_RELATIONS
         query.setParameter(i++, d.getId());
         query.setParameter(i++, d.getId());
 
@@ -227,7 +230,6 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
 
         // WITH_CANDIDATE_RELATIONS
         query.setParameter(i++, v.getId());
-        query.setParameter(i++, d.getId());
         query.setParameter(i++, d.getId());
         query.setParameter(i++, d.getId());
 
@@ -309,7 +311,7 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
             " ( " +
                     "   dr.definitionpoint_id = ? " +
                     "   OR ( " +
-                    "       ((dr.dataset_id = ? OR dr.relateddataset_id = ?) AND dv_def.dataset_id != ?) " +
+                    "       (dr.relateddataset_id = ? AND dv_def.dataset_id != ?) " +
                     "       AND dr.definitionpoint_id = ( " +
                     "           SELECT dv.id FROM datasetversion dv " +
                     "           WHERE dv.dataset_id = dv_def.dataset_id " +
@@ -366,7 +368,6 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
 
         // WHERE_FOR_COUNTS
         query.setParameter(i++, v.getId());
-        query.setParameter(i++, d.getId());
         query.setParameter(i++, d.getId());
         query.setParameter(i++, d.getId());
 

@@ -73,6 +73,7 @@ public abstract class DatasetRelation implements Serializable {
 
     @ManyToOne
     @JoinColumn(nullable=false)
+    // The dataset from which this relation originates.
     private Dataset dataset;
 
     @ManyToOne
