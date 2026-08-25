@@ -152,6 +152,12 @@ public abstract class DatasetRelation implements Serializable {
 
     public abstract String toKey();
 
+    /**
+     * Returns a key for comparing the same relation across different dataset
+     * versions. Unlike {@link #toKey()}, it does not include the definition point.
+     */
+    public abstract String toVersionComparisonKey();
+
     public abstract DatasetRelation copy(DatasetVersion newDefinitionPoint);
 
 }

@@ -49,7 +49,12 @@ public class InternalDatasetRelation extends DatasetRelation {
 
     @Override
     public String toKey() {
-        return getDataset().getId() + "|" + relatedDataset.getId() + "|" + (getRelationType() != null ? getRelationType().getId() : "") + "|" + getDefinitionPoint().getId();
+        return toVersionComparisonKey() + "|" + getDefinitionPoint().getId();
+    }
+
+    @Override
+    public String toVersionComparisonKey() {
+        return getDataset().getId() + "|" + relatedDataset.getId() + "|" + (getRelationType() != null ? getRelationType().getId() : "");
     }
 
     @Override

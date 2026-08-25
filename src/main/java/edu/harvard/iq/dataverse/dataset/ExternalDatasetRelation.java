@@ -50,7 +50,12 @@ public class ExternalDatasetRelation extends DatasetRelation {
 
     @Override
     public String toKey() {
-        return getDataset().getId() + "|" + externalIdentifier + "|" + (identifierScheme != null ? identifierScheme : "") + "|" + (datasetType != null ? datasetType : "") + "|" + (getRelationType() != null ? getRelationType().getId() : "") + "|" + getDefinitionPoint().getId();
+        return toVersionComparisonKey() + "|" + getDefinitionPoint().getId();
+    }
+
+    @Override
+    public String toVersionComparisonKey() {
+        return getDataset().getId() + "|" + externalIdentifier + "|" + (identifierScheme != null ? identifierScheme : "") + "|" + (datasetType != null ? datasetType : "") + "|" + (getRelationType() != null ? getRelationType().getId() : "");
     }
 
     @Override

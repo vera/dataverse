@@ -127,6 +127,53 @@ public class DatasetRelationsIT {
     }
 
     @Test
+    public void testVersionSummariesIncludeRelationChanges() {
+        String dataverseAlias = UtilIT.createRandomCollectionGetAlias(apiTokenSuperuser);
+        UtilIT.publishDataverseViaNativeApi(dataverseAlias, apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
+        String pidA = UtilIT.getDatasetPersistentIdFromResponse(UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser));
+        String pidB = UtilIT.getDatasetPersistentIdFromResponse(UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser));
+        String externalIdentifier = "https://example.org/dataset/relations-summary";
+
+        UtilIT.publishDatasetViaNativeApi(pidA, "major", apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
+
+        JsonArray relations = Json.createArrayBuilder()
+                .add(Json.createObjectBuilder()
+                        .add("relatedDatasetPid", pidB)
+                        .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo")))
+                .add(Json.createObjectBuilder()
+                        .add("externalIdentifier", externalIdentifier)
+                        .add("identifierScheme", "URL")
+                        .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo")))
+                .build();
+        UtilIT.replaceDatasetRelations(pidA, relations.toString(), apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode());
+        UtilIT.publishDatasetViaNativeApi(pidA, "major", apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
+
+        UtilIT.compareDatasetVersions(pidA, "1.0", "2.0", apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("data.relationsAdded", hasSize(2))
+                .body("data.relationsAdded.relatedDatasetPid", hasItem(pidB))
+                .body("data.relationsAdded.externalIdentifier", hasItem(externalIdentifier));
+        UtilIT.summaryDatasetVersionDifferences(pidA, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("data[0].summary.relations.added", equalTo(2))
+                .body("data[0].summary.relations.removed", equalTo(0));
+
+        UtilIT.replaceDatasetRelations(pidA, "[]", apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode());
+        UtilIT.publishDatasetViaNativeApi(pidA, "major", apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
+
+        UtilIT.compareDatasetVersions(pidA, "2.0", "3.0", apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("data.relationsRemoved", hasSize(2))
+                .body("data.relationsRemoved.relatedDatasetPid", hasItem(pidB))
+                .body("data.relationsRemoved.externalIdentifier", hasItem(externalIdentifier));
+        UtilIT.summaryDatasetVersionDifferences(pidA, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("data[0].summary.relations.removed", equalTo(2));
+    }
+
+    @Test
     public void testReplaceDatasetRelationsErrorPaths() {
         String dataverseAlias = UtilIT.createRandomCollectionGetAlias(apiTokenSuperuser);
         UtilIT.publishDataverseViaNativeApi(dataverseAlias, apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
