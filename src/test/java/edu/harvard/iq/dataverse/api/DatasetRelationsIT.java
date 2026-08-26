@@ -1069,6 +1069,26 @@ public class DatasetRelationsIT {
         UtilIT.updateDatasetMetadataViaNative(pid, updatedVersionData, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode());
 
+        // Try to upload invalid relations
+        // Should be 400
+        JsonObject unknownRelationTypeVersion = Json.createObjectBuilder(updatedVersionData)
+                .add("relations", Json.createArrayBuilder()
+                        .add(Json.createObjectBuilder()
+                                .add("externalIdentifier", externalUrl2)
+                                .add("identifierScheme", "URL")
+                                .add("relationType", Json.createObjectBuilder().add("name", "unknownRelationType"))))
+                .build();
+        UtilIT.updateDatasetMetadataViaNative(pid, unknownRelationTypeVersion, apiTokenSuperuser)
+                .then().assertThat().statusCode(BAD_REQUEST.getStatusCode());
+
+        JsonObject unknownRelatedDatasetVersion = Json.createObjectBuilder(updatedVersionData)
+                .add("relations", Json.createArrayBuilder()
+                        .add(Json.createObjectBuilder()
+                                .add("relatedDatasetPid", "doi:10.5072/FK2/DOESNOTEXIST")))
+                .build();
+        UtilIT.updateDatasetMetadataViaNative(pid, unknownRelatedDatasetVersion, apiTokenSuperuser)
+                .then().assertThat().statusCode(BAD_REQUEST.getStatusCode());
+
         // Read again and verify relations are updated
         UtilIT.getDatasetVersion(pid, ":draft", apiTokenSuperuser, false, false, false, false)
                 .then().assertThat().statusCode(OK.getStatusCode())

@@ -11,6 +11,7 @@ import edu.harvard.iq.dataverse.authorization.groups.impl.ipaddress.IpGroup;
 import edu.harvard.iq.dataverse.authorization.groups.impl.ipaddress.ip.IpAddress;
 import edu.harvard.iq.dataverse.authorization.groups.impl.ipaddress.ip.IpAddressRange;
 import edu.harvard.iq.dataverse.authorization.groups.impl.maildomain.MailDomainGroup;
+import edu.harvard.iq.dataverse.dataset.DatasetRelation;
 import edu.harvard.iq.dataverse.dataset.DatasetRelationServiceBean;
 import edu.harvard.iq.dataverse.dataset.DatasetType;
 import edu.harvard.iq.dataverse.dataset.DatasetTypeServiceBean;
@@ -567,7 +568,15 @@ public class JsonParser {
 
             JsonArray relationsJson = obj.getJsonArray("relations");
             if (relationsJson != null) {
-                dsv.setRelations(relationsJson.getValuesAs(JsonObject.class).stream().map(r -> datasetRelationService.fromDTO(parseDatasetRelationDTO(r), dsv)).toList());
+                List<DatasetRelation> relations = new ArrayList<>();
+                for (JsonObject relationJson : relationsJson.getValuesAs(JsonObject.class)) {
+                    DatasetRelation relation = datasetRelationService.fromDTO(parseDatasetRelationDTO(relationJson), dsv);
+                    if (relation == null) {
+                        throw new JsonParseException(BundleUtil.getStringFromBundle("datasets.api.datasetRelation.error.invalid"));
+                    }
+                    relations.add(relation);
+                }
+                dsv.setRelations(relations);
             }
 
             return dsv;
