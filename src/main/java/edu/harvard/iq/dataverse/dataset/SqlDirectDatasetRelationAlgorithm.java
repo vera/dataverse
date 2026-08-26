@@ -288,7 +288,7 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
                     "        dr.relateddataset_id, " +
                     "        dr.externalidentifier " +
                     "    FROM datasetrelation dr " +
-                    "    JOIN datasetrelationtype rt ON dr.relationtype_id = rt.id " +
+                    "    LEFT JOIN datasetrelationtype rt ON dr.relationtype_id = rt.id " +
                     "    LEFT JOIN datasetrelationtype inv ON rt.inverse_id = inv.id " +
                     "    JOIN datasetversion dv_def ON dr.definitionpoint_id = dv_def.id " +
                     "    %s " + // Optional join (for dataset type)

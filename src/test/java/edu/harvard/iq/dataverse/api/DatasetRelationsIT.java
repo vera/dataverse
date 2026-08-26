@@ -691,8 +691,8 @@ public class DatasetRelationsIT {
         String pidA = UtilIT.getDatasetPersistentIdFromResponse(createDatasetA);
 
         // Create other datasets to relate to
-        String[] pids = new String[7];
-        for (int i = 0; i < 7; i++) {
+        String[] pids = new String[8];
+        for (int i = 0; i < 8; i++) {
             Response createDataset = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
             pids[i] = UtilIT.getDatasetPersistentIdFromResponse(createDataset);
         }
@@ -701,11 +701,13 @@ public class DatasetRelationsIT {
         // isCitedBy: 3 relations
         // isRelatedTo: 2 relations
         // isSupplementTo: 2 relations
+        // untyped: 1 relation
         // (Alphabetical: isCitedBy < isRelatedTo < isSupplementTo)
         // Expected order:
         // 1. isCitedBy (count: 3)
         // 2. isRelatedTo (count: 2)
         // 3. isSupplementTo (count: 2)
+        // 4. untyped (count: 1)
 
         JsonArray relations = Json.createArrayBuilder()
                 .add(Json.createObjectBuilder().add("relatedDatasetPid", pids[0]).add("relationType", Json.createObjectBuilder().add("name", "isCitedBy")))
@@ -715,6 +717,7 @@ public class DatasetRelationsIT {
                 .add(Json.createObjectBuilder().add("relatedDatasetPid", pids[4]).add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo")))
                 .add(Json.createObjectBuilder().add("relatedDatasetPid", pids[5]).add("relationType", Json.createObjectBuilder().add("name", "isSupplementTo")))
                 .add(Json.createObjectBuilder().add("relatedDatasetPid", pids[6]).add("relationType", Json.createObjectBuilder().add("name", "isSupplementTo")))
+                .add(Json.createObjectBuilder().add("relatedDatasetPid", pids[7]))
                 .build();
 
         UtilIT.replaceDatasetRelations(pidA, relations.toString(), apiTokenSuperuser)
@@ -723,7 +726,7 @@ public class DatasetRelationsIT {
         // Check counts and sorting
         UtilIT.getDatasetRelationCounts(pidA, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
-                .body("data", hasSize(3))
+                .body("data", hasSize(4))
                 // 1st: isCitedBy (count 3)
                 .body("data[0].relationType.name", equalTo("isCitedBy"))
                 .body("data[0].count", equalTo(3))
@@ -732,11 +735,20 @@ public class DatasetRelationsIT {
                 .body("data[1].count", equalTo(2))
                 // 3rd: isSupplementTo (count 2)
                 .body("data[2].relationType.name", equalTo("isSupplementTo"))
-                .body("data[2].count", equalTo(2));
+                .body("data[2].count", equalTo(2))
+                // 4th: untyped (count 1)
+                .body("data[3].relationType.name", nullValue())
+                .body("data[3].count", equalTo(1));
+
+        UtilIT.getDatasetRelationCounts(pidA, null, "datasetType", apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("data", hasSize(1))
+                .body("data[0].datasetType.name", equalTo("dataset"))
+                .body("data[0].count", equalTo(8));
 
         UtilIT.listDatasetRelations(pidA, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
-                .body("totalCount", equalTo(7));
+                .body("totalCount", equalTo(8));
     }
 
     @Test
