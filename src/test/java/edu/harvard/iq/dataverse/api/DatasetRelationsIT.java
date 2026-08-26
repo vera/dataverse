@@ -1,5 +1,6 @@
 package edu.harvard.iq.dataverse.api;
 
+import edu.harvard.iq.dataverse.authorization.DataverseRole;
 import io.restassured.RestAssured;
 import io.restassured.path.json.JsonPath;
 import io.restassured.response.Response;
@@ -962,7 +963,11 @@ public class DatasetRelationsIT {
         UtilIT.publishDatasetViaNativeApi(pidB, "major", apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
         UtilIT.publishDatasetViaNativeApi(pidA, "major", apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
 
-        // Now GET should work even without token
+        // Normal users cannot delete relations defined on a released version
+        UtilIT.deleteDatasetRelation(pidA, relationId, apiTokenUser)
+                .then().assertThat().statusCode(UNAUTHORIZED.getStatusCode());
+
+        // After publication, GET should work even without token
         UtilIT.getDatasetRelation(pidA, relationId, null)
                 .then().assertThat().statusCode(OK.getStatusCode());
     }
