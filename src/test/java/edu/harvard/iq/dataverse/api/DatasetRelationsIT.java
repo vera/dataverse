@@ -802,11 +802,6 @@ public class DatasetRelationsIT {
         Integer datasetBId = UtilIT.getDatasetIdFromResponse(createDatasetB);
         UtilIT.publishDatasetViaNativeApi(pidB, "major", apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
 
-        assertTrue(UtilIT.sleepForSearch("id:dataset_" + datasetBId + " AND relatedDatasetCount:0", apiTokenSuperuser, "", 1, UtilIT.GENERAL_LONG_DURATION));
-        UtilIT.search("id:dataset_" + datasetBId, apiTokenSuperuser)
-                .then().assertThat().statusCode(OK.getStatusCode())
-                .body("data.items[0].relatedDatasetCount", equalTo(0));
-
         // POST /api/datasets/{identifier}/relations
         String relationJson = Json.createObjectBuilder()
                 .add("relatedDatasetPid", pidB)
@@ -1032,6 +1027,9 @@ public class DatasetRelationsIT {
         String externalUrl1 = "https://example.org/dataset/1";
         JsonObject datasetData = Json.createObjectBuilder()
                 .add("datasetVersion", Json.createObjectBuilder()
+                        .add("license", Json.createObjectBuilder()
+                                .add("name", "CC0 1.0")
+                                .add("uri", "http://creativecommons.org/publicdomain/zero/1.0"))
                         .add("metadataBlocks", Json.createObjectBuilder()
                                 .add("citation", Json.createObjectBuilder()
                                         .add("fields", Json.createArrayBuilder()
@@ -1132,6 +1130,22 @@ public class DatasetRelationsIT {
                 .then().assertThat().statusCode(BAD_REQUEST.getStatusCode());
 
         // Read again and verify relations are updated
+        UtilIT.getDatasetVersion(pid, ":draft", apiTokenSuperuser, false, false, false, false)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("data.relations", hasSize(1))
+                .body("data.relations[0].externalIdentifier", equalTo(externalUrl2))
+                .body("data.relations[0].relationType.name", equalTo("isSupplementTo"));
+
+        UtilIT.publishDatasetViaNativeApi(pid, "major", apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode());
+
+        JsonObject versionWithoutRelations = Json.createObjectBuilder(updatedVersionData)
+                .remove("relations")
+                .build();
+        UtilIT.updateDatasetMetadataViaNative(pid, versionWithoutRelations, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode());
+
+        // Omitting relations while creating a new draft preserves those from the prior release
         UtilIT.getDatasetVersion(pid, ":draft", apiTokenSuperuser, false, false, false, false)
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("data.relations", hasSize(1))

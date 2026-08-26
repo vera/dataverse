@@ -41,6 +41,10 @@ public class InternalDatasetRelation extends DatasetRelation {
         this.relatedDataset = relatedDataset;
     }
 
+    public boolean isSelfRelation() {
+        return this.getDataset().equals(this.getRelatedDataset());
+    }
+
     @Override
     public String toKey() {
         return toVersionComparisonKey() + "|" + getDefinitionPoint().getId();

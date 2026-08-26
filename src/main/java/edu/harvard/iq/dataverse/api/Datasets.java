@@ -884,6 +884,12 @@ public class Datasets extends AbstractApiBean {
                 Dataset managedDataset = execCommand(new UpdateDatasetVersionCommand(ds, req));
                 managedVersion = managedDataset.getOrCreateEditVersion();
             } else {
+                if (incomingVersion.getRelations() == null && ds.getLatestVersion().getRelations() != null) {
+                    DatasetVersion newDraft = incomingVersion;
+                    incomingVersion.setRelations(ds.getLatestVersion().getRelations().stream()
+                            .map(relation -> relation.copy(newDraft))
+                            .toList());
+                }
                 boolean hasValidTerms = TermsOfUseAndAccessValidator.isTOUAValid(incomingVersion.getTermsOfUseAndAccess(), null);
                 if (!hasValidTerms) {
                     return error(Status.CONFLICT, BundleUtil.getStringFromBundle("dataset.message.toua.invalid"));

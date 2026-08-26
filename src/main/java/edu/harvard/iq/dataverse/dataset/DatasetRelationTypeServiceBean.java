@@ -94,6 +94,9 @@ public class DatasetRelationTypeServiceBean {
             if (isBlank(inverse.getName()) || isBlank(inverse.getDisplayName())) {
                 throw new DatasetRelationTypeException(BundleUtil.getStringFromBundle("datasets.api.datasetRelationType.error.create.notNull"));
             }
+            if (inverse.getName().equals(relationType.getName()) || inverse.getDisplayName().equals(relationType.getDisplayName())) {
+                throw new DatasetRelationTypeException(BundleUtil.getStringFromBundle("datasets.api.datasetRelationType.error.create.duplicate"));
+            }
             if (exists(inverse.getName(), inverse.getDisplayName())) {
                 throw new DatasetRelationTypeException(BundleUtil.getStringFromBundle("datasets.api.datasetRelationType.error.create.duplicate"));
             }

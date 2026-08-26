@@ -269,12 +269,12 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
     private static final String GET_RELATION_COUNTS_QUERY_BASE =
             " SELECT " +
             "    %s, " + // Dynamic select for grouping fields
-            "    COUNT(DISTINCT " +
+            "    COUNT(DISTINCT (t.relation_source, " +
             "        CASE " +
             "            WHEN t.relation_source = 'internal' THEN " +
             "                CASE WHEN t.dataset_id = ? THEN CAST(t.relateddataset_id AS VARCHAR) ELSE CAST(t.dataset_id AS VARCHAR) END " +
             "            ELSE t.externalidentifier " +
-            "        END " +
+            "        END) " +
             "    ) AS related_datasets_count " +
             " FROM ( " +
                     "    SELECT " +

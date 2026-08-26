@@ -1138,7 +1138,8 @@ public class JsonPrinter {
     public static JsonObjectBuilder json(DatasetRelation rel, Dataset forDataset, boolean includeMetadataBlocks) {
         boolean invertRelation = false;
         if (rel instanceof InternalDatasetRelation) {
-            invertRelation = ((InternalDatasetRelation) rel).getRelatedDataset().equals(forDataset);
+            InternalDatasetRelation internalRel = (InternalDatasetRelation) rel;
+            invertRelation = !internalRel.getDataset().equals(forDataset) && internalRel.getRelatedDataset().equals(forDataset);
         }
         return json(rel, invertRelation, includeMetadataBlocks);
     }
