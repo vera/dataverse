@@ -2,6 +2,7 @@ package edu.harvard.iq.dataverse.engine.command.impl;
 
 import edu.harvard.iq.dataverse.DatasetVersion;
 import edu.harvard.iq.dataverse.dataset.DatasetRelation;
+import edu.harvard.iq.dataverse.dataset.DatasetRelationIndexing;
 import edu.harvard.iq.dataverse.api.dto.DatasetRelationDTO;
 import edu.harvard.iq.dataverse.authorization.Permission;
 import edu.harvard.iq.dataverse.engine.command.*;
@@ -10,6 +11,7 @@ import edu.harvard.iq.dataverse.engine.command.exception.InvalidCommandArguments
 import edu.harvard.iq.dataverse.util.BundleUtil;
 import jakarta.ejb.EJBException;
 
+import java.util.List;
 
 /**
  *
@@ -41,8 +43,7 @@ public class CreateDatasetRelationCommand extends AbstractCommand<DatasetRelatio
             }
 
             DatasetRelation addedRelation = ctxt.datasetRelations().addDatasetRelation(relation);
-            // Reindex dataset to update relatedDatasetCount
-            ctxt.index().asyncIndexDataset(version.getDataset(), true);
+            DatasetRelationIndexing.schedule(ctxt, version.getDataset(), List.of(addedRelation));
             return addedRelation;
         } catch (EJBException ex) {
             throw new CommandException(BundleUtil.getStringFromBundle("datasets.api.datasetRelation.error.create"), ex, this);

@@ -8,6 +8,7 @@ package edu.harvard.iq.dataverse.engine.command.impl;
 import edu.harvard.iq.dataverse.Dataset;
 import edu.harvard.iq.dataverse.DatasetVersion;
 import edu.harvard.iq.dataverse.dataset.DatasetRelation;
+import edu.harvard.iq.dataverse.dataset.DatasetRelationIndexing;
 import edu.harvard.iq.dataverse.dataset.DatasetRelationType;
 import edu.harvard.iq.dataverse.dataset.ExternalDatasetRelation;
 import edu.harvard.iq.dataverse.dataset.InternalDatasetRelation;
@@ -60,10 +61,10 @@ public class ReplaceDatasetRelationsCommand extends AbstractCommand<List<Dataset
             if (ctxt.datasetRelations().containsDuplicates(relations)) {
                 throw new InvalidCommandArgumentsException(BundleUtil.getStringFromBundle("datasets.api.datasetRelation.error.duplicate"), this);
             }
+            List<DatasetRelation> previousRelations = ctxt.datasetRelations().getDatasetRelationsDefinedAt(effectiveVersion);
             List<DatasetRelation> addedRelations = ctxt.datasetRelations().replaceAllDatasetRelationsFor(effectiveVersion, relations);
 
-            // Reindex dataset to update relatedDatasetCount
-            ctxt.index().asyncIndexDataset(version.getDataset(), true);
+            DatasetRelationIndexing.scheduleChanges(ctxt, version.getDataset(), previousRelations, addedRelations);
             return addedRelations;
         } catch (EJBException ex) {
             throw new CommandException(BundleUtil.getStringFromBundle("datasets.api.datasetRelation.error.replace"), ex, this);

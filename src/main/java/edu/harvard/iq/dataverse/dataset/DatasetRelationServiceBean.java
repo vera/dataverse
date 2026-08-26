@@ -63,6 +63,12 @@ public class DatasetRelationServiceBean {
         }
     }
 
+    public List<DatasetRelation> getDatasetRelationsDefinedAt(DatasetVersion version) {
+        return em.createNamedQuery("DatasetRelation.getRelationsDefinedAtDatasetVersionId", DatasetRelation.class)
+                .setParameter("versionId", version.getId())
+                .getResultList();
+    }
+
     public void deleteDatasetRelationById(Long id) {
         em.createNamedQuery("DatasetRelation.deleteRelationById")
           .setParameter("id", id)
@@ -160,9 +166,7 @@ public class DatasetRelationServiceBean {
     }
 
     public List<DatasetRelation> replaceAllDatasetRelationsFor(DatasetVersion v, List<DatasetRelation> newRelations) {
-        List<DatasetRelation> existingRelations = em.createNamedQuery("DatasetRelation.getRelationsDefinedAtDatasetVersionId", DatasetRelation.class)
-                .setParameter("versionId", v.getId())
-                .getResultList();
+        List<DatasetRelation> existingRelations = getDatasetRelationsDefinedAt(v);
 
         Set<String> existingKeys = existingRelations.stream()
                 .map(DatasetRelation::toKey)
@@ -191,9 +195,7 @@ public class DatasetRelationServiceBean {
         em.flush();
 
         // Re-fetch to ensure IDs are populated
-        return em.createNamedQuery("DatasetRelation.getRelationsDefinedAtDatasetVersionId", DatasetRelation.class)
-                .setParameter("versionId", v.getId())
-                .getResultList();
+        return getDatasetRelationsDefinedAt(v);
     }
 
     public DatasetRelation fromDTO(DatasetRelationDTO dto, DatasetVersion version) {

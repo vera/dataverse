@@ -15,6 +15,7 @@ import java.util.List;
 import static jakarta.ws.rs.core.Response.Status.*;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class DatasetRelationsIT {
 
@@ -359,7 +360,13 @@ public class DatasetRelationsIT {
         // Create Dataset B
         Response createDatasetB = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
         String pidB = UtilIT.getDatasetPersistentIdFromResponse(createDatasetB);
+        Integer datasetBId = UtilIT.getDatasetIdFromResponse(createDatasetB);
         UtilIT.publishDatasetViaNativeApi(pidB, "major", apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
+
+        assertTrue(UtilIT.sleepForSearch("id:dataset_" + datasetBId + " AND relatedDatasetCount:0", apiTokenSuperuser, "", 1, UtilIT.GENERAL_LONG_DURATION));
+        UtilIT.search("id:dataset_" + datasetBId, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("data.items[0].relatedDatasetCount", equalTo(0));
 
         // Define relation A (draft) -> B
         JsonArray relations = Json.createArrayBuilder()
@@ -372,6 +379,12 @@ public class DatasetRelationsIT {
 
         // Publish A v1.0
         UtilIT.publishDatasetViaNativeApi(pidA, "major", apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
+
+        // Publishing A makes its internal relation visible to B, so B's Solr count must have been reindexed
+        assertTrue(UtilIT.sleepForSearch("id:dataset_" + datasetBId + " AND relatedDatasetCount:1", apiTokenSuperuser, "", 1, UtilIT.GENERAL_LONG_DURATION));
+        UtilIT.search("id:dataset_" + datasetBId, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("data.items[0].relatedDatasetCount", equalTo(1));
 
         // Define the SAME relation in inverse direction: B (draft) -> A
         JsonArray relationsInverse = Json.createArrayBuilder()
@@ -724,6 +737,13 @@ public class DatasetRelationsIT {
 
         Response createDatasetB = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
         String pidB = UtilIT.getDatasetPersistentIdFromResponse(createDatasetB);
+        Integer datasetBId = UtilIT.getDatasetIdFromResponse(createDatasetB);
+        UtilIT.publishDatasetViaNativeApi(pidB, "major", apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
+
+        assertTrue(UtilIT.sleepForSearch("id:dataset_" + datasetBId + " AND relatedDatasetCount:0", apiTokenSuperuser, "", 1, UtilIT.GENERAL_LONG_DURATION));
+        UtilIT.search("id:dataset_" + datasetBId, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("data.items[0].relatedDatasetCount", equalTo(0));
 
         // POST /api/datasets/{identifier}/relations
         String relationJson = Json.createObjectBuilder()
