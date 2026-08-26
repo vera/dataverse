@@ -640,6 +640,39 @@ public class DatasetRelationsIT {
     }
 
     @Test
+    public void testDestroyDatasetRemovesIncomingRelations() {
+        String dataverseAlias = UtilIT.createRandomCollectionGetAlias(apiTokenSuperuser);
+        UtilIT.publishDataverseViaNativeApi(dataverseAlias, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode());
+        Response createDatasetA = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
+        String pidA = UtilIT.getDatasetPersistentIdFromResponse(createDatasetA);
+
+        Response createDatasetB = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
+        String pidB = UtilIT.getDatasetPersistentIdFromResponse(createDatasetB);
+        int idB = UtilIT.getDatasetIdFromResponse(createDatasetB);
+
+        JsonArray relations = Json.createArrayBuilder()
+                .add(Json.createObjectBuilder()
+                        .add("relatedDatasetPid", pidB)
+                        .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo")))
+                .build();
+        UtilIT.replaceDatasetRelations(pidA, relations.toString(), apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode());
+
+        UtilIT.listDatasetRelations(pidA, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("totalCount", equalTo(1));
+
+        UtilIT.destroyDataset(idB, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode());
+
+        UtilIT.listDatasetRelations(pidA, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("totalCount", equalTo(0))
+                .body("data", hasSize(0));
+    }
+
+    @Test
     public void testInternalRelationsWithoutInverseType() {
         String dataverseAlias = UtilIT.createRandomCollectionGetAlias(apiTokenSuperuser);
         UtilIT.publishDataverseViaNativeApi(dataverseAlias, apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());

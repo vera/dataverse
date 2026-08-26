@@ -53,6 +53,15 @@ public class DatasetRelationServiceBean {
                 .executeUpdate();
     }
 
+    public void deleteAllDatasetRelationsInvolving(Dataset dataset) {
+        em.createQuery("DELETE FROM InternalDatasetRelation rel WHERE rel.relatedDataset = :dataset")
+                .setParameter("dataset", dataset)
+                .executeUpdate();
+        em.createQuery("DELETE FROM DatasetRelation rel WHERE rel.dataset = :dataset")
+                .setParameter("dataset", dataset)
+                .executeUpdate();
+    }
+
     public DatasetRelation getDatasetRelationById(Long id) {
         try {
             return em.createNamedQuery("DatasetRelation.getRelationById", DatasetRelation.class)
