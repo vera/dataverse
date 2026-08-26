@@ -4039,7 +4039,8 @@ public class Datasets extends AbstractApiBean {
                     return error(Status.BAD_REQUEST, MessageFormat.format(BundleUtil.getStringFromBundle("datasets.api.datasetRelation.error.jsonparsetodatasetrelation"), ex.getMessage()));
                 }
 
-                List<DatasetRelation> res = execCommand(new ReplaceDatasetRelationsCommand(version, newDatasetRelationsDTO, req));
+                List<DatasetRelation> res = execCommand(new ReplaceDatasetRelationsCommand(version, newDatasetRelationsDTO, req,
+                        versionNumber != null));
 
                 Dataset finalDataset = dataset;
                 return ok(res.stream().map(rel -> json(rel, finalDataset, false)).collect(toJsonArray()));

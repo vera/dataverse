@@ -151,6 +151,18 @@ public class DatasetRelationsIT {
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("totalCount", equalTo(2));
 
+        // A superuser can replace relations on a selected published version
+        UtilIT.replaceDatasetRelations(pidA, "[]", "1.0", apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode());
+
+        UtilIT.listDatasetRelations(pidA, "1.0", null, null, null, null, null, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("totalCount", equalTo(0));
+
+        UtilIT.listDatasetRelations(pidA, "2.0", null, null, null, null, null, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("totalCount", equalTo(2));
+
         // 9. No filters (latest version) -> Expect 2
         UtilIT.listDatasetRelations(pidA, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())

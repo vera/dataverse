@@ -33,10 +33,18 @@ public class ReplaceDatasetRelationsCommand extends AbstractCommand<List<Dataset
 
     private final List<DatasetRelationDTO> relationDTOs;
 
+    private final boolean replacePublishedVersionDirectly;
+
     public ReplaceDatasetRelationsCommand(DatasetVersion version, List<DatasetRelationDTO> relations, DataverseRequest aRequest) {
+        this(version, relations, aRequest, false);
+    }
+
+    public ReplaceDatasetRelationsCommand(DatasetVersion version, List<DatasetRelationDTO> relations, DataverseRequest aRequest,
+            boolean replacePublishedVersionDirectly) {
         super(aRequest, version.getDataset());
         this.version = version;
         this.relationDTOs = relations;
+        this.replacePublishedVersionDirectly = replacePublishedVersionDirectly;
     }
 
     @Override
@@ -44,8 +52,8 @@ public class ReplaceDatasetRelationsCommand extends AbstractCommand<List<Dataset
         try {
             DatasetVersion effectiveVersion;
 
-            // If the version is not a draft, we need to create/get an edit version (draft)
-            if (!version.isDraft()) {
+            // Editing the latest published version creates an edit version, unless a superuser selected a published version explicitly.
+            if (!version.isDraft() && !replacePublishedVersionDirectly) {
                 effectiveVersion = version.getDataset().getOrCreateEditVersion();
                 ctxt.engine().submit(new UpdateDatasetVersionCommand(version.getDataset(), getRequest()));
             } else {
