@@ -850,6 +850,12 @@ public class Datasets extends AbstractApiBean {
             incomingVersion.setCreateTime(null);
             incomingVersion.setLastUpdateTime(null);
 
+            if (incomingVersion.getRelations() != null
+                    && datasetRelationService.containsDuplicates(incomingVersion.getRelations())) {
+                return error(Response.Status.BAD_REQUEST,
+                        BundleUtil.getStringFromBundle("datasets.api.datasetRelation.error.duplicate"));
+            }
+
             if (!incomingVersion.getFileMetadatas().isEmpty()){
                 return error( Response.Status.BAD_REQUEST, "You may not add files via this api.");
             }
