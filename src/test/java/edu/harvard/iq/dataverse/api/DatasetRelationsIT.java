@@ -784,6 +784,16 @@ public class DatasetRelationsIT {
         long relationId = UtilIT.addDatasetRelation(pidA, relationJson, apiTokenSuperuser)
                 .then().extract().jsonPath().getInt("data.id");
 
+        // Try to create relation with non-existent relation type
+        // Should be 400
+        String invalidRelationJson = Json.createObjectBuilder()
+                .add("relatedDatasetPid", pidB)
+                .add("relationType", Json.createObjectBuilder().add("name", "iDontExist"))
+                .build().toString();
+
+        UtilIT.addDatasetRelation(pidA, invalidRelationJson.toString(), apiTokenSuperuser)
+                .then().assertThat().statusCode(BAD_REQUEST.getStatusCode());
+
         // Create a third dataset C
         Response createDatasetC = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
         String pidC = UtilIT.getDatasetPersistentIdFromResponse(createDatasetC);
@@ -911,6 +921,13 @@ public class DatasetRelationsIT {
                 .add(Json.createObjectBuilder().add("relatedDatasetPid", "doi:10.5072/FK2/DOESNOTEXIST"))
                 .build();
         UtilIT.replaceDatasetRelations(pidA, invalidRelatedDataset.toString(), apiTokenSuperuser)
+                .then().assertThat().statusCode(BAD_REQUEST.getStatusCode());
+
+        JsonObject invalidRelationType = Json.createObjectBuilder()
+                .add("relatedDatasetPid", pidB)
+                .add("relationType", Json.createObjectBuilder().add("name", "iDontExist"))
+                .build();
+        UtilIT.replaceDatasetRelations(pidA, Json.createArrayBuilder().add(invalidRelationType).build().toString(), apiTokenSuperuser)
                 .then().assertThat().statusCode(BAD_REQUEST.getStatusCode());
 
         UtilIT.listDatasetRelations(pidA, apiTokenSuperuser)

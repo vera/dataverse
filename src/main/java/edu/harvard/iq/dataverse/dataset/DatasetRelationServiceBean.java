@@ -198,7 +198,14 @@ public class DatasetRelationServiceBean {
 
     public DatasetRelation fromDTO(DatasetRelationDTO dto, DatasetVersion version) {
         Dataset d = version.getDataset();
-        DatasetRelationType type = relationTypeService.findByName(dto.getRelationTypeName());
+        DatasetRelationType type = null;
+        if (dto.getRelationTypeName() != null) {
+            type = relationTypeService.findByName(dto.getRelationTypeName());
+            if (type == null) {
+                logger.severe("Failed to find dataset relation type with name " + dto.getRelationTypeName());
+                return null;
+            }
+        }
 
         if (dto.getRelatedDatasetPid() != null) {
             Dataset relatedDataset = datasetService.findByGlobalId(dto.getRelatedDatasetPid());
