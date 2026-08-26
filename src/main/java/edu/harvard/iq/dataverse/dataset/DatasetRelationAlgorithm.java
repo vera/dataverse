@@ -35,14 +35,14 @@ public interface DatasetRelationAlgorithm {
     List<Object[]> getRelationCounts(Dataset dataset, DatasetVersion version, String groupBy);
 
     /**
-     * Retrieves the total count of related datasets for a dataset.
+     * Retrieves the total number of relations returned for a dataset.
      * 
      * @param dataset The dataset.
      * @param version Optional dataset version for version-specific filtering.
      * @param relationTypeNames Optional filter by relation type names.
      * @param datasetTypeNames Optional filter by dataset type names of the related dataset.
      * @param relationSources Optional filter by relation source (internal, external).
-     * @return Total number of unique related datasets.
+     * @return Total number of relations returned by {@link #getRelations} with the same filters.
      */
     Long getTotalDatasetRelationCountFor(Dataset dataset, DatasetVersion version, List<String> relationTypeNames, List<String> datasetTypeNames, List<String> relationSources);
 }

@@ -93,11 +93,15 @@ public class DatasetRelationsIT {
 
         // Version 2.0 of Dataset A:
         // Relation 1: A -> B (isRelatedTo) - kept from V1
+        // Relation 2: A -> B (isSupplementTo)
         // Relation 2: A -> C (isSupplementTo)
         JsonArray relationsV2 = Json.createArrayBuilder()
                 .add(Json.createObjectBuilder()
                         .add("relatedDatasetPid", pidB)
                         .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo")))
+                .add(Json.createObjectBuilder()
+                        .add("relatedDatasetPid", pidB)
+                        .add("relationType", Json.createObjectBuilder().add("name", "isSupplementTo")))
                 .add(Json.createObjectBuilder()
                         .add("relatedDatasetPid", pidC)
                         .add("relationType", Json.createObjectBuilder().add("name", "isSupplementTo")))
@@ -109,7 +113,7 @@ public class DatasetRelationsIT {
 
         // Current state:
         // V1.0: 1 relation (isRelatedTo)
-        // v2.0: 2 relations (isRelatedTo, isSupplementTo)
+        // v2.0: 3 relations (1x isRelatedTo, 2x isSupplementTo)
 
         // 1. Filter by Version AND Type (V1.0, isRelatedTo) -> Expect 1
         UtilIT.listDatasetRelations(pidA, "1.0", List.of("isRelatedTo"), null, null, null, null, apiTokenSuperuser)
@@ -121,35 +125,35 @@ public class DatasetRelationsIT {
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("totalCount", equalTo(0));
 
-        // 3. Filter by Version AND Type (v2.0, isSupplementTo) -> Expect 1
+        // 3. Filter by Version AND Type (v2.0, isSupplementTo) -> Expect 2
         UtilIT.listDatasetRelations(pidA, "2.0", List.of("isSupplementTo"), null, null, null, null, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
-                .body("totalCount", equalTo(1));
+                .body("totalCount", equalTo(2));
 
         // 4. Filter by Version only (V1.0) -> Expect 1
         UtilIT.listDatasetRelations(pidA, "1.0", null, null, null, null, null, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("totalCount", equalTo(1));
 
-        // 5. Filter by Version only (v2.0) -> Expect 2
+        // 5. Filter by Version only (v2.0) -> Expect 3
         UtilIT.listDatasetRelations(pidA, "2.0", null, null, null, null, null, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
-                .body("totalCount", equalTo(2));
+                .body("totalCount", equalTo(3));
 
-        // 6. Filter by Type only (isSupplementTo) -> Expect 1 (from latest published v2.0)
+        // 6. Filter by Type only (isSupplementTo) -> Expect 2 (from latest published v2.0)
         UtilIT.listDatasetRelations(pidA, null, List.of("isSupplementTo"), null, null, null, null, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
-                .body("totalCount", equalTo(1));
+                .body("totalCount", equalTo(2));
 
         // 7. Filter by Type only (isRelatedTo) -> Expect 1 (from latest published v2.0)
         UtilIT.listDatasetRelations(pidA, null, List.of("isRelatedTo"), null, null, null, null, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("totalCount", equalTo(1));
 
-        // 8. Filter by Types only (isRelatedTo, isSupplementTo) -> Expect 2 (from latest published v2.0)
+        // 8. Filter by Types only (isRelatedTo, isSupplementTo) -> Expect 3 (from latest published v2.0)
         UtilIT.listDatasetRelations(pidA, null, Arrays.asList("isRelatedTo", "isSupplementTo"), null, null, null, null, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
-                .body("totalCount", equalTo(2));
+                .body("totalCount", equalTo(3));
 
         // A superuser can replace relations on a selected published version
         UtilIT.replaceDatasetRelations(pidA, "[]", "1.0", apiTokenSuperuser)
@@ -161,12 +165,12 @@ public class DatasetRelationsIT {
 
         UtilIT.listDatasetRelations(pidA, "2.0", null, null, null, null, null, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
-                .body("totalCount", equalTo(2));
+                .body("totalCount", equalTo(3));
 
-        // 9. No filters (latest version) -> Expect 2
+        // 9. No filters (latest version) -> Expect 3
         UtilIT.listDatasetRelations(pidA, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
-                .body("totalCount", equalTo(2));
+                .body("totalCount", equalTo(3));
     }
 
     @Test

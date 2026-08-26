@@ -66,15 +66,9 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
             " ) ";
 
     private static final String GET_TOTAL_RELATION_COUNT_QUERY_BASE =
-            // Count the number of unique related datasets
-            " SELECT COUNT(DISTINCT " +
-            "    CASE " +
-            "        WHEN dr.relation_source = 'internal' THEN " +
-            "            CASE WHEN dr.dataset_id = ? THEN CAST(dr.relateddataset_id AS VARCHAR) ELSE CAST(dr.dataset_id AS VARCHAR) END " +
-            "        ELSE dr.externalidentifier " +
-            "    END) " +
-            " FROM candidate_relations cr " +
-            " JOIN datasetrelation dr ON cr.id = dr.id ";
+            " SELECT COUNT(*) " +
+            " FROM deduplicated_relations ddr " +
+            " JOIN datasetrelation dr ON ddr.id = dr.id ";
 
     private static final String GET_RELATIONS_QUERY_BASE =
             " SELECT dr.* " +
@@ -198,6 +192,7 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
 
         sql.append(WITH_LATEST_RELEASED_VERSIONS)
                 .append(WITH_CANDIDATE_RELATIONS)
+                .append(WITH_DEDUPLICATED_RELATIONS)
                 .append(GET_TOTAL_RELATION_COUNT_QUERY_BASE);
 
         if (relationTypeNames != null && !relationTypeNames.isEmpty()) {
@@ -233,7 +228,8 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
         query.setParameter(i++, d.getId());
         query.setParameter(i++, d.getId());
 
-        // GET_TOTAL_RELATION_COUNT_QUERY_BASE
+        // WITH_DEDUPLICATED_RELATIONS
+        query.setParameter(i++, d.getId());
         query.setParameter(i++, d.getId());
 
         if (datasetTypeNames != null && !datasetTypeNames.isEmpty()) {
