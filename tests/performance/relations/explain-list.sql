@@ -46,7 +46,7 @@ candidate_relations AS (
       AND dr.relateddataset_id = :target_dataset_id
 ),
 normalized_candidate_relations AS (
-    SELECT cr.id, cr.definition_point_priority,
+    SELECT cr.id, cr.definition_point_priority, dr.relation_source AS normalized_relation_source,
            CASE
                WHEN dr.dataset_id = :target_dataset_id THEN dr.relationtype_id
                ELSE rt.inverse_id
@@ -60,9 +60,9 @@ normalized_candidate_relations AS (
     LEFT JOIN datasetrelationtype rt ON dr.relationtype_id = rt.id
 ),
 deduplicated_relations AS (
-    SELECT DISTINCT ON (normalized_relation_type_id, normalized_related_dataset) id, definition_point_priority
+    SELECT DISTINCT ON (normalized_relation_source, normalized_relation_type_id, normalized_related_dataset) id, definition_point_priority
     FROM normalized_candidate_relations
-    ORDER BY normalized_relation_type_id, normalized_related_dataset, definition_point_priority, id
+    ORDER BY normalized_relation_source, normalized_relation_type_id, normalized_related_dataset, definition_point_priority, id
 )
 SELECT dr.*
 FROM deduplicated_relations cr
@@ -90,7 +90,7 @@ candidate_relations AS (
       AND dr.relateddataset_id = :target_dataset_id
 ),
 normalized_candidate_relations AS (
-    SELECT cr.id, cr.definition_point_priority,
+    SELECT cr.id, cr.definition_point_priority, dr.relation_source AS normalized_relation_source,
            CASE
                WHEN dr.dataset_id = :target_dataset_id THEN dr.relationtype_id
                ELSE rt.inverse_id
@@ -104,9 +104,9 @@ normalized_candidate_relations AS (
     LEFT JOIN datasetrelationtype rt ON dr.relationtype_id = rt.id
 ),
 deduplicated_relations AS (
-    SELECT DISTINCT ON (normalized_relation_type_id, normalized_related_dataset) id, definition_point_priority
+    SELECT DISTINCT ON (normalized_relation_source, normalized_relation_type_id, normalized_related_dataset) id, definition_point_priority
     FROM normalized_candidate_relations
-    ORDER BY normalized_relation_type_id, normalized_related_dataset, definition_point_priority, id
+    ORDER BY normalized_relation_source, normalized_relation_type_id, normalized_related_dataset, definition_point_priority, id
 )
 SELECT COUNT(*)
 FROM deduplicated_relations ddr

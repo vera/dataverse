@@ -45,7 +45,7 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
     // Normalize and deduplicate relation types from the requested dataset's perspective.
     private static final String WITH_DEDUPLICATED_RELATIONS =
             " , normalized_candidate_relations AS ( " +
-            "     SELECT cr.id, cr.definition_point_priority, " +
+            "     SELECT cr.id, cr.definition_point_priority, dr.relation_source AS normalized_relation_source, " +
             "         CASE " +
             "             WHEN dr.dataset_id = ? THEN dr.relationtype_id " +
             "             ELSE rt.inverse_id " +
@@ -59,10 +59,10 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
             "     LEFT JOIN datasetrelationtype rt ON dr.relationtype_id = rt.id " +
             " ), " +
             " deduplicated_relations AS ( " +
-            "     SELECT DISTINCT ON (normalized_relation_type_id, normalized_related_dataset) " +
+            "     SELECT DISTINCT ON (normalized_relation_source, normalized_relation_type_id, normalized_related_dataset) " +
             "         id, definition_point_priority " +
             "     FROM normalized_candidate_relations " +
-            "     ORDER BY normalized_relation_type_id, normalized_related_dataset, definition_point_priority, id " +
+            "     ORDER BY normalized_relation_source, normalized_relation_type_id, normalized_related_dataset, definition_point_priority, id " +
             " ) ";
 
     private static final String GET_TOTAL_RELATION_COUNT_QUERY_BASE =
