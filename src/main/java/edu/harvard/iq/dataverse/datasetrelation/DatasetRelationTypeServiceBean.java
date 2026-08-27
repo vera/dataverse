@@ -101,6 +101,11 @@ public class DatasetRelationTypeServiceBean {
     }
 
     public void setDefault(DatasetRelationType relationType) {
+        DatasetRelationType prevDefault = getDefault();
+        if (prevDefault != null) {
+            prevDefault.setDefault(false);
+            em.merge(prevDefault);
+        }
         relationType.setDefault(true);
         em.merge(relationType);
         em.flush();
