@@ -41,23 +41,21 @@ public class DatasetRelationsIT {
         String relationTypeJson = Json.createObjectBuilder()
                 .add("name", "isRelatedTo")
                 .add("displayName", "Is related to")
-                .add("inverseName", "isRelatedTo")
+                .add("inverse", Json.createObjectBuilder().add("name", "isRelatedTo"))
                 .build().toString();
         UtilIT.addDatasetRelationType(relationTypeJson, apiTokenSuperuser);
         
         String relationTypeJson2 = Json.createObjectBuilder()
                 .add("name", "isSupplementTo")
                 .add("displayName", "Is supplement to")
-                .add("inverseName", "isSupplementedBy")
-                .add("inverseDisplayName", "Is supplemented by")
+                .add("inverse", Json.createObjectBuilder().add("name", "isSupplementedBy").add("displayName", "Is supplemented by"))
                 .build().toString();
         UtilIT.addDatasetRelationType(relationTypeJson2, apiTokenSuperuser);
 
         String relationTypeJson3 = Json.createObjectBuilder()
                 .add("name", "isCitedBy")
                 .add("displayName", "Is cited by")
-                .add("inverseName", "cites")
-                .add("inverseDisplayName", "Cites")
+                .add("inverse", Json.createObjectBuilder().add("name", "cites").add("displayName", "Cites"))
                 .build().toString();
         UtilIT.addDatasetRelationType(relationTypeJson3, apiTokenSuperuser);
 
