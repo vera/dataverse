@@ -12,6 +12,8 @@ import java.io.Serializable;
                 query="SELECT drt FROM DatasetRelationType drt WHERE drt.id=:id"),
         @NamedQuery(name = "DatasetRelationType.getByName",
                 query="SELECT drt FROM DatasetRelationType drt WHERE drt.name=:name"),
+        @NamedQuery(name = "DatasetRelationType.getDefault",
+                query="SELECT drt FROM DatasetRelationType drt WHERE drt.isDefault=true"),
         @NamedQuery(name = "DatasetRelationType.deleteById",
                 query = "DELETE FROM DatasetRelationType drt WHERE drt.id=:id"),
 })
@@ -29,6 +31,9 @@ public class DatasetRelationType implements Serializable {
 
     @Column
     private String description;
+
+    @Column(nullable = false)
+    private boolean isDefault;
 
     @OneToOne(cascade = {CascadeType.PERSIST})
     @JoinColumn(unique=true)
@@ -122,5 +127,13 @@ public class DatasetRelationType implements Serializable {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public boolean isDefault() {
+        return isDefault;
+    }
+
+    public void setDefault(boolean aDefault) {
+        isDefault = aDefault;
     }
 }

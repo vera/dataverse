@@ -63,6 +63,9 @@ public class DatasetRelationsIT {
                 .add("displayName", "Is derived from without inverse")
                 .build().toString();
         UtilIT.addDatasetRelationType(relationTypeWithoutInverseJson, apiTokenSuperuser);
+
+        UtilIT.setDefaultDatasetRelationType("isRelatedTo", apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode());
     }
 
     @Test
@@ -737,15 +740,13 @@ public class DatasetRelationsIT {
 
         // Setup relations:
         // isCitedBy: 3 relations
-        // isRelatedTo: 2 relations
+        // isRelatedTo: 3 relations (including one that omits its type)
         // isSupplementTo: 2 relations
-        // untyped: 1 relation
         // (Alphabetical: isCitedBy < isRelatedTo < isSupplementTo)
         // Expected order:
         // 1. isCitedBy (count: 3)
-        // 2. isRelatedTo (count: 2)
+        // 2. isRelatedTo (count: 3)
         // 3. isSupplementTo (count: 2)
-        // 4. untyped (count: 1)
 
         JsonArray relations = Json.createArrayBuilder()
                 .add(Json.createObjectBuilder().add("relatedDatasetPid", pids[0]).add("relationType", Json.createObjectBuilder().add("name", "isCitedBy")))
@@ -764,19 +765,16 @@ public class DatasetRelationsIT {
         // Check counts and sorting
         UtilIT.getDatasetRelationCounts(pidA, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
-                .body("data", hasSize(4))
+                .body("data", hasSize(3))
                 // 1st: isCitedBy (count 3)
                 .body("data[0].relationType.name", equalTo("isCitedBy"))
                 .body("data[0].count", equalTo(3))
-                // 2nd: isRelatedTo (count 2)
+                // 2nd: isRelatedTo (count 3)
                 .body("data[1].relationType.name", equalTo("isRelatedTo"))
-                .body("data[1].count", equalTo(2))
+                .body("data[1].count", equalTo(3))
                 // 3rd: isSupplementTo (count 2)
                 .body("data[2].relationType.name", equalTo("isSupplementTo"))
-                .body("data[2].count", equalTo(2))
-                // 4th: untyped (count 1)
-                .body("data[3].relationType.name", nullValue())
-                .body("data[3].count", equalTo(1));
+                .body("data[2].count", equalTo(2));
 
         UtilIT.getDatasetRelationCounts(pidA, null, "datasetType", apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
@@ -825,6 +823,29 @@ public class DatasetRelationsIT {
         UtilIT.getDatasetRelation(pidB, relationId, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("data.relationType.name", equalTo("isSupplementedBy"));
+
+        // POST /api/datasets/{identifier}/relations
+        relationJson = Json.createObjectBuilder()
+                .add("relatedDatasetPid", pidB)
+                .build().toString();
+
+        postResponse = UtilIT.addDatasetRelation(pidA, relationJson, apiTokenSuperuser);
+        postResponse.then().assertThat().statusCode(OK.getStatusCode())
+                .body("data.id", notNullValue());
+
+        relationId = postResponse.jsonPath().getInt("data.id");
+
+        // GET /api/datasets/{identifier}/relations/{id}
+        // GET relation for dataset A -> should use the default type
+        UtilIT.getDatasetRelation(pidA, relationId, apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode())
+                .body("data.id", equalTo(relationId))
+                .body("data.relatedDatasetPid", equalTo(pidB))
+                .body("data.relationType.name", equalTo("isRelatedTo"));
+
+        // GET relation for dataset B -> should use the default type's inverse
+        UtilIT.getDatasetRelation(pidB, relationId, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("data.relationType.name", equalTo("isRelatedTo"));
 
         // DELETE /api/datasets/{identifier}/relations/{id}
         UtilIT.deleteDatasetRelation(pidA, relationId, apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());

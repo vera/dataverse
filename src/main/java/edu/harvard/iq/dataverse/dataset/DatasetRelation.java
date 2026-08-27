@@ -81,7 +81,7 @@ public abstract class DatasetRelation implements Serializable {
     private DatasetVersion definitionPoint;
 
     @ManyToOne
-    @JoinColumn()
+    @JoinColumn(nullable=false)
     private DatasetRelationType relationType;
 
     /**

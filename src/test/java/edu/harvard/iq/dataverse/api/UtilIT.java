@@ -5627,6 +5627,18 @@ public class UtilIT {
         }
     }
 
+    public static Response getDefaultDatasetRelationType(String apiToken) {
+        return given()
+                .header(API_TOKEN_HTTP_HEADER, apiToken)
+                .get("/api/datasets/relationTypes/defaultRelationType");
+    }
+
+    public static Response setDefaultDatasetRelationType(String nameOrId, String apiToken) {
+        return given()
+                .header(API_TOKEN_HTTP_HEADER, apiToken)
+                .put("/api/datasets/relationTypes/defaultRelationType/" + nameOrId);
+    }
+
     public static Response addDatasetRelationType(String jsonIn, String apiToken) {
         return given()
                 .header(API_TOKEN_HTTP_HEADER, apiToken)

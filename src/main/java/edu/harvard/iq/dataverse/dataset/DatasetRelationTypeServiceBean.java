@@ -58,14 +58,27 @@ public class DatasetRelationTypeServiceBean {
         }
     }
 
+    public DatasetRelationType getDefault() {
+        try {
+            return em.createNamedQuery("DatasetRelationType.getDefault", DatasetRelationType.class)
+                    .getSingleResult();
+        } catch (NoResultException e) {
+            return null;
+        }
+    }
+
     public DatasetRelationType save(DatasetRelationType relationType) throws DatasetRelationTypeException {
         validate(relationType);
+        relationType.setDefault(getDefault() == null);
         em.persist(relationType);
         em.flush();
         return relationType;
     }
 
     public void delete(DatasetRelationType doomed) throws DatasetRelationTypeException {
+        if (doomed.isDefault()) {
+            throw new DatasetRelationTypeException(BundleUtil.getStringFromBundle("datasets.api.datasetRelationType.error.delete.default"));
+        }
         DatasetRelationType inverse = doomed.getInverse();
 
         if (isInUse(doomed) || (inverse != null && isInUse(inverse))) {
@@ -79,6 +92,12 @@ public class DatasetRelationTypeServiceBean {
             em.merge(doomed);
         }
         em.remove(em.merge(doomed));
+        em.flush();
+    }
+
+    public void setDefault(DatasetRelationType relationType) {
+        relationType.setDefault(true);
+        em.merge(relationType);
         em.flush();
     }
 

@@ -4340,6 +4340,31 @@ public class Datasets extends AbstractApiBean {
         }
     }
 
+    @GET
+    @Path("relationTypes/defaultRelationType")
+    public Response getDefaultRelationType() {
+        DatasetRelationType relationType = datasetRelationTypeSvc.getDefault();
+        if (relationType == null) {
+            return notFound(BundleUtil.getStringFromBundle("datasets.api.datasetRelationType.error.default.notFound"));
+        }
+        return ok(json(relationType));
+    }
+
+    @PUT
+    @AuthRequired
+    @Path("relationTypes/defaultRelationType/{idOrName}")
+    public Response setDefaultRelationType(@Context ContainerRequestContext crc, @PathParam("idOrName") String idOrName) {
+        return response(req -> {
+            try {
+                DatasetRelationType relationType = findDatasetRelationTypeOrDie(idOrName);
+                execCommand(new UpdateDefaultDatasetRelationTypeCommand(req, relationType));
+                return ok(BundleUtil.getStringFromBundle("datasets.api.datasetRelationType.default.success"));
+            } catch (WrappedResponse ex) {
+                return ex.getResponse();
+            }
+        }, getRequestUser(crc));
+    }
+
 
 /****************************
  * Globus Support Section:

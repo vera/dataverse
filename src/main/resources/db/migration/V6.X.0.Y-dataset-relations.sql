@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS datasetrelationtype (
                                                    name VARCHAR(255) NOT NULL,
                                                    displayname VARCHAR(255) NOT NULL,
                                                    description VARCHAR(255),
+                                                   isdefault BOOLEAN NOT NULL DEFAULT FALSE,
                                                    inverse_id BIGINT,
                                                    UNIQUE (name),
                                                    UNIQUE (displayname),
@@ -16,7 +17,7 @@ CREATE TABLE IF NOT EXISTS datasetrelation (
                                               definitionpoint_id BIGINT NOT NULL,
                                               relation_source VARCHAR(31),
                                               relateddataset_id BIGINT,
-                                              relationtype_id BIGINT,
+                                              relationtype_id BIGINT NOT NULL,
                                               externalidentifier VARCHAR(255),
                                               identifierscheme VARCHAR(255),
                                               datasettype VARCHAR(255),
@@ -32,3 +33,4 @@ CREATE INDEX IF NOT EXISTS index_datasetrelation_dataset ON datasetrelation (dat
 CREATE INDEX IF NOT EXISTS index_datasetrelation_relateddataset ON datasetrelation (relateddataset_id);
 CREATE INDEX IF NOT EXISTS index_datasetrelation_definitionpoint ON datasetrelation (definitionpoint_id);
 CREATE INDEX IF NOT EXISTS index_datasetrelation_relateddataset_definitionpoint ON datasetrelation (relateddataset_id, definitionpoint_id);
+CREATE UNIQUE INDEX IF NOT EXISTS datasetrelationtype_one_default ON datasetrelationtype (isdefault) WHERE isdefault = TRUE;

@@ -46,12 +46,20 @@ public class DatasetRelationTypesIT {
         UtilIT.addDatasetRelationType(builder.build().toString(), apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode());
 
+        UtilIT.setDefaultDatasetRelationType(name, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode());
+        UtilIT.getDefaultDatasetRelationType(apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("data.name", equalTo(name))
+                .body("data.default", equalTo(true));
+
         // Get relation type
         UtilIT.getDatasetRelationType(name, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("data.name", equalTo(name))
                 .body("data.displayName", equalTo(displayName))
-                .body("data.description", equalTo(description));
+                .body("data.description", equalTo(description))
+                .body("data.default", equalTo(true));
 
         String name2 = "testRelation2" + UtilIT.getRandomString(6);
         String displayName2 = "Test Relation 2 " + UtilIT.getRandomString(6);
@@ -123,15 +131,28 @@ public class DatasetRelationTypesIT {
                 .body("data.name", hasItem(name3))
                 .body("data.name", hasItem(inverseName3));
 
-        // Delete relation types
+        // The default type cannot be deleted.
         UtilIT.deleteDatasetRelationType(name, apiTokenSuperuser)
+                .then().assertThat().statusCode(BAD_REQUEST.getStatusCode());
+
+        // Delete relation types after selecting another default.
+        UtilIT.setDefaultDatasetRelationType(name2, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode());
+        UtilIT.deleteDatasetRelationType(name, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode());
+        UtilIT.setDefaultDatasetRelationType(name3, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode());
         UtilIT.deleteDatasetRelationType(name2, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode());
+        UtilIT.setDefaultDatasetRelationType(inverseName3, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode());
         UtilIT.deleteDatasetRelationType(name3, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode());
-        UtilIT.deleteDatasetRelationType(inverseName3, apiTokenSuperuser)
-                .then().assertThat().statusCode(OK.getStatusCode());
+
+        UtilIT.getDefaultDatasetRelationType(apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("data.name", equalTo(inverseName3))
+                .body("data.default", equalTo(true));
 
         // Verify deleted
         UtilIT.getDatasetRelationType(name, apiTokenSuperuser)
@@ -141,7 +162,7 @@ public class DatasetRelationTypesIT {
         UtilIT.getDatasetRelationType(name3, apiTokenSuperuser)
                 .then().assertThat().statusCode(NOT_FOUND.getStatusCode());
         UtilIT.getDatasetRelationType(inverseName3, apiTokenSuperuser)
-                .then().assertThat().statusCode(NOT_FOUND.getStatusCode());
+                .then().assertThat().statusCode(OK.getStatusCode());
     }
 
     @Test
@@ -180,6 +201,18 @@ public class DatasetRelationTypesIT {
 
         // Create as superuser succeeds
         UtilIT.addDatasetRelationType(jsonIn, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode());
+
+        String defaultName = "permDefault" + UtilIT.getRandomString(6);
+        UtilIT.addDatasetRelationType(Json.createObjectBuilder()
+                        .add("name", defaultName)
+                        .add("displayName", "Perm Default " + UtilIT.getRandomString(6))
+                        .build().toString(), apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode());
+
+        UtilIT.setDefaultDatasetRelationType(name, apiTokenNormalUser)
+                .then().assertThat().statusCode(FORBIDDEN.getStatusCode());
+        UtilIT.setDefaultDatasetRelationType(defaultName, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode());
 
         // Delete as normal user fails
@@ -228,7 +261,16 @@ public class DatasetRelationTypesIT {
         Response listResponse = UtilIT.listDatasetRelations(pidA, apiTokenSuperuser);
         int relationId = listResponse.jsonPath().getInt("data[0].id");
         UtilIT.deleteDatasetRelation(pidA, relationId, apiTokenSuperuser).then().assertThat().statusCode(OK.getStatusCode());
-        
+
+        String defaultName = "defaultAfterInUse" + UtilIT.getRandomString(6);
+        UtilIT.addDatasetRelationType(Json.createObjectBuilder()
+                        .add("name", defaultName)
+                        .add("displayName", "Default After In Use " + UtilIT.getRandomString(6))
+                        .build().toString(), apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode());
+        UtilIT.setDefaultDatasetRelationType(defaultName, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode());
+
         // Now deleting the relation type should work
         UtilIT.deleteDatasetRelationType(typeName, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode());

@@ -107,39 +107,27 @@ public class DatasetRelationServiceBean {
     }
 
     /**
-     * A relation without a type is a duplicate of every relation between the
-     * same endpoints at the same definition point. Relations with different,
-     * non-null types remain distinct. This must be checked outside the
-     * database because its unique constraints treat NULL relation types as
-     * distinct values.
+     * A relation is a duplicate when it has the same endpoints, definition
+     * point, and relation type as an existing relation.
      */
     public boolean isDuplicate(DatasetRelation relation) {
-        String relationTypeClause = relation.getRelationType() == null
-                ? ""
-                : " AND (rel.relationType IS NULL OR rel.relationType.id = :relationTypeId)";
         if (relation instanceof InternalDatasetRelation internalRelation) {
             var query = em.createQuery("SELECT COUNT(rel) FROM InternalDatasetRelation rel "
                     + "WHERE rel.dataset = :dataset AND rel.relatedDataset = :relatedDataset "
-                    + "AND rel.definitionPoint = :definitionPoint "
-                    + relationTypeClause, Long.class)
+                    + "AND rel.definitionPoint = :definitionPoint AND rel.relationType.id = :relationTypeId", Long.class)
                     .setParameter("dataset", relation.getDataset())
                     .setParameter("relatedDataset", internalRelation.getRelatedDataset())
-                    .setParameter("definitionPoint", relation.getDefinitionPoint());
-            if (relation.getRelationType() != null) {
-                query.setParameter("relationTypeId", relation.getRelationType().getId());
-            }
+                    .setParameter("definitionPoint", relation.getDefinitionPoint())
+                    .setParameter("relationTypeId", relation.getRelationType().getId());
             return query.getSingleResult() > 0;
         } else if (relation instanceof ExternalDatasetRelation externalRelation) {
             var query = em.createQuery("SELECT COUNT(rel) FROM ExternalDatasetRelation rel "
                     + "WHERE rel.dataset = :dataset AND rel.externalIdentifier = :externalIdentifier "
-                    + "AND rel.definitionPoint = :definitionPoint "
-                    + relationTypeClause, Long.class)
+                    + "AND rel.definitionPoint = :definitionPoint AND rel.relationType.id = :relationTypeId", Long.class)
                     .setParameter("dataset", relation.getDataset())
                     .setParameter("externalIdentifier", externalRelation.getExternalIdentifier())
-                    .setParameter("definitionPoint", relation.getDefinitionPoint());
-            if (relation.getRelationType() != null) {
-                query.setParameter("relationTypeId", relation.getRelationType().getId());
-            }
+                    .setParameter("definitionPoint", relation.getDefinitionPoint())
+                    .setParameter("relationTypeId", relation.getRelationType().getId());
             return query.getSingleResult() > 0;
         }
         throw new IllegalArgumentException("Unknown dataset relation type");
@@ -159,8 +147,7 @@ public class DatasetRelationServiceBean {
     private boolean areDuplicates(DatasetRelation first, DatasetRelation second) {
         if (!first.getDataset().equals(second.getDataset())
                 || !first.getDefinitionPoint().equals(second.getDefinitionPoint())
-                || (first.getRelationType() != null && second.getRelationType() != null
-                    && !first.getRelationType().equals(second.getRelationType()))) {
+                || !first.getRelationType().equals(second.getRelationType())) {
             return false;
         }
         if (first instanceof InternalDatasetRelation firstInternal
@@ -209,11 +196,17 @@ public class DatasetRelationServiceBean {
 
     public DatasetRelation fromDTO(DatasetRelationDTO dto, DatasetVersion version) {
         Dataset d = version.getDataset();
-        DatasetRelationType type = null;
+        DatasetRelationType type;
         if (dto.getRelationTypeName() != null) {
             type = relationTypeService.findByName(dto.getRelationTypeName());
             if (type == null) {
                 logger.severe("Failed to find dataset relation type with name " + dto.getRelationTypeName());
+                return null;
+            }
+        } else {
+            type = relationTypeService.getDefault();
+            if (type == null) {
+                logger.severe("Failed to find a default dataset relation type");
                 return null;
             }
         }

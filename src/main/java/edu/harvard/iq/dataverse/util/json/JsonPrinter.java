@@ -1076,7 +1076,8 @@ public class JsonPrinter {
         JsonObjectBuilder result = new NullSafeJsonBuilder();
         result.add("name", drt.getName())
                 .add("displayName", drt.getDisplayName())
-                .add("description", drt.getDescription());
+                .add("description", drt.getDescription())
+                .add("default", drt.isDefault());
         if (includeInverse && drt.getInverse() != null) {
             result.add("inverse", json(drt.getInverse(), false));
         }
