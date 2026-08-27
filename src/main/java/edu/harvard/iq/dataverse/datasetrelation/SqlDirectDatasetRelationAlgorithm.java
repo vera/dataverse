@@ -12,6 +12,8 @@ import java.util.stream.Collectors;
 
 /**
  * Default implementation of DatasetRelationAlgorithm using JPA and SQL queries.
+ *
+ * @author Vera Clemens (ZB MED)
  */
 @ApplicationScoped
 public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorithm {

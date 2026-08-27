@@ -18,6 +18,9 @@ import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ * @author Vera Clemens (ZB MED)
+ */
 public class DatasetRelationsIT {
 
     private static String apiTokenSuperuser;

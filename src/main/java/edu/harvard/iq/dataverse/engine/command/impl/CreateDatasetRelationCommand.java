@@ -14,9 +14,9 @@ import jakarta.ejb.EJBException;
 import java.util.List;
 
 /**
- *
  * Creates a new relation for a given dataset.
- * @author Vera Clemens
+ *
+ * @author Vera Clemens (ZB MED)
  */
 @RequiredPermissions(Permission.EditDatasetRelations)
 public class CreateDatasetRelationCommand extends AbstractCommand<DatasetRelation> {

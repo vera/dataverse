@@ -13,9 +13,9 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- *
  * Deletes a dataset relation.
- * @author Vera Clemens
+ *
+ * @author Vera Clemens (ZB MED)
  */
 @RequiredPermissions(Permission.EditDatasetRelations)
 public class DeleteDatasetRelationCommand extends AbstractVoidCommand {

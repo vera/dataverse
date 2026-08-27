@@ -7,6 +7,8 @@ import java.util.List;
 /**
  * Interface for algorithms that calculate or retrieve relations for a dataset.
  * This allows swapping the implementation (e.g. from simple direct relation-based to complex graph-based clustering).
+ *
+ * @author Vera Clemens (ZB MED)
  */
 public interface DatasetRelationAlgorithm {
     

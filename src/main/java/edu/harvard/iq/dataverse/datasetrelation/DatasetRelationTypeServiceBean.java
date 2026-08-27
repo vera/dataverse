@@ -19,6 +19,11 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * Service bean for managing dataset relation types.
+ *
+ * @author Vera Clemens (ZB MED)
+ */
 @Stateless
 @Named
 public class DatasetRelationTypeServiceBean {

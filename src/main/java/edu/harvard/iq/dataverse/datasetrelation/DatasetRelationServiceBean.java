@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package edu.harvard.iq.dataverse.datasetrelation;
 
 import edu.harvard.iq.dataverse.Dataset;
@@ -26,8 +21,10 @@ import jakarta.persistence.NoResultException;
 import jakarta.persistence.PersistenceContext;
 
 /**
+ * Service bean for managing dataset relations.
+ * It uses an injected DatasetRelationAlgorithm to compute and filter dataset relations.
  *
- * @author Vera Clemens
+ * @author Vera Clemens (ZB MED)
  */
 @Stateless
 @Named

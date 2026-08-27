@@ -14,6 +14,9 @@ import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/**
+ * @author Vera Clemens (ZB MED)
+ */
 public class DatasetRelationIndexingTest {
 
     @Test

@@ -5,6 +5,16 @@ import edu.harvard.iq.dataverse.DatasetVersion;
 import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
 
+/**
+ * Represents a relationship between a dataset and an external dataset. This class is used to describe and manage links
+ * to datasets that exist outside the current Dataverse instance.
+ *
+ * This class extends {@link DatasetRelation} and specializes the relationship to describe external datasets by
+ * providing additional fields for external-specific details like external identifier, identifier scheme, and dataset
+ * type.
+ *
+ * @author Vera Clemens (ZB MED)
+ */
 @Entity
 @DiscriminatorValue("external")
 public class ExternalDatasetRelation extends DatasetRelation {

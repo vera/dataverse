@@ -4,6 +4,14 @@ import jakarta.persistence.*;
 
 import java.io.Serializable;
 
+/**
+ * Represents a type of relationship between datasets within the system.
+ * Provides attributes for naming the relationship, describing its purpose, and identifying if it is the default type
+ * of relation.
+ * Additionally, supports the concept of an inverse relationship types.
+ *
+ * @author Vera Clemens (ZB MED)
+ */
 @Entity
 @NamedQueries({
         @NamedQuery(name = "DatasetRelationType.findAll",

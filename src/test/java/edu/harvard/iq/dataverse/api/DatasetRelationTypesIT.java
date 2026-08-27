@@ -10,6 +10,9 @@ import org.junit.jupiter.api.Test;
 import static jakarta.ws.rs.core.Response.Status.*;
 import static org.hamcrest.Matchers.*;
 
+/**
+ * @author Vera Clemens (ZB MED)
+ */
 public class DatasetRelationTypesIT {
 
     private static String apiTokenSuperuser;

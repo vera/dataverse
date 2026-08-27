@@ -8,8 +8,11 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Reindexes datasets to update relatedDatasetCount
- * @author Vera Clemens
+ * Utility class for scheduling indexing tasks related to datasets and their relations.
+ * The methods in this class are designed to handle the indexing of datasets whenever their relationships change and an
+ * index update is necessary, i.e., to update the relatedDatasetCount.
+ *
+ * @author Vera Clemens (ZB MED)
  */
 public final class DatasetRelationIndexing {
 

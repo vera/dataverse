@@ -1,5 +1,11 @@
 package edu.harvard.iq.dataverse.api.dto;
 
+/**
+ * Data Transfer Object (DTO) representing a dataset relation.
+ * This class encapsulates the information required to describe a relationship between datasets.
+ *
+ * @author Vera Clemens (ZB MED)
+ */
 public class DatasetRelationDTO {
     private String relationTypeName;
 

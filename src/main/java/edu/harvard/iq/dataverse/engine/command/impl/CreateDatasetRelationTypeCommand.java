@@ -18,7 +18,8 @@ import org.eclipse.persistence.exceptions.DatabaseException;
 
 /**
  * A superuser-only command for creating new dataset relation types.
- * @author Vera Clemens
+ *
+ * @author Vera Clemens (ZB MED)
  */
 @RequiredPermissions({})
 public class CreateDatasetRelationTypeCommand extends AbstractVoidCommand {

@@ -7,6 +7,15 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 
+/**
+ * Represents a relationship between two datasets that exist within the current Dataverse instance
+ *
+ * This class extends {@code DatasetRelation} to provide functionality specific to internal relationships. An internal
+ * dataset relation is characterized by its source dataset, related dataset, relation type, and the dataset version
+ * that is the definition point of the relation.
+ *
+ * @author Vera Clemens (ZB MED)
+ */
 @Entity
 @DiscriminatorValue("internal")
 public class InternalDatasetRelation extends DatasetRelation {
@@ -39,10 +48,6 @@ public class InternalDatasetRelation extends DatasetRelation {
 
     public void setRelatedDataset(Dataset relatedDataset) {
         this.relatedDataset = relatedDataset;
-    }
-
-    public boolean isSelfRelation() {
-        return this.getDataset().equals(this.getRelatedDataset());
     }
 
     @Override

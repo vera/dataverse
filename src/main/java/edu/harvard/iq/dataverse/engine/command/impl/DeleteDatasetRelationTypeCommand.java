@@ -21,7 +21,8 @@ import static jakarta.ws.rs.core.Response.Status.BAD_REQUEST;
 
 /**
  * A superuser-only command for deleting dataset relation types.
- * @author Vera Clemens
+ *
+ * @author Vera Clemens (ZB MED)
  */
 @RequiredPermissions({})
 public class DeleteDatasetRelationTypeCommand extends AbstractVoidCommand {
