@@ -23,7 +23,7 @@ import edu.harvard.iq.dataverse.GlobalId;
 import edu.harvard.iq.dataverse.MetadataBlockServiceBean;
 import edu.harvard.iq.dataverse.api.dto.DatasetDTO;
 import edu.harvard.iq.dataverse.api.imports.ImportUtil.ImportType;
-import edu.harvard.iq.dataverse.dataset.DatasetRelationServiceBean;
+import edu.harvard.iq.dataverse.datasetrelation.DatasetRelationServiceBean;
 import edu.harvard.iq.dataverse.dataset.DatasetTypeServiceBean;
 import edu.harvard.iq.dataverse.engine.command.DataverseRequest;
 import edu.harvard.iq.dataverse.engine.command.exception.CommandException;

@@ -1,9 +1,9 @@
 package edu.harvard.iq.dataverse.engine.command.impl;
 
 import edu.harvard.iq.dataverse.DvObject;
-import edu.harvard.iq.dataverse.dataset.DatasetRelation;
-import edu.harvard.iq.dataverse.dataset.DatasetRelationType;
-import edu.harvard.iq.dataverse.dataset.DatasetRelationTypeException;
+import edu.harvard.iq.dataverse.datasetrelation.DatasetRelation;
+import edu.harvard.iq.dataverse.datasetrelation.DatasetRelationType;
+import edu.harvard.iq.dataverse.datasetrelation.DatasetRelationTypeException;
 import edu.harvard.iq.dataverse.engine.command.*;
 import edu.harvard.iq.dataverse.engine.command.exception.CommandException;
 import edu.harvard.iq.dataverse.engine.command.exception.IllegalCommandException;

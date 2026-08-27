@@ -1,7 +1,7 @@
 package edu.harvard.iq.dataverse.engine.command.impl;
 
 import edu.harvard.iq.dataverse.DvObject;
-import edu.harvard.iq.dataverse.dataset.DatasetRelationType;
+import edu.harvard.iq.dataverse.datasetrelation.DatasetRelationType;
 import edu.harvard.iq.dataverse.engine.command.AbstractVoidCommand;
 import edu.harvard.iq.dataverse.engine.command.CommandContext;
 import edu.harvard.iq.dataverse.engine.command.DataverseRequest;

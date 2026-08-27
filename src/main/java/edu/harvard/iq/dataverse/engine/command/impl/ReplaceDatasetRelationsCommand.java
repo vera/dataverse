@@ -7,11 +7,11 @@ package edu.harvard.iq.dataverse.engine.command.impl;
 
 import edu.harvard.iq.dataverse.Dataset;
 import edu.harvard.iq.dataverse.DatasetVersion;
-import edu.harvard.iq.dataverse.dataset.DatasetRelation;
-import edu.harvard.iq.dataverse.dataset.DatasetRelationIndexing;
-import edu.harvard.iq.dataverse.dataset.DatasetRelationType;
-import edu.harvard.iq.dataverse.dataset.ExternalDatasetRelation;
-import edu.harvard.iq.dataverse.dataset.InternalDatasetRelation;
+import edu.harvard.iq.dataverse.datasetrelation.DatasetRelation;
+import edu.harvard.iq.dataverse.datasetrelation.DatasetRelationIndexing;
+import edu.harvard.iq.dataverse.datasetrelation.DatasetRelationType;
+import edu.harvard.iq.dataverse.datasetrelation.ExternalDatasetRelation;
+import edu.harvard.iq.dataverse.datasetrelation.InternalDatasetRelation;
 import edu.harvard.iq.dataverse.api.dto.DatasetRelationDTO;
 import edu.harvard.iq.dataverse.authorization.Permission;
 import edu.harvard.iq.dataverse.engine.command.*;

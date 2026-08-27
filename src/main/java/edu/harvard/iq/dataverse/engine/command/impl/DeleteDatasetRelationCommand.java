@@ -1,7 +1,7 @@
 package edu.harvard.iq.dataverse.engine.command.impl;
 
-import edu.harvard.iq.dataverse.dataset.DatasetRelation;
-import edu.harvard.iq.dataverse.dataset.DatasetRelationIndexing;
+import edu.harvard.iq.dataverse.datasetrelation.DatasetRelation;
+import edu.harvard.iq.dataverse.datasetrelation.DatasetRelationIndexing;
 import edu.harvard.iq.dataverse.authorization.Permission;
 import edu.harvard.iq.dataverse.authorization.users.AuthenticatedUser;
 import edu.harvard.iq.dataverse.engine.command.*;

@@ -3,7 +3,7 @@ package edu.harvard.iq.dataverse;
 import edu.harvard.iq.dataverse.dataset.DatasetThumbnail;
 import edu.harvard.iq.dataverse.dataset.DatasetType;
 import edu.harvard.iq.dataverse.dataset.DatasetUtil;
-import edu.harvard.iq.dataverse.dataset.DatasetRelation;
+import edu.harvard.iq.dataverse.datasetrelation.DatasetRelation;
 import edu.harvard.iq.dataverse.harvest.client.HarvestingClient;
 import edu.harvard.iq.dataverse.license.License;
 import edu.harvard.iq.dataverse.makedatacount.DatasetExternalCitations;

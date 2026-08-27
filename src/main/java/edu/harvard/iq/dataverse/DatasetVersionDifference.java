@@ -3,7 +3,7 @@ package edu.harvard.iq.dataverse;
 import edu.harvard.iq.dataverse.datavariable.DataVariable;
 import edu.harvard.iq.dataverse.datavariable.VarGroup;
 import edu.harvard.iq.dataverse.datavariable.VariableMetadataUtil;
-import edu.harvard.iq.dataverse.dataset.DatasetRelation;
+import edu.harvard.iq.dataverse.datasetrelation.DatasetRelation;
 import edu.harvard.iq.dataverse.util.StringUtil;
 import edu.harvard.iq.dataverse.util.json.JsonPrinter;
 

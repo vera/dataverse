@@ -18,7 +18,7 @@
    Version 3.0.
 */
 
-package edu.harvard.iq.dataverse.dataset;
+package edu.harvard.iq.dataverse.datasetrelation;
 
 import java.io.Serializable;
 
@@ -148,7 +148,7 @@ public abstract class DatasetRelation implements Serializable {
 
     @Override
     public String toString() {
-        return "edu.harvard.iq.dataverse.dataset.DatasetRelation[ id=" + id + " ]";
+        return "edu.harvard.iq.dataverse.datasetrelation.DatasetRelation[ id=" + id + " ]";
     }
 
     public abstract String toKey();

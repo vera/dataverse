@@ -9,7 +9,7 @@ import edu.harvard.iq.dataverse.util.*;
 import edu.harvard.iq.dataverse.util.json.JsonUtil;
 import edu.harvard.iq.dataverse.util.json.NullSafeJsonBuilder;
 import edu.harvard.iq.dataverse.workflows.WorkflowComment;
-import edu.harvard.iq.dataverse.dataset.DatasetRelation;
+import edu.harvard.iq.dataverse.datasetrelation.DatasetRelation;
 import jakarta.json.*;
 import jakarta.persistence.*;
 import jakarta.validation.ConstraintViolation;

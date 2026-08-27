@@ -1,4 +1,4 @@
-package edu.harvard.iq.dataverse.dataset;
+package edu.harvard.iq.dataverse.datasetrelation;
 
 import jakarta.ejb.ApplicationException;
 

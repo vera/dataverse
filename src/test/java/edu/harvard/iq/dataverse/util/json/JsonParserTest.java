@@ -16,7 +16,7 @@ import edu.harvard.iq.dataverse.authorization.groups.impl.ipaddress.ip.IpAddress
 import edu.harvard.iq.dataverse.authorization.groups.impl.maildomain.MailDomainGroup;
 import edu.harvard.iq.dataverse.authorization.groups.impl.maildomain.MailDomainGroupTest;
 import edu.harvard.iq.dataverse.authorization.users.GuestUser;
-import edu.harvard.iq.dataverse.dataset.DatasetRelationServiceBean;
+import edu.harvard.iq.dataverse.datasetrelation.DatasetRelationServiceBean;
 import edu.harvard.iq.dataverse.dataset.DatasetType;
 import edu.harvard.iq.dataverse.dataset.DatasetTypeServiceBean;
 import edu.harvard.iq.dataverse.engine.command.DataverseRequest;

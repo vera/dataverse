@@ -14,7 +14,7 @@ import edu.harvard.iq.dataverse.MetadataBlockServiceBean;
 import edu.harvard.iq.dataverse.api.dto.*;  
 import edu.harvard.iq.dataverse.api.dto.FieldDTO;
 import edu.harvard.iq.dataverse.api.dto.MetadataBlockDTO;
-import edu.harvard.iq.dataverse.dataset.DatasetRelationServiceBean;
+import edu.harvard.iq.dataverse.datasetrelation.DatasetRelationServiceBean;
 import edu.harvard.iq.dataverse.dataset.DatasetTypeServiceBean;
 import edu.harvard.iq.dataverse.license.LicenseServiceBean;
 import edu.harvard.iq.dataverse.pidproviders.doi.AbstractDOIProvider;

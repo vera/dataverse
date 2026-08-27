@@ -38,7 +38,7 @@ import edu.harvard.iq.dataverse.batch.util.LoggingUtil;
 import edu.harvard.iq.dataverse.dataaccess.DataAccess;
 import edu.harvard.iq.dataverse.dataaccess.DataAccessRequest;
 import edu.harvard.iq.dataverse.dataaccess.StorageIO;
-import edu.harvard.iq.dataverse.dataset.DatasetRelationServiceBean;
+import edu.harvard.iq.dataverse.datasetrelation.DatasetRelationServiceBean;
 import edu.harvard.iq.dataverse.dataset.DatasetType;
 import edu.harvard.iq.dataverse.datavariable.DataVariable;
 import edu.harvard.iq.dataverse.datavariable.VariableMetadata;

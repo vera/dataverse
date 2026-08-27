@@ -17,7 +17,7 @@ import edu.harvard.iq.dataverse.DataverseServiceBean;
 import edu.harvard.iq.dataverse.GlobalId;
 import edu.harvard.iq.dataverse.MetadataBlock;
 import edu.harvard.iq.dataverse.branding.BrandingUtil;
-import edu.harvard.iq.dataverse.dataset.DatasetRelationServiceBean;
+import edu.harvard.iq.dataverse.datasetrelation.DatasetRelationServiceBean;
 import edu.harvard.iq.dataverse.dataset.DatasetType;
 import edu.harvard.iq.dataverse.mocks.MocksFactory;
 import edu.harvard.iq.dataverse.pidproviders.doi.AbstractDOIProvider;

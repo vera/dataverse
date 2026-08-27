@@ -2,7 +2,7 @@ package edu.harvard.iq.dataverse.export;
 
 import edu.harvard.iq.dataverse.*;
 import edu.harvard.iq.dataverse.branding.BrandingUtilTest;
-import edu.harvard.iq.dataverse.dataset.DatasetRelationServiceBean;
+import edu.harvard.iq.dataverse.datasetrelation.DatasetRelationServiceBean;
 import edu.harvard.iq.dataverse.dataset.DatasetTypeServiceBean;
 import io.gdcc.spi.export.ExportDataProvider;
 import io.gdcc.spi.export.XMLExporter;
