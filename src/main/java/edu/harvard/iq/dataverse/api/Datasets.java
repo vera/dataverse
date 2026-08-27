@@ -853,6 +853,10 @@ public class Datasets extends AbstractApiBean {
                 return error(Response.Status.BAD_REQUEST,
                         BundleUtil.getStringFromBundle("datasets.api.datasetRelation.error.duplicate"));
             }
+            if (incomingVersion.getRelations() != null
+                    && !permissionSvc.permissionsFor(req, ds).contains(Permission.EditDatasetRelations)) {
+                return unauthorized(BundleUtil.getStringFromBundle("datasets.api.datasetRelation.error.editNotAuthorized"));
+            }
 
             if (!incomingVersion.getFileMetadatas().isEmpty()){
                 return error( Response.Status.BAD_REQUEST, "You may not add files via this api.");

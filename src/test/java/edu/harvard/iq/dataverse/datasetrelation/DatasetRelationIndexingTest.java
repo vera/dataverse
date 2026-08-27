@@ -54,6 +54,23 @@ public class DatasetRelationIndexingTest {
         assertEquals(List.of(definingDataset), datasets.getValue());
     }
 
+    @Test
+    void schedulesRelatedDatasetWhenItsRelationCountChanges() {
+        Dataset definingDataset = dataset(1L);
+        Dataset relatedDataset = dataset(2L);
+        CommandContext ctxt = mock(CommandContext.class);
+        IndexServiceBean index = mock(IndexServiceBean.class);
+        when(ctxt.index()).thenReturn(index);
+
+        DatasetRelationIndexing.scheduleChanges(ctxt, definingDataset,
+                List.of(internalRelation(relatedDataset)),
+                List.of(internalRelation(relatedDataset), internalRelation(relatedDataset)));
+
+        ArgumentCaptor<List<Dataset>> datasets = ArgumentCaptor.forClass(List.class);
+        verify(index).asyncIndexDatasetList(datasets.capture(), eq(true));
+        assertEquals(List.of(relatedDataset, definingDataset), datasets.getValue());
+    }
+
     private Dataset dataset(Long id) {
         Dataset dataset = mock(Dataset.class);
         when(dataset.getId()).thenReturn(id);

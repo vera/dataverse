@@ -6,6 +6,7 @@ import edu.harvard.iq.dataverse.engine.command.CommandContext;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Utility class for scheduling indexing tasks related to datasets and their relations.
@@ -29,15 +30,17 @@ public final class DatasetRelationIndexing {
             Collection<DatasetRelation> previousRelations, Collection<DatasetRelation> currentRelations) {
         Map<Long, Dataset> previousRelatedDatasets = relatedDatasets(previousRelations);
         Map<Long, Dataset> currentRelatedDatasets = relatedDatasets(currentRelations);
+        Map<Long, Long> previousRelationCounts = relatedDatasetCounts(previousRelations);
+        Map<Long, Long> currentRelationCounts = relatedDatasetCounts(currentRelations);
 
         Map<Long, Dataset> changedRelatedDatasets = new LinkedHashMap<>();
         previousRelatedDatasets.forEach((id, dataset) -> {
-            if (!currentRelatedDatasets.containsKey(id)) {
+            if (!Objects.equals(previousRelationCounts.get(id), currentRelationCounts.get(id))) {
                 changedRelatedDatasets.put(id, dataset);
             }
         });
         currentRelatedDatasets.forEach((id, dataset) -> {
-            if (!previousRelatedDatasets.containsKey(id)) {
+            if (!Objects.equals(previousRelationCounts.get(id), currentRelationCounts.get(id))) {
                 changedRelatedDatasets.put(id, dataset);
             }
         });
@@ -54,5 +57,15 @@ public final class DatasetRelationIndexing {
             }
         }
         return datasets;
+    }
+
+    private static Map<Long, Long> relatedDatasetCounts(Collection<DatasetRelation> relations) {
+        Map<Long, Long> counts = new LinkedHashMap<>();
+        for (DatasetRelation relation : relations) {
+            if (relation instanceof InternalDatasetRelation internalRelation) {
+                counts.merge(internalRelation.getRelatedDataset().getId(), 1L, Long::sum);
+            }
+        }
+        return counts;
     }
 }
