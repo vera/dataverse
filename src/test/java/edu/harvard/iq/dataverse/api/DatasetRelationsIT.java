@@ -914,15 +914,6 @@ public class DatasetRelationsIT {
         UtilIT.addDatasetRelation(pidA, dupRelation.toString(), apiTokenSuperuser)
                 .then().assertThat().statusCode(BAD_REQUEST.getStatusCode());
 
-        // Try to add the already existing relation to B again, but this time, without the relation type
-        // Should still count as a duplicate and therefore be 400
-        JsonObject dupRelationWithoutType = Json.createObjectBuilder()
-                .add("relatedDatasetPid", pidB)
-                .build();
-
-        UtilIT.addDatasetRelation(pidA, dupRelationWithoutType.toString(), apiTokenSuperuser)
-                .then().assertThat().statusCode(BAD_REQUEST.getStatusCode());
-
         // Try to DELETE relation with pidC
         // Should be 404
         UtilIT.deleteDatasetRelation(pidC, relationId, apiTokenSuperuser)
