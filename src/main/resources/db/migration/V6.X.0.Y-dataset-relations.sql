@@ -34,3 +34,9 @@ CREATE INDEX IF NOT EXISTS index_datasetrelation_relateddataset ON datasetrelati
 CREATE INDEX IF NOT EXISTS index_datasetrelation_definitionpoint ON datasetrelation (definitionpoint_id);
 CREATE INDEX IF NOT EXISTS index_datasetrelation_relateddataset_definitionpoint ON datasetrelation (relateddataset_id, definitionpoint_id);
 CREATE UNIQUE INDEX IF NOT EXISTS datasetrelationtype_one_default ON datasetrelationtype (isdefault) WHERE isdefault = TRUE;
+
+-- EditDatasetRelations is permission bit 17 (65536). Existing built-in roles
+-- that can edit datasets should also be able to edit dataset relations.
+UPDATE dataverserole
+SET permissionbits = permissionbits | 65536
+WHERE owner_id IS NULL AND (permissionbits & 64) != 0;

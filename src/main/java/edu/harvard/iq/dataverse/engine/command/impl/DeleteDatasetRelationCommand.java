@@ -17,7 +17,7 @@ import java.util.List;
  * Deletes a dataset relation.
  * @author Vera Clemens
  */
-@RequiredPermissions(Permission.EditDataset)
+@RequiredPermissions(Permission.EditDatasetRelations)
 public class DeleteDatasetRelationCommand extends AbstractVoidCommand {
 
     private final DatasetRelation relation;
@@ -32,7 +32,7 @@ public class DeleteDatasetRelationCommand extends AbstractVoidCommand {
         if (relation.getDefinitionPoint().isReleased()
                 && (!(getUser() instanceof AuthenticatedUser) || !getUser().isSuperuser())) {
             throw new PermissionException(BundleUtil.getStringFromBundle("datasets.api.datasetRelation.error.editForbidden"),
-                    this, Collections.singleton(Permission.EditDataset), relation.getDefinitionPoint().getDataset());
+                    this, Collections.singleton(Permission.EditDatasetRelations), relation.getDefinitionPoint().getDataset());
         }
         ctxt.datasetRelations().deleteDatasetRelationById(relation.getId());
         DatasetRelationIndexing.schedule(ctxt, relation.getDefinitionPoint().getDataset(), List.of(relation));

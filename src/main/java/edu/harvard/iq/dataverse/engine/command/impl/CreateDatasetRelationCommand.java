@@ -18,7 +18,7 @@ import java.util.List;
  * Creates a new relation for a given dataset.
  * @author Vera Clemens
  */
-@RequiredPermissions(Permission.EditDataset)
+@RequiredPermissions(Permission.EditDatasetRelations)
 public class CreateDatasetRelationCommand extends AbstractCommand<DatasetRelation> {
     private final DatasetVersion version;
 

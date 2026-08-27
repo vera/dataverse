@@ -27,7 +27,7 @@ import java.util.List;
  * Replaces all relations defined for a given dataset.
  * @author Vera Clemens
  */
-@RequiredPermissions(Permission.EditDataset)
+@RequiredPermissions(Permission.EditDatasetRelations)
 public class ReplaceDatasetRelationsCommand extends AbstractCommand<List<DatasetRelation>> {
     private final DatasetVersion version;
 
