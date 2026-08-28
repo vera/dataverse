@@ -2,6 +2,7 @@ package edu.harvard.iq.dataverse.datasetrelation;
 
 import edu.harvard.iq.dataverse.Dataset;
 import edu.harvard.iq.dataverse.DatasetVersion;
+import jakarta.persistence.Column;
 import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
 
@@ -19,6 +20,7 @@ import jakarta.persistence.Entity;
 @DiscriminatorValue("external")
 public class ExternalDatasetRelation extends DatasetRelation {
 
+    @Column(length = 512)
     private String externalIdentifier;
     private String identifierScheme;
     private String datasetType;

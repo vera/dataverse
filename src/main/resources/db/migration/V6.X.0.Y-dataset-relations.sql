@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS datasetrelation (
                                               relation_source VARCHAR(31),
                                               relateddataset_id BIGINT,
                                               relationtype_id BIGINT NOT NULL,
-                                              externalidentifier VARCHAR(255),
+                                              externalidentifier VARCHAR(512),
                                               identifierscheme VARCHAR(255),
                                               datasettype VARCHAR(255),
                                               CONSTRAINT datasetrelation_internal_unique UNIQUE (dataset_id, relateddataset_id, relationtype_id, definitionpoint_id),
