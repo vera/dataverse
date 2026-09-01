@@ -268,107 +268,86 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
         return (Long) query.getSingleResult();
     }
 
-    private static final String GET_RELATION_COUNTS_QUERY_BASE =
-            " SELECT " +
-            "    %s, " + // Dynamic select for grouping fields
-            "    COUNT(DISTINCT (t.relation_source, " +
-            "        CASE " +
-            "            WHEN t.relation_source = 'internal' THEN " +
-            "                CASE WHEN t.dataset_id = ? THEN CAST(t.relateddataset_id AS VARCHAR) ELSE CAST(t.dataset_id AS VARCHAR) END " +
-            "            ELSE t.externalidentifier " +
-            "        END) " +
-            "    ) AS related_datasets_count " +
-            " FROM ( " +
-                    "    SELECT " +
-                    "        %s " + // Dynamic select for columns in subquery
-                    "        dr.relation_source, " +
-                    "        dr.dataset_id, " +
-                    "        dr.relateddataset_id, " +
-                    "        dr.externalidentifier " +
-                    "    FROM datasetrelation dr " +
-                    "    LEFT JOIN datasetrelationtype rt ON dr.relationtype_id = rt.id " +
-                    "    LEFT JOIN datasetrelationtype inv ON rt.inverse_id = inv.id " +
-                    "    JOIN datasetversion dv_def ON dr.definitionpoint_id = dv_def.id " +
-                    "    %s " + // Optional join (for dataset type)
-                    "    WHERE %s " + // Combined WHERE clause
-                    " ) t " +
-                    " GROUP BY %s " + // Dynamic GROUP BY
-                    " ORDER BY related_datasets_count DESC, %s ASC "; // Dynamic ORDER BY
-
-    private static final String SUBQUERY_COLS_RELATION_TYPE =
-            " CASE WHEN dr.dataset_id = ? THEN rt.name ELSE inv.name END AS relation_type_name, " +
-                    " CASE WHEN dr.dataset_id = ? THEN rt.displayname ELSE inv.displayname END AS relation_type_displayname, " +
-                    " CASE WHEN dr.dataset_id = ? THEN rt.description ELSE inv.description END AS relation_type_description, ";
-
-    private static final String SUBQUERY_COLS_DATASET_TYPE =
-            " dt.name AS dataset_type_name, " +
-                    " dt.displayname AS dataset_type_displayname, " +
-                    " dt.description AS dataset_type_description, ";
-
-    private static final String WHERE_FOR_COUNTS =
-            " ( " +
-                    "   dr.definitionpoint_id = ? " +
-                    "   OR ( " +
-                    "       (dr.relateddataset_id = ? AND dv_def.dataset_id != ?) " +
-                    "       AND dr.definitionpoint_id = ( " +
-                    "           SELECT dv.id FROM datasetversion dv " +
-                    "           WHERE dv.dataset_id = dv_def.dataset_id " +
-                    "           AND dv.id = (SELECT MAX(dv3.id) FROM datasetversion dv3 WHERE dv3.dataset_id = dv.dataset_id AND dv3.versionstate = 'RELEASED') " +
-                    "       ) " +
-                    "   ) " +
-                    " ) ";
-
     @SuppressWarnings("unchecked")
     @Override
-    public List<Object[]> getRelationCounts(Dataset d, DatasetVersion v, String groupBy) {
-        String selectCols;
-        String subqueryCols;
-        String join = "";
-        String where = WHERE_FOR_COUNTS;
-        String groupByCols;
-        String orderByCol;
+    public List<Object[]> getRelationFacetCounts(Dataset d, DatasetVersion v, String groupBy,
+            List<String> relationTypeNames, List<String> datasetTypeNames, List<String> relationSources) {
+        boolean groupByDatasetType = "datasetType".equals(groupBy);
+        boolean needsRelationTypes = !groupByDatasetType || (relationTypeNames != null && !relationTypeNames.isEmpty());
+        boolean needsDatasetTypes = groupByDatasetType || (datasetTypeNames != null && !datasetTypeNames.isEmpty());
+        String select = groupByDatasetType
+                ? " SELECT dt.name, dt.displayname, dt.description, COUNT(*) "
+                : " SELECT CASE WHEN dr.dataset_id = ? THEN rt.name ELSE inv.name END, "
+                        + "CASE WHEN dr.dataset_id = ? THEN rt.displayname ELSE inv.displayname END, "
+                        + "CASE WHEN dr.dataset_id = ? THEN rt.description ELSE inv.description END, COUNT(*) ";
 
-        boolean isGroupByDatasetType = "datasetType".equals(groupBy);
-
-        if (isGroupByDatasetType) {
-            selectCols = "dataset_type_name, dataset_type_displayname, dataset_type_description";
-            subqueryCols = SUBQUERY_COLS_DATASET_TYPE;
-            join = JOIN_DATASET_TYPES;
-            where += " AND dr.relation_source = 'internal' ";
-            groupByCols = selectCols;
-            orderByCol = "dataset_type_name";
+        StringBuilder sql = new StringBuilder();
+        sql.append(WITH_LATEST_RELEASED_VERSIONS)
+                .append(WITH_CANDIDATE_RELATIONS)
+                .append(WITH_DEDUPLICATED_RELATIONS)
+                .append(select)
+                .append(" FROM deduplicated_relations ddr JOIN datasetrelation dr ON ddr.id = dr.id ");
+        if (needsRelationTypes) {
+            sql.append(JOIN_RELATION_TYPES);
+        }
+        if (needsDatasetTypes) {
+            sql.append(JOIN_DATASET_TYPES);
+        }
+        sql.append(" WHERE 1 = 1 ");
+        if (relationTypeNames != null && !relationTypeNames.isEmpty()) {
+            sql.append(" AND ").append(WHERE_RELATION_TYPE_MATCHES.replace("(?)",
+                    "(" + relationTypeNames.stream().map(n -> "?").collect(Collectors.joining(",")) + ")"));
+        }
+        if (datasetTypeNames != null && !datasetTypeNames.isEmpty()) {
+            sql.append(" AND ").append(WHERE_DATASET_TYPE_MATCHES.replace("(?)",
+                    "(" + datasetTypeNames.stream().map(n -> "?").collect(Collectors.joining(",")) + ")"));
+        }
+        if (relationSources != null && !relationSources.isEmpty()) {
+            sql.append(" AND ").append(WHERE_RELATION_SOURCE_MATCHES.replace("(?)",
+                    "(" + relationSources.stream().map(n -> "?").collect(Collectors.joining(",")) + ")"));
+        }
+        if (groupByDatasetType) {
+            sql.append(" AND dr.relation_source = 'internal' GROUP BY dt.name, dt.displayname, dt.description ")
+                    .append(" ORDER BY COUNT(*) DESC, dt.name ASC ");
         } else {
-            selectCols = "relation_type_name, relation_type_displayname, relation_type_description";
-            subqueryCols = SUBQUERY_COLS_RELATION_TYPE;
-            groupByCols = selectCols;
-            orderByCol = "relation_type_name";
+            sql.append(" GROUP BY 1, 2, 3 ORDER BY COUNT(*) DESC, 1 ASC ");
         }
 
-        String sql = String.format(GET_RELATION_COUNTS_QUERY_BASE, selectCols, subqueryCols, join, where, groupByCols, orderByCol);
-
-        Query query = em.createNativeQuery(sql);
+        Query query = em.createNativeQuery(sql.toString());
         int i = 1;
-
-        // Grouping columns (COUNT DISTINCT)
-        query.setParameter(i++, d.getId());
-
-        if (!isGroupByDatasetType) {
-            // SUBQUERY_COLS_RELATION_TYPE
-            query.setParameter(i++, d.getId());
-            query.setParameter(i++, d.getId());
-            query.setParameter(i++, d.getId());
-        }
-
-        if (isGroupByDatasetType) {
-            // JOIN_DATASET_TYPES
-            query.setParameter(i++, d.getId());
-        }
-
-        // WHERE_FOR_COUNTS
         query.setParameter(i++, v.getId());
         query.setParameter(i++, d.getId());
         query.setParameter(i++, d.getId());
-
+        query.setParameter(i++, d.getId());
+        query.setParameter(i++, d.getId());
+        if (!groupByDatasetType) {
+            query.setParameter(i++, d.getId());
+            query.setParameter(i++, d.getId());
+            query.setParameter(i++, d.getId());
+        }
+        if (needsDatasetTypes) {
+            query.setParameter(i++, d.getId());
+        }
+        if (relationTypeNames != null && !relationTypeNames.isEmpty()) {
+            query.setParameter(i++, d.getId());
+            for (String typeName : relationTypeNames) {
+                query.setParameter(i++, typeName);
+            }
+            query.setParameter(i++, d.getId());
+            for (String typeName : relationTypeNames) {
+                query.setParameter(i++, typeName);
+            }
+        }
+        if (datasetTypeNames != null && !datasetTypeNames.isEmpty()) {
+            for (String typeName : datasetTypeNames) {
+                query.setParameter(i++, typeName);
+            }
+        }
+        if (relationSources != null && !relationSources.isEmpty()) {
+            for (String source : relationSources) {
+                query.setParameter(i++, source);
+            }
+        }
         return (List<Object[]>) query.getResultList();
     }
 }

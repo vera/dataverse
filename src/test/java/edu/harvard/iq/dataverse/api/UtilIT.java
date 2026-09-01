@@ -5537,6 +5537,11 @@ public class UtilIT {
     }
 
     public static Response listDatasetRelations(String persistentId, String version, List<String> types, List<String> datasetTypes, List<String> sources, Integer limit, Integer offset, String apiToken) {
+        return listDatasetRelations(persistentId, version, types, datasetTypes, sources, limit, offset, apiToken, false);
+    }
+
+    public static Response listDatasetRelations(String persistentId, String version, List<String> types, List<String> datasetTypes,
+            List<String> sources, Integer limit, Integer offset, String apiToken, boolean showFacets) {
         String path = "/api/datasets/:persistentId/relations?persistentId=" + persistentId;
         if (version != null) {
             path += "&version=" + version;
@@ -5562,28 +5567,14 @@ public class UtilIT {
         if (offset != null) {
             path += "&offset=" + offset;
         }
+        if (showFacets) {
+            path += "&show_facets=true";
+        }
         if (apiToken != null && !apiToken.isEmpty()) {
             return given().header(API_TOKEN_HTTP_HEADER, apiToken).get(path);
         } else {
             return given().get(path);
         }
-    }
-
-    public static Response getDatasetRelationCounts(String persistentId, String apiToken) {
-        return getDatasetRelationCounts(persistentId, null, null, apiToken);
-    }
-
-    public static Response getDatasetRelationCounts(String persistentId, String version, String groupBy, String apiToken) {
-        String path = "/api/datasets/:persistentId/relations/counts?persistentId=" + persistentId;
-        if (version != null) {
-            path += "&version=" + version;
-        }
-        if (groupBy != null) {
-            path += "&groupBy=" + groupBy;
-        }
-        return given()
-                .header(API_TOKEN_HTTP_HEADER, apiToken)
-                .get(path);
     }
 
     public static Response addDatasetRelation(String persistentId, String jsonBody, String apiToken) {

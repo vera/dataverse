@@ -4811,7 +4811,7 @@ The fully expanded example above (without environment variables) looks like this
 List Dataset Relations
 ^^^^^^^^^^^^^^^^^^^^^^
 
-List the relations for the latest accessible version (unless the optional ``version`` parameter is supplied). The response is paginated (``limit`` defaults to 10 and ``offset`` defaults to 0). Set ``type``, ``datasetType``, or ``source`` query parameters to filter on one or more relation type names, related dataset type names, or relation sources. Set ``includeMetadataBlocks=true`` to include metadata from related internal datasets.
+List the relations for the latest accessible version (unless the optional ``version`` parameter is supplied). The response is paginated (``limit`` defaults to 10 and ``offset`` defaults to 0). Set ``type``, ``datasetType``, or ``source`` query parameters to filter on one or more relation type names, related dataset type names, or relation sources. Set ``includeMetadataBlocks=true`` to include metadata from related internal datasets. Set ``show_facets=true`` to include relation type and dataset type facets.
 
 .. code-block:: bash
 
@@ -4820,14 +4820,34 @@ List the relations for the latest accessible version (unless the optional ``vers
   export SERVER_URL=https://demo.dataverse.org
 
   curl -H "X-Dataverse-key: $API_TOKEN" \
-    "$SERVER_URL/api/datasets/:persistentId/relations?persistentId=$PERSISTENT_IDENTIFIER&version=:draft&type=isRelatedTo&limit=10&offset=0"
+    "$SERVER_URL/api/datasets/:persistentId/relations?persistentId=$PERSISTENT_IDENTIFIER&version=:draft&type=isRelatedTo&limit=10&offset=0&show_facets=true"
 
 The fully expanded example above (without environment variables) looks like this:
 
 .. code-block:: bash
 
   curl -H "X-Dataverse-key: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" \
-    "https://demo.dataverse.org/api/datasets/:persistentId/relations?persistentId=doi:10.5072/FK2/AAAAAA&version=:draft&type=isRelatedTo&limit=10&offset=0"
+    "https://demo.dataverse.org/api/datasets/:persistentId/relations?persistentId=doi:10.5072/FK2/AAAAAA&version=:draft&type=isRelatedTo&limit=10&offset=0&show_facets=true"
+
+When requested, facets are returned with the paginated items and total count. The relation type facet applies active dataset type and source filters; the dataset type facet applies active relation type and source filters.
+
+.. code-block:: json
+
+  {
+    "status": "OK",
+    "totalCount": 3,
+    "data": {
+      "items": [],
+      "facets": {
+        "relationType": [
+          {"name": "isRelatedTo", "displayName": "Is related to", "count": 2}
+        ],
+        "datasetType": [
+          {"name": "dataset", "displayName": "Dataset", "count": 3}
+        ]
+      }
+    }
+  }
 
 Get a Dataset Relation
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -4869,24 +4889,6 @@ The fully expanded example above (without environment variables) looks like this
 
   curl -H "X-Dataverse-key: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" -X DELETE \
     "https://demo.dataverse.org/api/datasets/:persistentId/relations/42?persistentId=doi:10.5072/FK2/AAAAAA"
-
-Get Dataset Relation Counts
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Returns the relation counts for the latest accessible version or the version selected by the optional ``version`` parameter. Results are grouped by relation type by default; set ``groupBy=datasetType`` to group by related dataset type instead.
-
-.. code-block:: bash
-
-  export PERSISTENT_IDENTIFIER=doi:10.5072/FK2/AAAAAA
-  export SERVER_URL=https://demo.dataverse.org
-
-  curl "$SERVER_URL/api/datasets/:persistentId/relations/counts?persistentId=$PERSISTENT_IDENTIFIER&groupBy=relationType"
-
-The fully expanded example above (without environment variables) looks like this:
-
-.. code-block:: bash
-
-  curl "https://demo.dataverse.org/api/datasets/:persistentId/relations/counts?persistentId=doi:10.5072/FK2/AAAAAA&groupBy=relationType"
 
 Dataset Relation Types
 ~~~~~~~~~~~~~~~~~~~~~~

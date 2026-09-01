@@ -27,14 +27,15 @@ public interface DatasetRelationAlgorithm {
     List<DatasetRelation> getRelations(Dataset dataset, DatasetVersion version, List<String> relationTypeNames, List<String> datasetTypeNames, List<String> relationSources, Integer limit, Integer offset);
 
     /**
-     * Retrieves the counts of different types of relations for a dataset.
-     * 
-     * @param dataset The dataset.
-     * @param version Optional dataset version for version-specific filtering.
-     * @param groupBy The field to group by (e.g. "relationType", "datasetType").
-     * @return A list of Object arrays, each containing grouping information and count.
+     * Retrieves relation facet counts using the same normalized relation set as listing.
+     *
+     * @param groupBy The field to group by ("relationType" or "datasetType").
+     * @param relationTypeNames Optional filter by relation type names.
+     * @param datasetTypeNames Optional filter by dataset type names of the related dataset.
+     * @param relationSources Optional filter by relation source (internal, external).
      */
-    List<Object[]> getRelationCounts(Dataset dataset, DatasetVersion version, String groupBy);
+    List<Object[]> getRelationFacetCounts(Dataset dataset, DatasetVersion version, String groupBy,
+            List<String> relationTypeNames, List<String> datasetTypeNames, List<String> relationSources);
 
     /**
      * Retrieves the total number of relations returned for a dataset.

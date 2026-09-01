@@ -27,7 +27,6 @@ import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonValue;
 import jakarta.json.stream.JsonParsingException;
 import jakarta.ws.rs.DELETE;
-import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
@@ -156,7 +155,7 @@ public class DatasetRelations extends AbstractApiBean {
             @QueryParam("includeMetadataBlocks") boolean includeMetadataBlocks, @QueryParam("limit") Integer limit,
             @QueryParam("offset") Integer offset, @QueryParam("type") List<String> relationTypeNames,
             @QueryParam("datasetType") List<String> datasetTypeNames, @QueryParam("source") List<String> relationSources,
-            @QueryParam("version") String versionNumber) {
+            @QueryParam("version") String versionNumber, @QueryParam("show_facets") boolean showFacets) {
         return response(req -> {
             try {
                 Dataset dataset = findDatasetOrDie(id);
@@ -170,37 +169,34 @@ public class DatasetRelations extends AbstractApiBean {
                         datasetTypeNames, relationSources, effectiveLimit, effectiveOffset);
                 long totalCount = datasetRelationSvc.getTotalDatasetRelationCountFor(dataset, version, relationTypeNames,
                         datasetTypeNames, relationSources);
-                return ok(json(relations, dataset, includeMetadataBlocks), totalCount);
+                JsonObjectBuilder data = Json.createObjectBuilder()
+                        .add("items", json(relations, dataset, includeMetadataBlocks));
+                if (showFacets) {
+                    data.add("facets", Json.createObjectBuilder()
+                            // A facet omits its own filter so clients can offer alternative values.
+                            .add("relationType", jsonFacetCounts(datasetRelationSvc.getDatasetRelationFacetCountsFor(dataset, version,
+                                    "relationType", null, datasetTypeNames, relationSources)))
+                            .add("datasetType", jsonFacetCounts(datasetRelationSvc.getDatasetRelationFacetCountsFor(dataset, version,
+                                    "datasetType", relationTypeNames, null, relationSources))));
+                }
+                return Response.ok(Json.createObjectBuilder()
+                        .add("status", ApiConstants.STATUS_OK)
+                        .add("data", data)
+                        .add("totalCount", totalCount)
+                        .build()).type("application/json").build();
             } catch (WrappedResponse ex) {
                 return ex.getResponse();
             }
         }, getRequestUser(crc));
     }
 
-    @GET
-    @AuthRequired
-    @Path("{identifier}/relations/counts")
-    public Response getRelationCounts(@Context ContainerRequestContext crc, @PathParam("identifier") String id,
-            @QueryParam("version") String versionNumber, @QueryParam("groupBy") @DefaultValue("relationType") String groupBy) {
-        return response(req -> {
-            try {
-                Dataset dataset = findDatasetOrDie(id);
-                DatasetVersion version = accessibleVersionOrResponse(req, dataset, versionNumber);
-                if (version == null) {
-                    return notFound(MessageFormat.format(BundleUtil.getStringFromBundle("datasets.api.datasetRelation.error.datasetVersionNotFound"), dataset.getGlobalId().asString()));
-                }
-                return ok(datasetRelationSvc.getDatasetRelationCountsFor(dataset, version, groupBy).stream().map(count -> {
-                    String typeKey = "datasetType".equals(groupBy) ? "datasetType" : "relationType";
-                    return Json.createObjectBuilder().add(typeKey, new NullSafeJsonBuilder()
-                            .add("name", count[0] != null ? count[0].toString() : null)
-                            .add("displayName", count[1] != null ? count[1].toString() : null)
-                            .add("description", count[2] != null ? count[2].toString() : null))
-                            .add("count", ((Number) count[3]).longValue());
-                }).collect(toJsonArray()));
-            } catch (WrappedResponse ex) {
-                return ex.getResponse();
-            }
-        }, getRequestUser(crc));
+    private JsonArray jsonFacetCounts(List<Object[]> counts) {
+        return counts.stream().map(count -> new NullSafeJsonBuilder()
+                .add("name", count[0] != null ? count[0].toString() : null)
+                .add("displayName", count[1] != null ? count[1].toString() : null)
+                .add("description", count[2] != null ? count[2].toString() : null)
+                .add("count", ((Number) count[3]).longValue()))
+                .collect(toJsonArray()).build();
     }
 
     @POST
