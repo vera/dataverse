@@ -155,7 +155,7 @@ public class DatasetRelations extends AbstractApiBean {
             @QueryParam("includeMetadataBlocks") boolean includeMetadataBlocks, @QueryParam("limit") Integer limit,
             @QueryParam("offset") Integer offset, @QueryParam("type") List<String> relationTypeNames,
             @QueryParam("datasetType") List<String> datasetTypeNames, @QueryParam("source") List<String> relationSources,
-            @QueryParam("version") String versionNumber, @QueryParam("show_facets") boolean showFacets) {
+            @QueryParam("version") String versionNumber, @QueryParam("showFacets") boolean showFacets) {
         return response(req -> {
             try {
                 Dataset dataset = findDatasetOrDie(id);

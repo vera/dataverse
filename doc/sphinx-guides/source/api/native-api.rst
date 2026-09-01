@@ -4811,7 +4811,7 @@ The fully expanded example above (without environment variables) looks like this
 List Dataset Relations
 ^^^^^^^^^^^^^^^^^^^^^^
 
-List the relations for the latest accessible version (unless the optional ``version`` parameter is supplied). The response is paginated (``limit`` defaults to 10 and ``offset`` defaults to 0). Set ``type``, ``datasetType``, or ``source`` query parameters to filter on one or more relation type names, related dataset type names, or relation sources. Set ``includeMetadataBlocks=true`` to include metadata from related internal datasets. Set ``show_facets=true`` to include relation type and dataset type facets.
+List the relations for the latest accessible version (unless the optional ``version`` parameter is supplied). The response is paginated (``limit`` defaults to 10 and ``offset`` defaults to 0). Set ``type``, ``datasetType``, or ``source`` query parameters to filter on one or more relation type names, related dataset type names, or relation sources. Set ``includeMetadataBlocks=true`` to include metadata from related internal datasets. Set ``showFacets=true`` to include relation type and dataset type facets.
 
 .. code-block:: bash
 
@@ -4820,14 +4820,14 @@ List the relations for the latest accessible version (unless the optional ``vers
   export SERVER_URL=https://demo.dataverse.org
 
   curl -H "X-Dataverse-key: $API_TOKEN" \
-    "$SERVER_URL/api/datasets/:persistentId/relations?persistentId=$PERSISTENT_IDENTIFIER&version=:draft&type=isRelatedTo&limit=10&offset=0&show_facets=true"
+    "$SERVER_URL/api/datasets/:persistentId/relations?persistentId=$PERSISTENT_IDENTIFIER&version=:draft&type=isRelatedTo&limit=10&offset=0&showFacets=true"
 
 The fully expanded example above (without environment variables) looks like this:
 
 .. code-block:: bash
 
   curl -H "X-Dataverse-key: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" \
-    "https://demo.dataverse.org/api/datasets/:persistentId/relations?persistentId=doi:10.5072/FK2/AAAAAA&version=:draft&type=isRelatedTo&limit=10&offset=0&show_facets=true"
+    "https://demo.dataverse.org/api/datasets/:persistentId/relations?persistentId=doi:10.5072/FK2/AAAAAA&version=:draft&type=isRelatedTo&limit=10&offset=0&showFacets=true"
 
 When requested, facets are returned with the paginated items and total count. The relation type facet applies active dataset type and source filters; the dataset type facet applies active relation type and source filters.
 

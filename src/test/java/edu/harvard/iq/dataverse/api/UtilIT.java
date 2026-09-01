@@ -5568,7 +5568,7 @@ public class UtilIT {
             path += "&offset=" + offset;
         }
         if (showFacets) {
-            path += "&show_facets=true";
+            path += "&showFacets=true";
         }
         if (apiToken != null && !apiToken.isEmpty()) {
             return given().header(API_TOKEN_HTTP_HEADER, apiToken).get(path);
