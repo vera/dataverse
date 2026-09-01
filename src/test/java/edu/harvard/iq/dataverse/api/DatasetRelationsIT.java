@@ -224,6 +224,7 @@ public class DatasetRelationsIT {
                 .add(Json.createObjectBuilder()
                         .add("externalIdentifier", "doi:10.1234/external")
                         .add("identifierScheme", "DOI")
+                        .add("datasetType", "Software")
                         .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo"))
                         .add("relationSource", "external"))
                 .build();
@@ -624,6 +625,19 @@ public class DatasetRelationsIT {
                 .body("data.items[0].externalIdentifier", equalTo(externalUrlWithDocType))
                 .body("data.items[0].relatedDatasetType.displayName", equalTo("Document"));
 
+        // An external free-text dataset type is included in the dataset-type facet.
+        UtilIT.listDatasetRelations(pidA, null, null, null, null, null, null, apiTokenSuperuser, true)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("data.facets.datasetType", hasSize(1))
+                .body("data.facets.datasetType[0].displayName", equalTo("Document"))
+                .body("data.facets.datasetType[0].count", equalTo(1));
+
+        // The free-text facet value can also be used with the datasetType filter.
+        UtilIT.listDatasetRelations(pidA, null, null, List.of("Document"), null, null, null, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("totalCount", equalTo(1))
+                .body("data.items[0].externalIdentifier", equalTo(externalUrlWithDocType));
+
         // Add both internal and external relations
         Response createDatasetB = UtilIT.createRandomDatasetViaNativeApi(dataverseAlias, apiTokenSuperuser);
         String pidB = UtilIT.getDatasetPersistentIdFromResponse(createDatasetB);
@@ -635,6 +649,7 @@ public class DatasetRelationsIT {
                 .add(Json.createObjectBuilder()
                         .add("externalIdentifier", "doi:10.1234/5678")
                         .add("identifierScheme", "DOI")
+                        .add("relatedDatasetType", Json.createObjectBuilder().add("displayName", "Dataset"))
                         .add("relationType", Json.createObjectBuilder().add("name", "isRelatedTo")))
                 .build();
 
@@ -645,11 +660,25 @@ public class DatasetRelationsIT {
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("totalCount", equalTo(2))
                 .body("data.items", hasSize(2))
-                .body("data.items.relatedDatasetPid", hasItem(pidB))
-                .body("data.items.externalIdentifier", hasItem("doi:10.1234/5678"))
-                .body("data.items.identifierScheme", hasItem("DOI"))
-                .body("data.items.relatedDatasetType.name", hasItem("dataset"))
-                .body("data.items.relatedDatasetType.displayName", hasItem("Dataset"));
+                .body("data.items[1].relatedDatasetPid", equalTo(pidB))
+                .body("data.items[1].relatedDatasetType.name", equalTo("dataset"))
+                .body("data.items[1].relatedDatasetType.displayName", equalTo("Dataset"))
+                .body("data.items[0].externalIdentifier", equalTo("doi:10.1234/5678"))
+                .body("data.items[0].identifierScheme", equalTo("DOI"))
+                .body("data.items[0].relatedDatasetType.name", equalTo(null))
+                .body("data.items[0].relatedDatasetType.displayName", equalTo("Dataset"));
+
+        // An external type matching an internal type's display name shares its facet value
+        UtilIT.listDatasetRelations(pidA, null, null, null, null, null, null, apiTokenSuperuser, true)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("data.facets.datasetType", hasSize(1))
+                .body("data.facets.datasetType[0].name", equalTo("dataset"))
+                .body("data.facets.datasetType[0].displayName", equalTo("Dataset"))
+                .body("data.facets.datasetType[0].count", equalTo(2));
+
+        UtilIT.listDatasetRelations(pidA, null, null, List.of("dataset"), null, null, null, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("totalCount", equalTo(2));
     }
 
     @Test

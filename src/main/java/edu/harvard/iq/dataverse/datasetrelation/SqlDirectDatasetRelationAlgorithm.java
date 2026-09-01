@@ -91,11 +91,16 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
             " ) ";
 
     private static final String JOIN_DATASET_TYPES = 
-            " JOIN dataset d_related ON (CASE WHEN dr.dataset_id = ? THEN dr.relateddataset_id ELSE dr.dataset_id END) = d_related.id " +
-            " JOIN datasettype dt ON d_related.datasettype_id = dt.id ";
+            " LEFT JOIN dataset d_related ON dr.relation_source = 'internal' " +
+            "     AND (CASE WHEN dr.dataset_id = ? THEN dr.relateddataset_id ELSE dr.dataset_id END) = d_related.id " +
+            " LEFT JOIN datasettype dt ON d_related.datasettype_id = dt.id " +
+            "     OR (dr.relation_source = 'external' AND dt.displayname = dr.datasettype " +
+            "         AND NOT EXISTS (SELECT 1 FROM datasettype duplicate_dt " +
+            "                         WHERE duplicate_dt.displayname = dt.displayname AND duplicate_dt.id <> dt.id)) ";
 
     private static final String WHERE_DATASET_TYPE_MATCHES = 
-            " (dr.relation_source = 'internal' AND dt.name IN (?)) ";
+            " ((dr.relation_source = 'internal' AND dt.name IN (?)) " +
+            " OR (dr.relation_source = 'external' AND (dr.datasettype IN (?) OR dt.name IN (?)))) ";
 
     private static final String WHERE_RELATION_SOURCE_MATCHES =
             " (dr.relation_source IN (?)) ";
@@ -171,6 +176,15 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
         
         if (datasetTypeNames != null && !datasetTypeNames.isEmpty()) {
             // WHERE_DATASET_TYPE_MATCHES
+            for (String typeName : datasetTypeNames) {
+                query.setParameter(i++, typeName);
+            }
+            for (String typeName : datasetTypeNames) {
+                query.setParameter(i++, typeName);
+            }
+            for (String typeName : datasetTypeNames) {
+                query.setParameter(i++, typeName);
+            }
             for (String typeName : datasetTypeNames) {
                 query.setParameter(i++, typeName);
             }
@@ -256,6 +270,12 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
             for (String typeName : datasetTypeNames) {
                 query.setParameter(i++, typeName);
             }
+            for (String typeName : datasetTypeNames) {
+                query.setParameter(i++, typeName);
+            }
+            for (String typeName : datasetTypeNames) {
+                query.setParameter(i++, typeName);
+            }
         }
 
         if (relationSources != null && !relationSources.isEmpty()) {
@@ -274,9 +294,11 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
             List<String> relationTypeNames, List<String> datasetTypeNames, List<String> relationSources) {
         boolean groupByDatasetType = "datasetType".equals(groupBy);
         boolean needsRelationTypes = !groupByDatasetType || (relationTypeNames != null && !relationTypeNames.isEmpty());
-        boolean needsDatasetTypes = groupByDatasetType || (datasetTypeNames != null && !datasetTypeNames.isEmpty());
+        boolean needsDatasetTypes = datasetTypeNames != null && !datasetTypeNames.isEmpty();
         String select = groupByDatasetType
-                ? " SELECT dt.name, dt.displayname, dt.description, COUNT(*) "
+                ? " SELECT CASE WHEN dr.relation_source = 'external' AND dt.id IS NULL THEN NULL ELSE dt.name END, "
+                        + "CASE WHEN dr.relation_source = 'external' AND dt.id IS NULL THEN dr.datasettype ELSE dt.displayname END, "
+                        + "CASE WHEN dr.relation_source = 'external' AND dt.id IS NULL THEN NULL ELSE dt.description END, COUNT(*) "
                 : " SELECT CASE WHEN dr.dataset_id = ? THEN rt.name ELSE inv.name END, "
                         + "CASE WHEN dr.dataset_id = ? THEN rt.displayname ELSE inv.displayname END, "
                         + "CASE WHEN dr.dataset_id = ? THEN rt.description ELSE inv.description END, COUNT(*) ";
@@ -290,7 +312,9 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
         if (needsRelationTypes) {
             sql.append(JOIN_RELATION_TYPES);
         }
-        if (needsDatasetTypes) {
+        if (groupByDatasetType) {
+            sql.append(JOIN_DATASET_TYPES);
+        } else if (needsDatasetTypes) {
             sql.append(JOIN_DATASET_TYPES);
         }
         sql.append(" WHERE 1 = 1 ");
@@ -307,8 +331,8 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
                     "(" + relationSources.stream().map(n -> "?").collect(Collectors.joining(",")) + ")"));
         }
         if (groupByDatasetType) {
-            sql.append(" AND dr.relation_source = 'internal' GROUP BY dt.name, dt.displayname, dt.description ")
-                    .append(" ORDER BY COUNT(*) DESC, dt.name ASC ");
+            sql.append(" AND (dr.relation_source = 'internal' OR dr.datasettype IS NOT NULL) ")
+                    .append(" GROUP BY 1, 2, 3 ORDER BY COUNT(*) DESC, 1 ASC ");
         } else {
             sql.append(" GROUP BY 1, 2, 3 ORDER BY COUNT(*) DESC, 1 ASC ");
         }
@@ -325,7 +349,7 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
             query.setParameter(i++, d.getId());
             query.setParameter(i++, d.getId());
         }
-        if (needsDatasetTypes) {
+        if (groupByDatasetType || needsDatasetTypes) {
             query.setParameter(i++, d.getId());
         }
         if (relationTypeNames != null && !relationTypeNames.isEmpty()) {
@@ -339,6 +363,9 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
             }
         }
         if (datasetTypeNames != null && !datasetTypeNames.isEmpty()) {
+            for (String typeName : datasetTypeNames) {
+                query.setParameter(i++, typeName);
+            }
             for (String typeName : datasetTypeNames) {
                 query.setParameter(i++, typeName);
             }
