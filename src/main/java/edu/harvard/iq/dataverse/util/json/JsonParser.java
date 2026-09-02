@@ -446,6 +446,10 @@ public class JsonParser {
         DatasetVersion dsv = new DatasetVersion();
         dsv.setDataset(dataset);
         dsv = parseDatasetVersion(obj.getJsonObject("datasetVersion"), dsv);
+        List<DatasetRelation> relations = parseDatasetRelations(obj.getJsonObject("datasetVersion"), dsv);
+        if (relations != null) {
+            dsv.setRelations(relations);
+        }
         List<DatasetVersion> versions = new ArrayList<>(1);
         versions.add(dsv);
 
@@ -566,25 +570,38 @@ public class JsonParser {
                 dsv.setFileMetadatas(parseFiles(filesJson, dsv));
             }
 
-            JsonArray relationsJson = obj.getJsonArray("relations");
-            if (relationsJson != null) {
-                List<DatasetRelation> relations = new ArrayList<>();
-                for (JsonObject relationJson : relationsJson.getValuesAs(JsonObject.class)) {
-                    DatasetRelation relation = datasetRelationService.fromDTO(parseDatasetRelationDTO(relationJson), dsv);
-                    if (relation == null) {
-                        throw new JsonParseException(BundleUtil.getStringFromBundle("datasets.api.datasetRelation.error.invalid"));
-                    }
-                    relations.add(relation);
-                }
-                dsv.setRelations(relations);
-            }
-
             return dsv;
         } catch (ParseException ex) {
             throw new JsonParseException(BundleUtil.getStringFromBundle("jsonparser.error.parsing.date", Arrays.asList(ex.getMessage())) , ex);
         } catch (NumberFormatException ex) {
             throw new JsonParseException(BundleUtil.getStringFromBundle("jsonparser.error.parsing.number", Arrays.asList(ex.getMessage())), ex);
         }
+    }
+
+    public List<DatasetRelationDTO> parseDatasetRelationDTOs(JsonObject obj) {
+        JsonArray relationsJson = obj.getJsonArray("relations");
+        if (relationsJson == null) {
+            return null;
+        }
+        return relationsJson.getValuesAs(JsonObject.class).stream()
+                .map(this::parseDatasetRelationDTO)
+                .toList();
+    }
+
+    public List<DatasetRelation> parseDatasetRelations(JsonObject obj, DatasetVersion dsv) throws JsonParseException {
+        List<DatasetRelationDTO> relationDTOs = parseDatasetRelationDTOs(obj);
+        if (relationDTOs == null) {
+            return null;
+        }
+        List<DatasetRelation> relations = new ArrayList<>();
+        for (DatasetRelationDTO relationDTO : relationDTOs) {
+            DatasetRelation relation = datasetRelationService.fromDTO(relationDTO, dsv);
+            if (relation == null) {
+                throw new JsonParseException(BundleUtil.getStringFromBundle("datasets.api.datasetRelation.error.invalid"));
+            }
+            relations.add(relation);
+        }
+        return relations;
     }
 
     public Guestbook parseGuestbook(JsonObject obj, Guestbook gb) throws JsonParseException {

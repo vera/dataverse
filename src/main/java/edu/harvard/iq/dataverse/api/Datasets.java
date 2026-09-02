@@ -18,7 +18,6 @@ import edu.harvard.iq.dataverse.dataaccess.*;
 import edu.harvard.iq.dataverse.datacapturemodule.DataCaptureModuleUtil;
 import edu.harvard.iq.dataverse.datacapturemodule.ScriptRequestResponse;
 import edu.harvard.iq.dataverse.dataset.*;
-import edu.harvard.iq.dataverse.datasetrelation.DatasetRelation;
 import edu.harvard.iq.dataverse.datasetutility.AddReplaceFileHelper;
 import edu.harvard.iq.dataverse.datasetutility.DataFileTagException;
 import edu.harvard.iq.dataverse.datasetutility.NoFilesException;
@@ -834,6 +833,7 @@ public class Datasets extends AbstractApiBean {
             DataverseRequest req = createDataverseRequest(getRequestUser(crc));
             Dataset ds = findDatasetOrDie(id);
             JsonObject json = JsonUtil.getJsonObject(jsonBody);
+            List<DatasetRelationDTO> relationDTOs = jsonParser().parseDatasetRelationDTOs(json);
             DatasetVersion incomingVersion = new DatasetVersion();
             incomingVersion.setDataset(ds);
             incomingVersion = jsonParser().parseDatasetVersion(json, incomingVersion);
@@ -848,12 +848,7 @@ public class Datasets extends AbstractApiBean {
             incomingVersion.setCreateTime(null);
             incomingVersion.setLastUpdateTime(null);
 
-            if (incomingVersion.getRelations() != null
-                    && datasetRelationSvc.containsDuplicates(incomingVersion.getRelations())) {
-                return error(Response.Status.BAD_REQUEST,
-                        BundleUtil.getStringFromBundle("datasets.api.datasetRelation.error.duplicate"));
-            }
-            if (incomingVersion.getRelations() != null
+            if (relationDTOs != null
                     && !permissionSvc.permissionsFor(req, ds).contains(Permission.EditDatasetRelations)) {
                 return unauthorized(BundleUtil.getStringFromBundle("datasets.api.datasetRelation.error.editNotAuthorized"));
             }
@@ -871,14 +866,6 @@ public class Datasets extends AbstractApiBean {
                 editVersion.setTermsOfUseAndAccess(incomingVersion.getTermsOfUseAndAccess());
                 editVersion.getTermsOfUseAndAccess().setDatasetVersion(editVersion);
 
-                List<DatasetRelation> newRelations = incomingVersion.getRelations();
-                if (newRelations != null) {
-                    for (DatasetRelation rel : newRelations) {
-                        rel.setDefinitionPoint(editVersion);
-                    }
-                    editVersion.setRelations(newRelations);
-                }
-
                 boolean hasValidTerms = TermsOfUseAndAccessValidator.isTOUAValid(editVersion.getTermsOfUseAndAccess(), null);
                 if (!hasValidTerms) {
                     return error(Status.CONFLICT, BundleUtil.getStringFromBundle("dataset.message.toua.invalid"));
@@ -886,7 +873,7 @@ public class Datasets extends AbstractApiBean {
                 Dataset managedDataset = execCommand(new UpdateDatasetVersionCommand(ds, req));
                 managedVersion = managedDataset.getOrCreateEditVersion();
             } else {
-                if (incomingVersion.getRelations() == null && ds.getLatestVersion().getRelations() != null) {
+                if (relationDTOs == null && ds.getLatestVersion().getRelations() != null) {
                     DatasetVersion newDraft = incomingVersion;
                     incomingVersion.setRelations(ds.getLatestVersion().getRelations().stream()
                             .map(relation -> relation.copy(newDraft))
@@ -897,6 +884,9 @@ public class Datasets extends AbstractApiBean {
                     return error(Status.CONFLICT, BundleUtil.getStringFromBundle("dataset.message.toua.invalid"));
                 }
                 managedVersion = execCommand(new CreateDatasetVersionCommand(req, ds, incomingVersion));
+            }
+            if (relationDTOs != null) {
+                execCommand(new ReplaceDatasetRelationsCommand(managedVersion, relationDTOs, req));
             }
             return ok( json(managedVersion, true) );
 

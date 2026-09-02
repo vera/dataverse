@@ -23,6 +23,7 @@ import edu.harvard.iq.dataverse.GlobalId;
 import edu.harvard.iq.dataverse.MetadataBlockServiceBean;
 import edu.harvard.iq.dataverse.api.dto.DatasetDTO;
 import edu.harvard.iq.dataverse.api.imports.ImportUtil.ImportType;
+import edu.harvard.iq.dataverse.datasetrelation.DatasetRelation;
 import edu.harvard.iq.dataverse.datasetrelation.DatasetRelationServiceBean;
 import edu.harvard.iq.dataverse.dataset.DatasetTypeServiceBean;
 import edu.harvard.iq.dataverse.engine.command.DataverseRequest;
@@ -363,7 +364,12 @@ public class ImportServiceBean {
                 
                 // We will attempt to import the new version, and replace the 
                 // current, already existing version with it.                
-                harvestedVersion = parser.parseDatasetVersion(obj.getJsonObject("datasetVersion"));
+                JsonObject datasetVersionJson = obj.getJsonObject("datasetVersion");
+                harvestedVersion = parser.parseDatasetVersion(datasetVersionJson);
+                List<DatasetRelation> relations = parser.parseDatasetRelations(datasetVersionJson, harvestedVersion);
+                if (relations != null) {
+                    harvestedVersion.setRelations(relations);
+                }
                 
                 // For the purposes of validation, the version needs to be attached
                 // to a non-null dataset. We will create a throwaway temporary 

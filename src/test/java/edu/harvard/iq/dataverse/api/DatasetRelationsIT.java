@@ -1164,6 +1164,10 @@ public class DatasetRelationsIT {
         UtilIT.updateDatasetMetadataViaNative(pid, updatedVersionData, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode());
 
+        // Replacing a draft with the same relations again must not create duplicates
+        UtilIT.updateDatasetMetadataViaNative(pid, updatedVersionData, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode());
+
         // Try to upload invalid relations
         // Should be 400
         JsonObject unknownRelationTypeVersion = Json.createObjectBuilder(updatedVersionData)
