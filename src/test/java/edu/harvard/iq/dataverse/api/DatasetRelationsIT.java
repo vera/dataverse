@@ -1149,6 +1149,17 @@ public class DatasetRelationsIT {
                 .body("data.relations[0].externalIdentifier", equalTo(externalUrl1))
                 .body("data.relations[0].relationType.name", equalTo("isRelatedTo"));
 
+        // Native JSON imports use the same relation entity parsing as dataset creation
+        String importedPid = "doi:10.5072/FK2/" + UtilIT.getRandomString(6);
+        Response importedDataset = UtilIT.importDatasetNativeJson(apiTokenSuperuser, dataverseAlias,
+                datasetData.toString(), importedPid, "no");
+        importedDataset.then().assertThat().statusCode(CREATED.getStatusCode());
+        UtilIT.getDatasetVersion(importedPid, ":draft", apiTokenSuperuser, false, false, false, false)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("data.relations", hasSize(1))
+                .body("data.relations[0].externalIdentifier", equalTo(externalUrl1))
+                .body("data.relations[0].relationType.name", equalTo("isRelatedTo"));
+
         // Update dataset with NEW relations via PUT api/datasets/:persistentId/versions/:draft
         String externalUrl2 = "https://example.org/dataset/2";
 
@@ -1210,6 +1221,13 @@ public class DatasetRelationsIT {
                 .body("data.relations", hasSize(1))
                 .body("data.relations[0].externalIdentifier", equalTo(externalUrl2))
                 .body("data.relations[0].relationType.name", equalTo("isSupplementTo"));
+
+        // Harvestable native JSON exports include relations
+        UtilIT.exportDataset(pid, "dataverse_json", true, null, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("datasetVersion.relations", hasSize(1))
+                .body("datasetVersion.relations[0].externalIdentifier", equalTo(externalUrl2))
+                .body("datasetVersion.relations[0].relationType.name", equalTo("isSupplementTo"));
     }
 
     @Test
