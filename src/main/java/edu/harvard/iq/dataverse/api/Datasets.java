@@ -857,37 +857,8 @@ public class Datasets extends AbstractApiBean {
                 return error( Response.Status.BAD_REQUEST, "You may not add files via this api.");
             }
 
-            boolean updateDraft = ds.getLatestVersion().isDraft();
-
-            DatasetVersion managedVersion;
-            if (updateDraft) {
-                final DatasetVersion editVersion = ds.getOrCreateEditVersion();
-                editVersion.setDatasetFields(incomingVersion.getDatasetFields());
-                editVersion.setTermsOfUseAndAccess(incomingVersion.getTermsOfUseAndAccess());
-                editVersion.getTermsOfUseAndAccess().setDatasetVersion(editVersion);
-
-                boolean hasValidTerms = TermsOfUseAndAccessValidator.isTOUAValid(editVersion.getTermsOfUseAndAccess(), null);
-                if (!hasValidTerms) {
-                    return error(Status.CONFLICT, BundleUtil.getStringFromBundle("dataset.message.toua.invalid"));
-                }
-                Dataset managedDataset = execCommand(new UpdateDatasetVersionCommand(ds, req));
-                managedVersion = managedDataset.getOrCreateEditVersion();
-            } else {
-                if (relationDTOs == null && ds.getLatestVersion().getRelations() != null) {
-                    DatasetVersion newDraft = incomingVersion;
-                    incomingVersion.setRelations(ds.getLatestVersion().getRelations().stream()
-                            .map(relation -> relation.copy(newDraft))
-                            .toList());
-                }
-                boolean hasValidTerms = TermsOfUseAndAccessValidator.isTOUAValid(incomingVersion.getTermsOfUseAndAccess(), null);
-                if (!hasValidTerms) {
-                    return error(Status.CONFLICT, BundleUtil.getStringFromBundle("dataset.message.toua.invalid"));
-                }
-                managedVersion = execCommand(new CreateDatasetVersionCommand(req, ds, incomingVersion));
-            }
-            if (relationDTOs != null) {
-                execCommand(new ReplaceDatasetRelationsCommand(managedVersion, relationDTOs, req));
-            }
+            DatasetVersion managedVersion = execCommand(
+                    new UpdateDatasetVersionWithRelationsCommand(ds, incomingVersion, relationDTOs, req));
             return ok( json(managedVersion, true) );
 
         } catch (JsonParseException ex) {

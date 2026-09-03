@@ -7,6 +7,7 @@ import io.restassured.response.Response;
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
+import jakarta.json.JsonValue;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -1202,7 +1203,26 @@ public class DatasetRelationsIT {
                         .add(Json.createObjectBuilder()
                                 .add("relatedDatasetPid", "doi:10.5072/FK2/DOESNOTEXIST")))
                 .build();
-        UtilIT.updateDatasetMetadataViaNative(pid, unknownRelatedDatasetVersion, apiTokenSuperuser)
+
+        // Change metadata in the same request as the invalid relation
+        // The entire update should roll back
+        JsonObject citation = updatedVersionData.getJsonObject("metadataBlocks").getJsonObject("citation");
+        jakarta.json.JsonArrayBuilder changedFields = Json.createArrayBuilder();
+        for (JsonValue fieldValue : citation.getJsonArray("fields")) {
+            JsonObject field = (JsonObject) fieldValue;
+            if ("title".equals(field.getString("typeName"))) {
+                changedFields.add(Json.createObjectBuilder(field).add("value", "This title must not persist"));
+            } else {
+                changedFields.add(field);
+            }
+        }
+        JsonObject changedMetadataBlocks = Json.createObjectBuilder(updatedVersionData.getJsonObject("metadataBlocks"))
+                .add("citation", Json.createObjectBuilder(citation).add("fields", changedFields))
+                .build();
+        JsonObject invalidRelationAndMetadata = Json.createObjectBuilder(unknownRelatedDatasetVersion)
+                .add("metadataBlocks", changedMetadataBlocks)
+                .build();
+        UtilIT.updateDatasetMetadataViaNative(pid, invalidRelationAndMetadata, apiTokenSuperuser)
                 .then().assertThat().statusCode(BAD_REQUEST.getStatusCode());
 
         // Read again and verify relations are updated
@@ -1210,6 +1230,7 @@ public class DatasetRelationsIT {
                 .then().assertThat().statusCode(OK.getStatusCode())
                 .body("data.relations", hasSize(1))
                 .body("data.relations[0].externalIdentifier", equalTo(externalUrl2))
+                .body("data.metadataBlocks.citation.fields.find { it.typeName == 'title' }.value", equalTo("Dataset with Relations"))
                 .body("data.relations[0].relationType.name", equalTo("isSupplementTo"));
 
         UtilIT.publishDatasetViaNativeApi(pid, "major", apiTokenSuperuser)
