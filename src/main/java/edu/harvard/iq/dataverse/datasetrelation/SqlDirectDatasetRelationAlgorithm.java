@@ -185,9 +185,6 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
             for (String typeName : datasetTypeNames) {
                 query.setParameter(i++, typeName);
             }
-            for (String typeName : datasetTypeNames) {
-                query.setParameter(i++, typeName);
-            }
         }
 
         if (relationSources != null && !relationSources.isEmpty()) {
@@ -363,6 +360,9 @@ public class SqlDirectDatasetRelationAlgorithm implements DatasetRelationAlgorit
             }
         }
         if (datasetTypeNames != null && !datasetTypeNames.isEmpty()) {
+            for (String typeName : datasetTypeNames) {
+                query.setParameter(i++, typeName);
+            }
             for (String typeName : datasetTypeNames) {
                 query.setParameter(i++, typeName);
             }

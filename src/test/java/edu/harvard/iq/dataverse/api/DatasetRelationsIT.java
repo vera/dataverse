@@ -313,6 +313,12 @@ public class DatasetRelationsIT {
                 .body("totalCount", equalTo(1))
                 .body("data.items[0].relatedDatasetPid", equalTo(pidB));
 
+        // Filter by source=internal and type=dataset -> Expect 1
+        UtilIT.listDatasetRelations(pidA, null, null, List.of("dataset"), List.of("internal"), null, null, apiTokenSuperuser)
+                .then().assertThat().statusCode(OK.getStatusCode())
+                .body("totalCount", equalTo(1))
+                .body("data.items[0].relatedDatasetPid", equalTo(pidB));
+
         // Filter by source=external -> Expect 1
         UtilIT.listDatasetRelations(pidA, null, null, null, List.of("external"), null, null, apiTokenSuperuser)
                 .then().assertThat().statusCode(OK.getStatusCode())
