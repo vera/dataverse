@@ -121,5 +121,5 @@ psql "$databaseUrl" \
 
 printf 'Seeded %s internal relations for %s (dataset ID %s, version ID %s).\n' \
     "$relationCount" "$targetDatasetPid" "$targetDatasetId" "$targetVersionId"
-printf 'Measure with: %s/measure-list.sh -b %s -p %s -k <api-token>\n' \
+printf 'Measure with: %s/measure-list.sh -b %s -p %s \n' \
     "$scriptDirectory" "$baseUrl" "$targetDatasetPid"

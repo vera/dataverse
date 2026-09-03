@@ -2,30 +2,32 @@
 set -eu
 
 usage() {
-    echo "Usage: $0 -b BASE_URL -p DATASET_PID -k API_TOKEN [-r REQUESTS] [-w WARMUPS]" >&2
+    echo "Usage: $0 -b BASE_URL -p DATASET_PID [-l LIMIT] [-m INCLUDE_METADATA_BLOCKS] [-r REQUESTS] [-w WARMUPS]" >&2
     exit 1
 }
 
 baseUrl=
 datasetPid=
-apiToken=
 requests=20
 warmups=5
+limit=10
+includeMetadataBlocks=false
 connectTimeout=10
 requestTimeout=120
 
-while getopts "b:p:k:r:w:" option; do
+while getopts "b:p:l:m:r:w:" option; do
     case "$option" in
         b) baseUrl=$OPTARG ;;
         p) datasetPid=$OPTARG ;;
-        k) apiToken=$OPTARG ;;
+        l) limit=$OPTARG ;;
+        m) includeMetadataBlocks=$OPTARG ;;
         r) requests=$OPTARG ;;
         w) warmups=$OPTARG ;;
         *) usage ;;
     esac
 done
 
-[ -n "$baseUrl" ] && [ -n "$datasetPid" ] && [ -n "$apiToken" ] || usage
+[ -n "$baseUrl" ] && [ -n "$datasetPid" ] || usage
 
 resultsFile=$(mktemp)
 trap 'rm -f "$resultsFile"' EXIT
@@ -34,8 +36,8 @@ request() {
     responseFile=$(mktemp)
     if ! response=$(curl --silent --show-error --output "$responseFile" --write-out '%{http_code} %{time_total}' \
         --connect-timeout "$connectTimeout" --max-time "$requestTimeout" \
-        --header "X-Dataverse-key: $apiToken" \
-        --get --data-urlencode "persistentId=$datasetPid" --data "limit=10" \
+        --get --data-urlencode "persistentId=$datasetPid" --data "limit=$limit" \
+        --data "includeMetadataBlocks=$includeMetadataBlocks" \
         "$baseUrl/api/datasets/:persistentId/relations"); then
         response='000 0'
     fi

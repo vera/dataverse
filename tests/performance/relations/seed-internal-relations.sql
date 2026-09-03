@@ -125,11 +125,11 @@ BEGIN
     );
 
     INSERT INTO datasetrelation (dataset_id, definitionpoint_id, relation_source, relateddataset_id, relationtype_id)
-    SELECT CASE WHEN source.dataset_id < targetDatasetId THEN source.dataset_id ELSE targetDatasetId END,
+    SELECT source.dataset_id,
            source.version_id,
            'internal',
-           CASE WHEN source.dataset_id < targetDatasetId THEN targetDatasetId ELSE source.dataset_id END,
-           CASE WHEN source.dataset_id < targetDatasetId THEN relationTypeId ELSE inverseRelationTypeId END
+           targetDatasetId,
+           relationTypeId
     FROM relation_benchmark_sources source;
 
 END;
